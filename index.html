@@ -451,6 +451,44 @@ textarea{resize:none;font-family:inherit}
   </div>
 </div>
 
+<!-- MODAL EDITAR PRODUCTO -->
+<div class="modal-bg" id="m-edprod">
+  <div class="modal">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div class="mt"><i class="ti ti-pencil"></i> Editar producto</div>
+      <button onclick="cerrarModal('m-edprod')" style="background:none;border:none;cursor:pointer;color:var(--text-secondary);font-size:18px"><i class="ti ti-x"></i></button>
+    </div>
+    <input type="hidden" id="ep-id">
+    <div class="fr">
+      <div class="fg"><div class="fl">Nombre *</div><input type="text" id="ep-n" placeholder="Nombre del producto"></div>
+      <div class="fg"><div class="fl">Marca</div><input type="text" id="ep-m" placeholder="Ej: Carter's"></div>
+    </div>
+    <div class="fr">
+      <div class="fg">
+        <div class="fl">Género</div>
+        <select id="ep-g">
+          <option value="Unisex">Unisex</option>
+          <option value="Niño">Niño</option>
+          <option value="Niña">Niña</option>
+        </select>
+      </div>
+      <div class="fg"><div class="fl">Talla</div><input type="text" id="ep-t" placeholder="Ej: 2T, 0-3m, S"></div>
+    </div>
+    <div class="fg"><div class="fl">Características</div><input type="text" id="ep-c" placeholder="Color, material, etc."></div>
+    <div class="fr">
+      <div class="fg"><div class="fl">P. compra $</div><input type="number" id="ep-pc" placeholder="0.00" min="0" oninput="calcMargenEdit()"></div>
+      <div class="fg"><div class="fl">P. venta $</div><input type="number" id="ep-pv" placeholder="0.00" min="0" oninput="calcMargenEdit()"></div>
+    </div>
+    <div id="ep-margen-blq" style="display:none;background:var(--bg-secondary);border-radius:var(--radius-sm);padding:7px 10px;font-size:11px">
+      Margen: <strong style="color:var(--green)" id="ep-margen">0%</strong>
+    </div>
+    <button class="add-btn" onclick="guardarEditProd()"><i class="ti ti-check"></i>Guardar cambios</button>
+    <div class="toast tok" id="t-eprod">✓ Producto actualizado correctamente</div>
+    <div class="toast terr" id="t-eprod-err">Error al actualizar producto</div>
+    <div class="toast terr" id="t-eprod-dup">⚠ Ya existe otro producto con esa combinación</div>
+  </div>
+</div>
+
 <!-- MODAL REPORTE -->
 <div class="modal-bg" id="m-reporte">
   <div class="modal">
@@ -949,6 +987,7 @@ function renderInvChunk(f, start, size, el){
       '<div style="text-align:right;flex-shrink:0">'+
         '<div style="font-size:11px;font-weight:700;color:var(--text-primary)">'+p.stock+' uds.</div>'+
         (p.stock<=3?'<span class="badge badge-low">bajo</span>':'')+
+        (rol==='admin'?'<br><button onclick="abrirEditProd(\''+p.id+'\')" style="margin-top:4px;font-size:10px;padding:2px 8px;border-radius:20px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-secondary);cursor:pointer"><i class="ti ti-pencil"></i> Editar</button>':'')+
       '</div>';
     frag.appendChild(div);
   }
@@ -1254,8 +1293,76 @@ function cambiarPin(r){
 }
 
 // ═══════════════════════════════════════════════════
-// RESET BASE DE DATOS
+// EDITAR PRODUCTO (solo admin)
 // ═══════════════════════════════════════════════════
+function abrirEditProd(id){
+  const p=inventario.find(x=>x.id===id);
+  if(!p) return;
+  document.getElementById('ep-id').value=p.id;
+  document.getElementById('ep-n').value=p.nombre;
+  document.getElementById('ep-m').value=p.marca||'';
+  document.getElementById('ep-g').value=p.genero||'Unisex';
+  document.getElementById('ep-t').value=p.talla||'';
+  document.getElementById('ep-c').value=p.caract||'';
+  document.getElementById('ep-pc').value=p.costo||'';
+  document.getElementById('ep-pv').value=p.precio||'';
+  calcMargenEdit();
+  abrirModal('m-edprod');
+}
+
+function calcMargenEdit(){
+  const pc=parseFloat(document.getElementById('ep-pc').value)||0;
+  const pv=parseFloat(document.getElementById('ep-pv').value)||0;
+  const blq=document.getElementById('ep-margen-blq');
+  if(pc>0&&pv>0){
+    const margen=Math.round((pv-pc)/pv*100);
+    document.getElementById('ep-margen').textContent=margen+'%';
+    document.getElementById('ep-margen').style.color=margen>=0?'var(--green)':'var(--red)';
+    blq.style.display='block';
+  } else {
+    blq.style.display='none';
+  }
+}
+
+async function guardarEditProd(){
+  const id=document.getElementById('ep-id').value;
+  const n=document.getElementById('ep-n').value.trim();
+  const m=document.getElementById('ep-m').value.trim()||'Sin marca';
+  const g=document.getElementById('ep-g').value||'Unisex';
+  const t=document.getElementById('ep-t').value.trim();
+  const c=document.getElementById('ep-c').value.trim()||'Sin especificaciones';
+  const pc=parseFloat(document.getElementById('ep-pc').value)||0;
+  const pv=parseFloat(document.getElementById('ep-pv').value)||0;
+  if(!n||!pv){alert('Nombre y precio de venta son obligatorios');return;}
+  // Validar duplicado (excluyendo el producto actual)
+  const dup=inventario.find(p=>
+    p.id!==id &&
+    p.nombre.toLowerCase()===n.toLowerCase()&&
+    p.marca.toLowerCase()===m.toLowerCase()&&
+    (p.talla||'').toLowerCase()===(t||'').toLowerCase()&&
+    (p.genero||'').toLowerCase()===(g||'').toLowerCase()
+  );
+  if(dup){showT('t-eprod-dup');return;}
+  const idx=inventario.findIndex(p=>p.id===id);
+  if(idx<0) return;
+  const p=inventario[idx];
+  const rowIdx=prodRowMap[id];
+  if(!rowIdx){showT('t-eprod-err');return;}
+  showSync('Actualizando producto en la nube...');
+  const res=await apiCall({action:'update',sheet:'Productos',rowIndex:rowIdx,
+    row:JSON.stringify([id,n,m,g,t,c,p.stock,pc,pv,p.icon||'ti-tag'])});
+  if(res&&res.status==='ok'){
+    p.nombre=n; p.marca=m; p.genero=g; p.talla=t; p.caract=c; p.costo=pc; p.precio=pv;
+    p._search=(id+' '+n+' '+m+' '+g+' '+t).toLowerCase();
+    cerrarModal('m-edprod');
+    showT('t-eprod');
+    updMetrics(); renderInv();
+  } else {
+    showT('t-eprod-err');
+  }
+}
+
+
 function confirmarReset(){
   const opciones=[];
   if(document.getElementById('rst-ventas').checked) opciones.push('Ventas');
@@ -1306,6 +1413,7 @@ function cerrarModal(id){
   document.getElementById(id).classList.remove('open');
   if(id==='m-cliente')['cl-id','cl-n','cl-t','cl-d','cl-e'].forEach(f=>{const el=document.getElementById(f);if(el)el.value='';});
   if(id==='m-reset'){const el=document.getElementById('rst-confirm');if(el)el.value='';}
+  if(id==='m-edprod')['ep-id','ep-n','ep-m','ep-t','ep-c','ep-pc','ep-pv'].forEach(f=>{const el=document.getElementById(f);if(el)el.value='';});
 }
 
 // ═══════════════════════════════════════════════════
