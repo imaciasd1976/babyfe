@@ -385,6 +385,49 @@ textarea{resize:none;font-family:inherit}
       <div class="toast terr" id="t-prod-err">Error al guardar producto</div>
       <div class="toast terr" id="t-prod-dup">⚠ Ya existe un producto con ese nombre</div>
     </div>
+
+    <div class="slabel">Zona de peligro</div>
+    <div style="background:var(--red-light);border:1px solid var(--red);border-radius:var(--radius);padding:11px;display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="pimg" style="background:#fff;color:var(--red)"><i class="ti ti-trash"></i></div>
+        <div style="flex:1">
+          <div style="font-size:12px;font-weight:700;color:var(--red)">Resetear base de datos</div>
+          <div style="font-size:10px;color:var(--text-secondary);margin-top:2px">Borra todos los datos de Ventas, Caja, Clientes, Compras y Productos. Esta acción no se puede deshacer.</div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <label style="display:flex;align-items:center;gap:8px;font-size:11px;cursor:pointer"><input type="checkbox" id="rst-ventas" style="width:auto;accent-color:var(--red)"> Ventas</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:11px;cursor:pointer"><input type="checkbox" id="rst-caja" style="width:auto;accent-color:var(--red)"> Caja</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:11px;cursor:pointer"><input type="checkbox" id="rst-clientes" style="width:auto;accent-color:var(--red)"> Clientes</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:11px;cursor:pointer"><input type="checkbox" id="rst-compras" style="width:auto;accent-color:var(--red)"> Compras</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:11px;cursor:pointer"><input type="checkbox" id="rst-productos" style="width:auto;accent-color:var(--red)"> Productos</label>
+      </div>
+      <button class="red-btn" onclick="confirmarReset()"><i class="ti ti-alert-triangle"></i>Resetear selección</button>
+      <div class="toast tok" id="t-rst">✓ Datos eliminados correctamente</div>
+      <div class="toast terr" id="t-rst-err">Error al eliminar datos</div>
+      <div class="toast twarn" id="t-rst-none">Selecciona al menos una opción</div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL RESET CONFIRMACION -->
+<div class="modal-bg" id="m-reset">
+  <div class="modal">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div class="mt" style="color:var(--red)"><i class="ti ti-alert-triangle"></i> Confirmar reset</div>
+      <button onclick="cerrarModal('m-reset')" style="background:none;border:none;cursor:pointer;color:var(--text-secondary);font-size:18px"><i class="ti ti-x"></i></button>
+    </div>
+    <div style="background:var(--red-light);border-radius:var(--radius-sm);padding:10px;font-size:12px;color:var(--red);line-height:1.6">
+      ⚠️ Estás a punto de borrar permanentemente los datos seleccionados de Google Sheets. Esta acción <strong>no se puede deshacer</strong>.
+    </div>
+    <div style="font-size:11px;color:var(--text-secondary)">Se eliminarán los datos de:</div>
+    <div id="rst-lista" style="font-size:12px;font-weight:700;color:var(--red);padding:4px 0;line-height:1.8"></div>
+    <div class="fg">
+      <div class="fl">Escribe <strong>BORRAR</strong> para confirmar</div>
+      <input type="text" id="rst-confirm" placeholder="BORRAR" style="border-color:var(--red)">
+    </div>
+    <button class="red-btn" style="background:var(--red);color:#fff" onclick="ejecutarReset()"><i class="ti ti-trash"></i>Sí, borrar todo</button>
+    <div class="toast twarn" id="t-rst-conf">Escribe BORRAR para confirmar</div>
   </div>
 </div>
 
@@ -1077,12 +1120,21 @@ async function agregarProd(){
   const pc=parseFloat(document.getElementById('np-pc').value)||0;
   const pv=parseFloat(document.getElementById('np-pv').value)||0;
   if(!n||!pv){alert('Nombre y precio de venta son obligatorios');return;}
-  // ── Validación nombre duplicado ──
-  const duplicado=inventario.find(p=>p.nombre.toLowerCase()===n.toLowerCase());
+  // ── Validación duplicado: Nombre + Marca + Talla + Género ──
+  const duplicado=inventario.find(p=>
+    p.nombre.toLowerCase()===n.toLowerCase() &&
+    p.marca.toLowerCase()===m.toLowerCase() &&
+    (p.talla||'').toLowerCase()===(talla||'').toLowerCase() &&
+    (p.genero||'').toLowerCase()===(g||'').toLowerCase()
+  );
   if(duplicado){
+    const msg='⚠ Ya existe: '+duplicado.nombre+' · '+duplicado.marca+(duplicado.talla?' · '+duplicado.talla:'')+(duplicado.genero?' · '+duplicado.genero:'');
+    document.getElementById('t-prod-dup').textContent=msg;
     showT('t-prod-dup');
-    document.getElementById('np-n').style.borderColor='var(--red)';
-    setTimeout(()=>document.getElementById('np-n').style.borderColor='',2500);
+    ['np-n','np-m','np-t','np-g'].forEach(id=>{
+      const el=document.getElementById(id);
+      if(el){el.style.borderColor='var(--red)';setTimeout(()=>el.style.borderColor='',2500);}
+    });
     return;
   }
   showSync('Guardando producto en la nube...');
@@ -1202,12 +1254,58 @@ function cambiarPin(r){
 }
 
 // ═══════════════════════════════════════════════════
-// MODALES
+// RESET BASE DE DATOS
 // ═══════════════════════════════════════════════════
+function confirmarReset(){
+  const opciones=[];
+  if(document.getElementById('rst-ventas').checked) opciones.push('Ventas');
+  if(document.getElementById('rst-caja').checked) opciones.push('Caja');
+  if(document.getElementById('rst-clientes').checked) opciones.push('Clientes');
+  if(document.getElementById('rst-compras').checked) opciones.push('Compras');
+  if(document.getElementById('rst-productos').checked) opciones.push('Productos');
+  if(!opciones.length){showT('t-rst-none');return;}
+  document.getElementById('rst-lista').innerHTML=opciones.map(o=>'• '+o).join('<br>');
+  document.getElementById('rst-confirm').value='';
+  abrirModal('m-reset');
+}
+
+async function ejecutarReset(){
+  const confirmVal=document.getElementById('rst-confirm').value.trim();
+  if(confirmVal!=='BORRAR'){showT('t-rst-conf');return;}
+  cerrarModal('m-reset');
+  showSync('Eliminando datos...');
+  const hojas=[];
+  if(document.getElementById('rst-ventas').checked) hojas.push('Ventas');
+  if(document.getElementById('rst-caja').checked) hojas.push('Caja');
+  if(document.getElementById('rst-clientes').checked) hojas.push('Clientes');
+  if(document.getElementById('rst-compras').checked) hojas.push('Compras');
+  if(document.getElementById('rst-productos').checked) hojas.push('Productos');
+  try {
+    for(const hoja of hojas){
+      await apiCall({action:'clearFrom2', sheet:hoja});
+    }
+    // Reset local state
+    if(hojas.includes('Ventas')){ventas=[];updMetrics();renderVentas();}
+    if(hojas.includes('Clientes')){clientes=[];clientesMap={};renderCli();updDl();}
+    if(hojas.includes('Productos')){inventario=[];prodRowMap={};prodId=100;updMetrics();renderInv();}
+    // Uncheck all
+    ['rst-ventas','rst-caja','rst-clientes','rst-compras','rst-productos'].forEach(id=>{
+      document.getElementById(id).checked=false;
+    });
+    showT('t-rst');
+    showSync('✓ Datos eliminados correctamente');
+  } catch(e){
+    showT('t-rst-err');
+    showSync('⚠ Error al eliminar datos', true);
+  }
+}
+
+
 function abrirModal(id){document.getElementById(id).classList.add('open');}
 function cerrarModal(id){
   document.getElementById(id).classList.remove('open');
   if(id==='m-cliente')['cl-id','cl-n','cl-t','cl-d','cl-e'].forEach(f=>{const el=document.getElementById(f);if(el)el.value='';});
+  if(id==='m-reset'){const el=document.getElementById('rst-confirm');if(el)el.value='';}
 }
 
 // ═══════════════════════════════════════════════════
