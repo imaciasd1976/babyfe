@@ -41,9 +41,12 @@ body{background:#f0f2f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',
 .badge-efectivo{background:#EAF3DE;color:#27500A}
 .badge-tarjeta{background:var(--blue-light);color:var(--blue)}
 .badge-transferencia{background:var(--orange-light);color:var(--orange)}
+.badge-mixto{background:#EEF2FF;color:#3730A3}
 .badge-low{background:var(--red-light);color:var(--red)}
 .badge-admin{background:var(--pink-light);color:var(--pink-dark)}
 .badge-oper{background:var(--blue-light);color:var(--blue)}
+.pay-btn{flex:1;padding:7px 4px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:var(--bg-primary);color:var(--text-secondary);font-size:11px;cursor:pointer;font-weight:600;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:4px}
+.pay-active{border-color:var(--pink);background:var(--pink-light);color:var(--pink)}
 .badge-cod{background:var(--bg-secondary);color:var(--text-secondary);font-family:monospace;font-size:9px}
 .badge-talla{background:#EDE9FE;color:#5B21B6}
 .pimg{width:31px;height:31px;border-radius:7px;background:var(--pink-light);display:flex;align-items:center;justify-content:center;color:var(--pink);font-size:14px;flex-shrink:0}
@@ -168,6 +171,7 @@ textarea{resize:none;font-family:inherit}
       <div class="metric"><div class="ml">Ventas hoy</div><div class="mv pink" id="m-v">$0.00</div></div>
       <div class="metric"><div class="ml">Transacciones</div><div class="mv" id="m-tx">0</div></div>
       <div class="metric"><div class="ml">Efectivo</div><div class="mv" id="m-ef">$0.00</div></div>
+      <div class="metric"><div class="ml">Transferencia</div><div class="mv" id="m-tr">$0.00</div></div>
       <div class="metric"><div class="ml">Descuentos</div><div class="mv pink" id="m-dc">$0.00</div></div>
     </div>
     <div id="blq-util" style="display:none">
@@ -196,7 +200,19 @@ textarea{resize:none;font-family:inherit}
         <div class="fg"><div class="fl">Descuento $</div><input type="number" id="v-dval" value="0" min="0" oninput="calcCarrito()"></div>
       </div>
       <div class="fg"><div class="fl">Forma de pago</div>
-        <select id="v-pago"><option value="Efectivo">Efectivo</option><option value="Tarjeta">Tarjeta</option><option value="Transferencia">Transferencia</option></select>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button type="button" id="btn-ef" onclick="selPago('Efectivo')" class="pay-btn pay-active"><i class="ti ti-cash"></i> Efectivo</button>
+          <button type="button" id="btn-tr" onclick="selPago('Transferencia')" class="pay-btn"><i class="ti ti-transfer"></i> Transferencia</button>
+          <button type="button" id="btn-mx" onclick="selPago('Mixto')" class="pay-btn"><i class="ti ti-layout-columns"></i> Mixto</button>
+        </div>
+        <input type="hidden" id="v-pago" value="Efectivo">
+        <div id="blq-mixto" style="display:none;margin-top:6px;background:var(--bg-secondary);border-radius:var(--radius-sm);padding:8px;display:none;flex-direction:column;gap:6px">
+          <div class="fr">
+            <div class="fg"><div class="fl">Efectivo $</div><input type="number" id="v-pago-ef" placeholder="0.00" min="0" oninput="calcMixto()"></div>
+            <div class="fg"><div class="fl">Transferencia $</div><input type="number" id="v-pago-tr" placeholder="0.00" min="0" oninput="calcMixto()"></div>
+          </div>
+          <div id="mixto-estado" style="font-size:10px;text-align:center;color:var(--text-secondary)">Ingresa los montos</div>
+        </div>
       </div>
       <div class="fg"><div class="fl">Cliente (opcional)</div>
         <input type="text" id="v-cli" placeholder="Nombre del cliente" list="lista-cl"><datalist id="lista-cl"></datalist>
@@ -282,7 +298,6 @@ textarea{resize:none;font-family:inherit}
     <div class="slabel">Resumen del día</div>
     <div class="card">
       <div class="cj"><span style="color:var(--text-secondary)">Efectivo</span><span style="color:var(--green);font-weight:600" id="c-ef">$0.00</span></div>
-      <div class="cj"><span style="color:var(--text-secondary)">Tarjeta</span><span style="color:var(--blue);font-weight:600" id="c-tar">$0.00</span></div>
       <div class="cj"><span style="color:var(--text-secondary)">Transferencia</span><span style="color:var(--orange);font-weight:600" id="c-trf">$0.00</span></div>
       <div class="cj"><span style="color:var(--red)">Descuentos</span><span style="color:var(--red);font-weight:600" id="c-dc">$0.00</span></div>
       <div style="display:flex;justify-content:space-between;padding:8px 0 0;font-size:14px;font-weight:700"><span>Total ventas</span><span style="color:var(--pink)" id="c-tot">$0.00</span></div>
@@ -847,6 +862,31 @@ function calcCarrito(){
   document.getElementById('v-tot').textContent='$'+tot.toFixed(2);
 }
 
+function selPago(tipo){
+  document.getElementById('v-pago').value=tipo;
+  ['ef','tr','mx'].forEach(k=>document.getElementById('btn-'+k).classList.remove('pay-active'));
+  const map={Efectivo:'ef',Transferencia:'tr',Mixto:'mx'};
+  document.getElementById('btn-'+map[tipo]).classList.add('pay-active');
+  const blq=document.getElementById('blq-mixto');
+  blq.style.display=tipo==='Mixto'?'flex':'none';
+  if(tipo!=='Mixto'){
+    ['v-pago-ef','v-pago-tr'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  }
+}
+
+function calcMixto(){
+  const ef=parseFloat(document.getElementById('v-pago-ef').value)||0;
+  const tr=parseFloat(document.getElementById('v-pago-tr').value)||0;
+  const tot=parseFloat((document.getElementById('v-tot').textContent||'').replace('$',''))||0;
+  const suma=ef+tr;
+  const est=document.getElementById('mixto-estado');
+  const diff=Math.abs(suma-tot);
+  if(suma===0){est.textContent='Ingresa los montos';est.style.color='var(--text-secondary)';}
+  else if(diff<0.01){est.textContent='✓ Montos correctos';est.style.color='var(--green)';}
+  else if(suma<tot){est.textContent='Faltan $'+( tot-suma).toFixed(2);est.style.color='var(--red)';}
+  else{est.textContent='Excede por $'+(suma-tot).toFixed(2);est.style.color='var(--orange)';}
+}
+
 async function registrarVenta(){
   if(!carrito.length){showT('t-verr');return;}
   showT('t-vwarn');
@@ -856,6 +896,18 @@ async function registrarVenta(){
   if(pct>0) dval=sub*pct/100;
   const tot=Math.max(0,sub-dval);
   const pago=document.getElementById('v-pago').value;
+  let pagoEf=0, pagoTr=0;
+  if(pago==='Efectivo'){pagoEf=tot;}
+  else if(pago==='Transferencia'){pagoTr=tot;}
+  else if(pago==='Mixto'){
+    pagoEf=parseFloat(document.getElementById('v-pago-ef').value)||0;
+    pagoTr=parseFloat(document.getElementById('v-pago-tr').value)||0;
+    const suma=pagoEf+pagoTr;
+    if(Math.abs(suma-tot)>0.01){
+      alert('Los montos del pago mixto no coinciden con el total ($'+tot.toFixed(2)+')');return;
+    }
+  }
+  const pagoStr=pago==='Mixto'?'Mixto (Ef:$'+pagoEf.toFixed(2)+' Tr:$'+pagoTr.toFixed(2)+')':pago;
   const cli=document.getElementById('v-cli').value.trim()||'Cliente general';
   const ahora=new Date();
   const fecha=ahora.toLocaleDateString('es-EC');
@@ -863,7 +915,7 @@ async function registrarVenta(){
   const costo=carrito.reduce((s,c)=>s+c.costo*c.qty,0);
   const productosStr=carrito.map(c=>{ const t=c.talla?' ('+c.talla+')':''; return c.nombre+t+'  x'+c.qty; }).join(' | ');
 
-  const row=[fecha,hora,productosStr,cli,sub.toFixed(2),dval.toFixed(2),tot.toFixed(2),pago,costo.toFixed(2)];
+  const row=[fecha,hora,productosStr,cli,sub.toFixed(2),dval.toFixed(2),tot.toFixed(2),pagoStr,costo.toFixed(2),pagoEf.toFixed(2),pagoTr.toFixed(2)];
 
   // Fire venta append + all stock updates IN PARALLEL (no re-reading 700 rows per item)
   const updatePromises=[sheetAppend('Ventas',row)];
@@ -883,7 +935,7 @@ async function registrarVenta(){
   await Promise.all(updatePromises); // All sheet writes fire simultaneously
 
   // Add local venta for metrics
-  ventas.unshift({fecha,hora,productosStr,cli,sub,dval,tot,pago,costo});
+  ventas.unshift({fecha,hora,productosStr,cli,sub,dval,tot,pago:pagoStr,pagoEf,pagoTr,costo});
 
   // Update client totals using clientesMap O(1) lookup
   if(cli!=='Cliente general'){
@@ -896,6 +948,8 @@ async function registrarVenta(){
 
   carrito=[];
   document.getElementById('v-dpct').value=0;document.getElementById('v-dval').value=0;document.getElementById('v-cli').value='';
+  ['v-pago-ef','v-pago-tr'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  selPago('Efectivo');
   renderCarrito();calcCarrito();showT('t-v');updMetrics();renderVentas();
 }
 
@@ -904,12 +958,14 @@ async function registrarVenta(){
 // ═══════════════════════════════════════════════════
 function updMetrics(){
   const tot=ventas.reduce((s,v)=>s+v.tot,0);
-  const ef=ventas.filter(v=>v.pago==='Efectivo').reduce((s,v)=>s+v.tot,0);
+  const ef=ventas.reduce((s,v)=>s+(v.pagoEf!==undefined?v.pagoEf:(v.pago==='Efectivo'?v.tot:0)),0);
+  const tr=ventas.reduce((s,v)=>s+(v.pagoTr!==undefined?v.pagoTr:(v.pago==='Transferencia'?v.tot:0)),0);
   const dc=ventas.reduce((s,v)=>s+v.dval,0);
   const co=ventas.reduce((s,v)=>s+v.costo,0);
   document.getElementById('m-v').textContent='$'+tot.toFixed(2);
   document.getElementById('m-tx').textContent=ventas.length;
   document.getElementById('m-ef').textContent='$'+ef.toFixed(2);
+  document.getElementById('m-tr').textContent='$'+tr.toFixed(2);
   document.getElementById('m-dc').textContent='$'+dc.toFixed(2);
   if(rol==='admin'){document.getElementById('m-co').textContent='$'+co.toFixed(2);document.getElementById('m-ut').textContent='$'+(tot-co).toFixed(2);}
   document.getElementById('m-pr').textContent=inventario.length;
@@ -927,7 +983,7 @@ function renderVentas(){
       </div>
       <div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:2px;margin-left:8px;flex-shrink:0">
         <div style="font-size:12px;font-weight:700;color:var(--green)">$${v.tot.toFixed(2)}</div>
-        <span class="badge badge-${v.pago.toLowerCase()}">${v.pago}</span>
+        <span class="badge badge-${v.pago.startsWith('Mixto')?'mixto':v.pago.toLowerCase()}">${v.pago.startsWith('Mixto')?'Mixto':v.pago}</span>
       </div>
     </div>`).join('');
 }
@@ -1040,14 +1096,12 @@ async function guardarCli(){
 // CAJA
 // ═══════════════════════════════════════════════════
 function renderCaja(){
-  const ef=ventas.filter(v=>v.pago==='Efectivo').reduce((s,v)=>s+v.tot,0);
-  const tar=ventas.filter(v=>v.pago==='Tarjeta').reduce((s,v)=>s+v.tot,0);
-  const trf=ventas.filter(v=>v.pago==='Transferencia').reduce((s,v)=>s+v.tot,0);
+  const ef=ventas.reduce((s,v)=>s+(v.pagoEf!==undefined?v.pagoEf:(v.pago==='Efectivo'?v.tot:0)),0);
+  const trf=ventas.reduce((s,v)=>s+(v.pagoTr!==undefined?v.pagoTr:(v.pago==='Transferencia'?v.tot:0)),0);
   const dc=ventas.reduce((s,v)=>s+v.dval,0);
   const co=ventas.reduce((s,v)=>s+v.costo,0);
-  const tot=ef+tar+trf;
+  const tot=ef+trf;
   document.getElementById('c-ef').textContent='$'+ef.toFixed(2);
-  document.getElementById('c-tar').textContent='$'+tar.toFixed(2);
   document.getElementById('c-trf').textContent='$'+trf.toFixed(2);
   document.getElementById('c-dc').textContent='$'+dc.toFixed(2);
   document.getElementById('c-tot').textContent='$'+tot.toFixed(2);
@@ -1077,7 +1131,7 @@ function renderCaja(){
 }
 
 function abrirCaja(tipo){
-  const ef=ventas.filter(v=>v.pago==='Efectivo').reduce((s,v)=>s+v.tot,0);
+  const ef=ventas.reduce((s,v)=>s+(v.pagoEf!==undefined?v.pagoEf:(v.pago==='Efectivo'?v.tot:0)),0);
   const gastos=parseFloat(document.getElementById('gastos').value)||0;
   const fondoI=cajaInicio?cajaInicio.monto:0;
   const esperado=fondoI+ef-gastos;
@@ -1138,7 +1192,7 @@ async function confirmarFin(esperado){
 function nuevaCaja(){cajaInicio=null;cajaFin=null;renderCaja();}
 
 function calcCaja(){
-  const ef=ventas.filter(v=>v.pago==='Efectivo').reduce((s,v)=>s+v.tot,0);
+  const ef=ventas.reduce((s,v)=>s+(v.pagoEf!==undefined?v.pagoEf:(v.pago==='Efectivo'?v.tot:0)),0);
   const fondoI=cajaInicio?cajaInicio.monto:0;
   const gastos=parseFloat(document.getElementById('gastos').value)||0;
   document.getElementById('c-esp').textContent='$'+(fondoI+ef-gastos).toFixed(2);
@@ -1584,22 +1638,21 @@ async function expRango() {
         return false;
       });
     }
-    const ef   = ventasRango.filter(r=>r[7]==='Efectivo').reduce((s,r)=>s+parseFloat(r[6]||0),0);
-    const tar  = ventasRango.filter(r=>r[7]==='Tarjeta').reduce((s,r)=>s+parseFloat(r[6]||0),0);
-    const trf  = ventasRango.filter(r=>r[7]==='Transferencia').reduce((s,r)=>s+parseFloat(r[6]||0),0);
+    const ef   = ventasRango.reduce((s,r)=>s+parseFloat(r[9]||0)||(r[7]==='Efectivo'?parseFloat(r[6]||0):0),0);
+    const trf  = ventasRango.reduce((s,r)=>s+parseFloat(r[10]||0)||(r[7]==='Transferencia'?parseFloat(r[6]||0):0),0);
     const desc = ventasRango.reduce((s,r)=>s+parseFloat(r[5]||0),0);
-    const tot  = ef+tar+trf;
+    const tot  = ventasRango.reduce((s,r)=>s+parseFloat(r[6]||0),0);
     const rows = [
       ['BabyFe — Ventas del período: '+rango],[],
-      ['Fecha','Hora','Productos','Cliente','Subtotal','Descuento','Total','Pago'],
-      ...ventasRango.map(r=>[r[0],r[1],r[2],r[3],parseFloat(r[4]||0),parseFloat(r[5]||0),parseFloat(r[6]||0),r[7]]),
+      ['Fecha','Hora','Productos','Cliente','Subtotal','Descuento','Total','Pago','Efectivo','Transferencia'],
+      ...ventasRango.map(r=>[r[0],r[1],r[2],r[3],parseFloat(r[4]||0),parseFloat(r[5]||0),parseFloat(r[6]||0),r[7],parseFloat(r[9]||0)||'',parseFloat(r[10]||0)||'']),
       [],[' RESUMEN DEL PERÍODO'],
-      ['Efectivo','Tarjeta','Transferencia','Descuentos','TOTAL'],
-      [ef,tar,trf,desc,tot],
+      ['Efectivo','Transferencia','Descuentos','TOTAL'],
+      [ef,trf,desc,tot],
       [],['Total transacciones:',ventasRango.length]
     ];
     const ws = XLSX.utils.aoa_to_sheet(rows);
-    ws['!cols']=[{wch:11},{wch:7},{wch:36},{wch:16},{wch:10},{wch:10},{wch:10},{wch:13}];
+    ws['!cols']=[{wch:11},{wch:7},{wch:36},{wch:16},{wch:10},{wch:10},{wch:10},{wch:18},{wch:11},{wch:14}];
     XLSX.utils.book_append_sheet(wb,ws,'Ventas');
   }
 
