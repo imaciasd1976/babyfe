@@ -782,7 +782,8 @@ function buscar(){
   const el=document.getElementById('res-b');
   if(!q){el.style.display='none';return;}
   // Search against pre-lowercased index for performance with 700+ products
-  const f=inventario.filter(p=>(p._search||'').includes(q));
+  const words785=q.split(" ").filter(w=>w.length>0);
+  const f=inventario.filter(p=>words785.every(w=>(p._search||"").includes(w)));
   if(!f.length){el.style.display='none';return;}
   el.style.display='block';
   el.innerHTML='';
@@ -999,7 +1000,8 @@ function renderInv(){
     return;
   }
   const f=inventario.filter(p=>(p._search||'').includes(q));
-  // Render in chunks of 50 for DOM performance with 700 products
+  const words1003=q.split(" ").filter(w=>w.length>0);
+  const f=inventario.filter(p=>words1003.every(w=>(p._search||"").includes(w)));
   const CHUNK=50;
   el.innerHTML='';
   if(!f.length){
@@ -1262,7 +1264,8 @@ function buscarRepos(){
   if(!q){res.style.display='none';return;}
   const f=inventario.filter(p=>(p._search||'').includes(q)).slice(0,8);
   if(!f.length){res.style.display='none';return;}
-  res.style.display='block';
+  const words1267=q.split(" ").filter(w=>w.length>0);
+  const f=inventario.filter(p=>words1267.every(w=>(p._search||"").includes(w))).slice(0,8);
   res.innerHTML=f.map((p,i)=>
     `<div onclick="selRepos(${inventario.indexOf(p)})" style="padding:6px 4px;cursor:pointer;border-bottom:1px solid var(--border-light);font-size:11px" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background=''">
       <strong>${p.nombre}</strong> <span style="color:var(--text-secondary)">${p.marca}</span>
