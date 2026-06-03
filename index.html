@@ -1261,8 +1261,6 @@ function buscarRepos(){
   const q=(document.getElementById('rep-busq').value||'').toLowerCase();
   const res=document.getElementById('rep-res');
   if(!q){res.style.display='none';return;}
-  const f=inventario.filter(p=>(p._search||'').includes(q)).slice(0,8);
-  if(!f.length){res.style.display='none';return;}
   const words1267=q.split(" ").filter(w=>w.length>0);
   const f=inventario.filter(p=>words1267.every(w=>(p._search||"").includes(w))).slice(0,8);
   res.innerHTML=f.map((p,i)=>
