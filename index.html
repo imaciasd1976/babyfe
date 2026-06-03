@@ -645,7 +645,7 @@ async function loadInventario() {
       costo: parseFloat(r[7])||0, precio: parseFloat(r[8])||0,
       icon: String(r[9]||'ti-tag')
     };
-    p._search = (p.id+' '+p.nombre+' '+p.marca+' '+p.genero+' '+p.talla).toLowerCase();
+    p._search = (p.id+' '+p.nombre+' '+p.marca+' '+p.genero+' '+p.talla+' '+p.caract).toLowerCase();
     inventario.push(p);
     prodRowMap[p.id] = i + 1;
   }
@@ -999,7 +999,6 @@ function renderInv(){
     el.innerHTML='<div style="text-align:center;padding:20px;color:var(--text-secondary);font-size:11px"><i class="ti ti-search" style="font-size:24px;display:block;margin-bottom:6px"></i>Escribe en el buscador para ver productos</div>';
     return;
   }
-  const f=inventario.filter(p=>(p._search||'').includes(q));
   const words1003=q.split(" ").filter(w=>w.length>0);
   const f=inventario.filter(p=>words1003.every(w=>(p._search||"").includes(w)));
   const CHUNK=50;
@@ -1241,7 +1240,7 @@ async function agregarProd(){
   const result=await sheetAppend('Productos',row);
   if(result&&result.status==='ok'){
     const np={id,nombre:n,marca:m,genero:g,talla,caract:c,costo:pc,precio:pv,stock:s,icon:'ti-tag'};
-    np._search=(id+' '+n+' '+m+' '+g+' '+talla).toLowerCase();
+    np._search=(id+' '+n+' '+m+' '+g+' '+talla+' '+c).toLowerCase();
     inventario.push(np);
     prodRowMap[id]=inventario.length+1;
     ['np-n','np-m','np-tc','np-c','np-s','np-pc','np-pv'].forEach(i=>document.getElementById(i).value='');
@@ -1413,7 +1412,7 @@ async function guardarEditProd(){
     row:JSON.stringify([id,n,m,g,t,c,p.stock,pc,pv,p.icon||'ti-tag'])});
   if(res&&res.status==='ok'){
     p.nombre=n; p.marca=m; p.genero=g; p.talla=t; p.caract=c; p.costo=pc; p.precio=pv;
-    p._search=(id+' '+n+' '+m+' '+g+' '+t).toLowerCase();
+    p._search=(id+' '+n+' '+m+' '+g+' '+t+' '+c).toLowerCase();
     cerrarModal('m-edprod');
     showT('t-eprod');
     updMetrics(); renderInv();
