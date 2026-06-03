@@ -999,7 +999,6 @@ function renderInv(){
     return;
   }
   const f=inventario.filter(p=>(p._search||'').includes(q));
-  const el=document.getElementById('lista-inv');
   // Render in chunks of 50 for DOM performance with 700 products
   const CHUNK=50;
   el.innerHTML='';
