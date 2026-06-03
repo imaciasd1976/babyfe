@@ -993,7 +993,11 @@ function renderVentas(){
 // ═══════════════════════════════════════════════════
 function renderInv(){
   const q=(document.getElementById('binv').value||'').toLowerCase();
-  // Use pre-built _search index for fast filtering
+  const el=document.getElementById('lista-inv');
+  if(!q){
+    el.innerHTML='<div style="text-align:center;padding:20px;color:var(--text-secondary);font-size:11px"><i class="ti ti-search" style="font-size:24px;display:block;margin-bottom:6px"></i>Escribe en el buscador para ver productos</div>';
+    return;
+  }
   const f=inventario.filter(p=>(p._search||'').includes(q));
   const el=document.getElementById('lista-inv');
   // Render in chunks of 50 for DOM performance with 700 products
