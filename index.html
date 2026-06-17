@@ -237,7 +237,7 @@ textarea{resize:none;font-family:inherit}
     <div class="sw"><i class="ti ti-search"></i><input type="text" id="binv" placeholder="Buscar por nombre, código o marca..." oninput="debouncedRenderInv()"></div>
     <div class="card" id="lista-inv"><div class="loading"><div class="spinner"></div>Cargando inventario...</div></div>
     <button class="sec-btn" onclick="expInv()"><i class="ti ti-file-spreadsheet"></i>Exportar inventario a Excel</button>
-    <div id="blq-repos" style="display:none;background:var(--orange-light);border-radius:var(--radius);padding:11px;display:none;flex-direction:column;gap:8px">
+    <div id="blq-repos" style="display:none;background:var(--orange-light);border-radius:var(--radius);padding:11px;flex-direction:column;gap:8px">
       <div style="font-size:11px;font-weight:700;color:var(--orange);display:flex;align-items:center;gap:6px">
         <i class="ti ti-package-import" style="font-size:15px"></i>Reposición / Compra de stock
       </div>
@@ -1263,6 +1263,12 @@ function buscarRepos(){
   if(!q){res.style.display='none';return;}
   const words1267=q.split(" ").filter(w=>w.length>0);
   const f=inventario.filter(p=>words1267.every(w=>(p._search||"").includes(w))).slice(0,8);
+  if(!f.length){
+    res.style.display='block';
+    res.innerHTML='<div style="padding:8px;color:var(--text-secondary);font-size:11px">No se encontraron productos</div>';
+    return;
+  }
+  res.style.display='block';
   res.innerHTML=f.map((p,i)=>
     `<div onclick="selRepos(${inventario.indexOf(p)})" style="padding:6px 4px;cursor:pointer;border-bottom:1px solid var(--border-light);font-size:11px" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background=''">
       <strong>${p.nombre}</strong> <span style="color:var(--text-secondary)">${p.marca}</span>
