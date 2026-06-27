@@ -262,6 +262,39 @@ textarea{resize:none;font-family:inherit}
       <div class="toast terr" id="t-repos-err">Selecciona un producto y cantidad válida</div>
     </div>
 
+    <!-- CONTEO DE INVENTARIO -->
+    <div id="blq-conteo" style="display:none;background:#EEF2FF;border:1px solid #C7D2FE;border-radius:var(--radius);padding:11px;flex-direction:column;gap:8px">
+      <div style="font-size:11px;font-weight:700;color:#3730A3;display:flex;align-items:center;gap:6px">
+        <i class="ti ti-clipboard-check" style="font-size:15px"></i>Conteo físico de inventario
+      </div>
+      <div style="font-size:10px;color:var(--text-secondary);line-height:1.5">
+        Busca el producto, ingresa la cantidad que contaste físicamente y la app te muestra la diferencia. Puedes ajustar el stock directamente.
+      </div>
+      <div class="fg">
+        <div class="fl">Buscar producto</div>
+        <div class="sw"><i class="ti ti-search"></i><input type="text" id="cnt-busq" placeholder="Buscar por nombre, código o marca..." oninput="buscarConteo()"></div>
+        <div id="cnt-res" style="display:none;background:var(--bg-primary);border:1px solid var(--border);border-radius:var(--radius-sm);margin-top:4px;max-height:150px;overflow-y:auto;padding:3px 8px"></div>
+      </div>
+      <div id="cnt-selblq" style="display:none;background:var(--bg-primary);border-radius:var(--radius-sm);padding:10px;font-size:11px;border:1px solid var(--border);flex-direction:column;gap:6px">
+        <div style="font-weight:700;color:var(--text-primary);font-size:12px" id="cnt-selnombre">—</div>
+        <div style="display:flex;gap:12px">
+          <div>Stock en app: <strong id="cnt-stock-app" style="color:#3730A3">0</strong> uds.</div>
+          <div>Contado: <strong id="cnt-stock-real" style="color:var(--green)">—</strong> uds.</div>
+        </div>
+        <div id="cnt-dif-blq" style="display:none;padding:6px 8px;border-radius:var(--radius-sm);font-size:11px;font-weight:700"></div>
+      </div>
+      <div class="fg"><div class="fl">Cantidad contada físicamente</div>
+        <input type="number" id="cnt-qty" placeholder="0" min="0" oninput="calcConteo()">
+      </div>
+      <div class="fr" style="gap:8px">
+        <button class="add-btn" style="background:#3730A3;flex:1" onclick="ajustarConteo()"><i class="ti ti-adjustments"></i>Ajustar stock</button>
+        <button class="sec-btn" style="flex:1" onclick="limpiarConteo()"><i class="ti ti-refresh"></i>Limpiar</button>
+      </div>
+      <div class="toast tok" id="t-conteo">✓ Stock ajustado correctamente</div>
+      <div class="toast terr" id="t-conteo-err">Selecciona un producto e ingresa la cantidad</div>
+      <div class="toast tok" id="t-conteo-ok">✓ Stock ya está correcto, no hay diferencia</div>
+    </div>
+
     <div style="background:var(--green-light);border-radius:var(--radius);padding:11px;display:flex;flex-direction:column;gap:8px">
       <div style="font-size:11px;font-weight:700;color:var(--green);display:flex;align-items:center;gap:6px">
         <i class="ti ti-upload" style="font-size:15px"></i>Importar inventario desde Excel
@@ -504,6 +537,38 @@ textarea{resize:none;font-family:inherit}
   </div>
 </div>
 
+<!-- MODAL QR IMPRESION -->
+<div class="modal-bg" id="m-qr">
+  <div class="modal">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div class="mt"><i class="ti ti-qrcode"></i> Cola de etiquetas QR</div>
+      <button onclick="cerrarModal('m-qr')" style="background:none;border:none;cursor:pointer;color:var(--text-secondary);font-size:18px"><i class="ti ti-x"></i></button>
+    </div>
+    <div style="font-size:11px;color:var(--text-secondary)">Agrega productos a la lista y luego imprime todas las etiquetas en una sola hoja.</div>
+
+    <!-- Buscador -->
+    <div class="fg">
+      <div class="fl">Agregar producto</div>
+      <div class="sw"><i class="ti ti-search"></i><input type="text" id="qr-busq" placeholder="Buscar por nombre, código o marca..." oninput="buscarQR()"></div>
+      <div id="qr-res" style="display:none;background:var(--bg-primary);border:1px solid var(--border);border-radius:var(--radius-sm);margin-top:4px;max-height:130px;overflow-y:auto;padding:3px 8px"></div>
+    </div>
+
+    <!-- Cola de etiquetas -->
+    <div style="font-size:11px;font-weight:700;color:var(--text-primary);margin-top:2px">Etiquetas en cola <span id="qr-total-badge" style="background:#EEF2FF;color:#3730A3;padding:1px 7px;border-radius:20px;font-size:10px">0</span></div>
+    <div id="qr-cola" style="max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:4px">
+      <div style="text-align:center;padding:14px;color:var(--text-secondary);font-size:11px">
+        <i class="ti ti-inbox" style="font-size:20px;display:block;margin-bottom:4px"></i>Sin etiquetas aún
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px">
+      <button class="add-btn" style="background:#3730A3;flex:2" onclick="generarQR()"><i class="ti ti-printer"></i>Imprimir todas</button>
+      <button class="sec-btn" style="flex:1" onclick="limpiarColaQR()"><i class="ti ti-trash"></i>Limpiar</button>
+    </div>
+    <div class="toast terr" id="t-qr-empty">Agrega al menos un producto a la cola</div>
+  </div>
+</div>
+
 <!-- MODAL REPORTE -->
 <div class="modal-bg" id="m-reporte">
   <div class="modal">
@@ -551,6 +616,7 @@ textarea{resize:none;font-family:inherit}
 </div></div></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
 // ═══════════════════════════════════════════════════
 // CONFIGURACIÓN — URL de tu Google Apps Script
@@ -709,6 +775,8 @@ async function login() {
   document.getElementById('blq-rent').style.display = rol==='admin'?'block':'none';
   const reposBlq=document.getElementById('blq-repos');
   if(reposBlq) reposBlq.style.display=rol==='admin'?'flex':'none';
+  const conteoBlq=document.getElementById('blq-conteo');
+  if(conteoBlq) conteoBlq.style.display=rol==='admin'?'flex':'none';
   const h = new Date();
   document.getElementById('tb-fecha').textContent = h.toLocaleDateString('es-EC',{weekday:'short',day:'numeric',month:'short'});
   // Set default dates for range report
@@ -1050,7 +1118,10 @@ function renderInvChunk(f, start, size, el){
       '<div style="text-align:right;flex-shrink:0">'+
         '<div style="font-size:11px;font-weight:700;color:var(--text-primary)">'+p.stock+' uds.</div>'+
         (p.stock<=3?'<span class="badge badge-low">bajo</span>':'')+
-        (rol==='admin'?'<br><button onclick="abrirEditProd(\''+p.id+'\')" style="margin-top:4px;font-size:10px;padding:2px 8px;border-radius:20px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-secondary);cursor:pointer"><i class="ti ti-pencil"></i> Editar</button>':'')+
+        (rol==='admin'?'<br><div style="display:flex;gap:4px;margin-top:4px;justify-content:flex-end">'+
+          '<button onclick="abrirEditProd(\''+p.id+'\')" style="font-size:10px;padding:2px 7px;border-radius:20px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-secondary);cursor:pointer"><i class="ti ti-pencil"></i> Editar</button>'+
+          '<button onclick="abrirColaQR(\''+p.id+'\')" style="font-size:10px;padding:2px 7px;border-radius:20px;border:1px solid #C7D2FE;background:#EEF2FF;color:#3730A3;cursor:pointer"><i class="ti ti-qrcode"></i> QR</button>'+
+        '</div>':'')+
       '</div>';
     frag.appendChild(div);
   }
@@ -1429,6 +1500,257 @@ async function guardarEditProd(){
 }
 
 
+// ═══════════════════════════════════════════════════
+// IMPRESIÓN DE ETIQUETAS QR (cola multi-producto)
+// ═══════════════════════════════════════════════════
+let qrCola = []; // [{id, qty}]
+
+function abrirColaQR(id){
+  // Si viene desde un producto específico, lo pre-agrega
+  if(id){
+    const p=inventario.find(x=>x.id===id);
+    if(p) agregarAColaQR(p.id);
+  }
+  abrirModal('m-qr');
+}
+
+function buscarQR(){
+  const q=(document.getElementById('qr-busq').value||'').toLowerCase().trim();
+  const res=document.getElementById('qr-res');
+  if(!q){res.style.display='none';return;}
+  const words=q.split(' ').filter(w=>w.length>0);
+  const f=inventario.filter(p=>words.every(w=>(p._search||'').includes(w))).slice(0,8);
+  if(!f.length){
+    res.style.display='block';
+    res.innerHTML='<div style="padding:8px;color:var(--text-secondary);font-size:11px">No se encontraron productos</div>';
+    return;
+  }
+  res.style.display='block';
+  res.innerHTML=f.map(p=>
+    `<div onclick="agregarAColaQR('${p.id}')" style="padding:7px 4px;cursor:pointer;border-bottom:1px solid var(--border-light);font-size:11px" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background=''">
+      <i class="ti ti-plus" style="color:#3730A3"></i>
+      <strong>${p.nombre}</strong> <span style="color:var(--text-secondary)">${p.marca}${p.talla?' · '+p.talla:''}</span>
+      <span class="badge badge-cod">${p.id}</span>
+    </div>`
+  ).join('');
+}
+
+function agregarAColaQR(id){
+  const existe=qrCola.find(x=>x.id===id);
+  if(existe){
+    existe.qty++;
+  } else {
+    qrCola.push({id, qty:1});
+  }
+  document.getElementById('qr-busq').value='';
+  document.getElementById('qr-res').style.display='none';
+  renderColaQR();
+}
+
+function renderColaQR(){
+  const cont=document.getElementById('qr-cola');
+  const badge=document.getElementById('qr-total-badge');
+  const total=qrCola.reduce((s,x)=>s+x.qty,0);
+  badge.textContent=total;
+  if(!qrCola.length){
+    cont.innerHTML='<div style="text-align:center;padding:14px;color:var(--text-secondary);font-size:11px"><i class="ti ti-inbox" style="font-size:20px;display:block;margin-bottom:4px"></i>Sin etiquetas aún</div>';
+    return;
+  }
+  cont.innerHTML=qrCola.map((item,i)=>{
+    const p=inventario.find(x=>x.id===item.id);
+    if(!p) return '';
+    return `<div style="display:flex;align-items:center;gap:6px;background:var(--bg-secondary);border-radius:var(--radius-sm);padding:6px 8px;font-size:11px">
+      <div style="flex:1">
+        <strong>${p.nombre}</strong> · ${p.marca}${p.talla?' · '+p.talla:''}
+        <span class="badge badge-cod">${p.id}</span>
+        <div style="color:var(--text-secondary);font-size:10px;margin-top:1px">$${p.precio.toFixed(2)}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:4px">
+        <button onclick="cambiarQtyQR(${i},-1)" style="width:22px;height:22px;border-radius:50%;border:1px solid var(--border);background:var(--bg-primary);cursor:pointer;font-size:13px;line-height:1">−</button>
+        <span style="font-weight:700;min-width:18px;text-align:center">${item.qty}</span>
+        <button onclick="cambiarQtyQR(${i},1)" style="width:22px;height:22px;border-radius:50%;border:1px solid var(--border);background:var(--bg-primary);cursor:pointer;font-size:13px;line-height:1">+</button>
+        <button onclick="quitarDeColaQR(${i})" style="width:22px;height:22px;border-radius:50%;border:1px solid var(--red);background:#FEE2E2;color:var(--red);cursor:pointer;font-size:11px;line-height:1"><i class="ti ti-x"></i></button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function cambiarQtyQR(i, delta){
+  qrCola[i].qty=Math.max(1,qrCola[i].qty+delta);
+  renderColaQR();
+}
+
+function quitarDeColaQR(i){
+  qrCola.splice(i,1);
+  renderColaQR();
+}
+
+function limpiarColaQR(){
+  qrCola=[];
+  renderColaQR();
+}
+
+function generarQR(){
+  if(!qrCola.length){showT('t-qr-empty');return;}
+
+  // Generate all QR images first using temporary divs
+  const pendientes=[];
+  qrCola.forEach(item=>{
+    const p=inventario.find(x=>x.id===item.id);
+    if(!p) return;
+    for(let i=0;i<item.qty;i++) pendientes.push(p);
+  });
+
+  let generados=0;
+  const imagenes=[];
+  const tempContainer=document.createElement('div');
+  tempContainer.style.cssText='position:absolute;left:-9999px;top:0';
+  document.body.appendChild(tempContainer);
+
+  pendientes.forEach((p,idx)=>{
+    const div=document.createElement('div');
+    tempContainer.appendChild(div);
+    const qrData=p.id+'|'+p.nombre+'|'+p.marca+'|'+(p.talla||'')+'|$'+p.precio.toFixed(2);
+    new QRCode(div,{text:qrData,width:90,height:90,colorDark:'#000',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.M});
+    imagenes.push({p, div, idx});
+  });
+
+  setTimeout(()=>{
+    const etiquetas=imagenes.map(({p,div})=>{
+      const canvas=div.querySelector('canvas');
+      const src=canvas?canvas.toDataURL('image/png'):'';
+      const nombre=p.nombre.length>20?p.nombre.substring(0,19)+'…':p.nombre;
+      const marca=p.marca+(p.talla?' · '+p.talla:'');
+      return `<div style="width:62mm;height:37mm;border:0.4px solid #ddd;border-radius:2px;padding:2mm;display:flex;align-items:center;gap:2mm;box-sizing:border-box;page-break-inside:avoid;font-family:Arial,sans-serif;overflow:hidden">
+        <img src="${src}" style="width:29mm;height:29mm;flex-shrink:0">
+        <div style="flex:1;overflow:hidden;min-width:0">
+          <div style="font-size:6.5pt;font-weight:700;line-height:1.3;word-break:break-word">${nombre}</div>
+          <div style="font-size:5.5pt;color:#666;margin-top:1mm;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${marca}</div>
+          <div style="font-size:9pt;font-weight:700;color:#000;margin-top:2mm">$${p.precio.toFixed(2)}</div>
+          <div style="font-size:5pt;color:#aaa;margin-top:1mm">${p.id} · BabyFe</div>
+        </div>
+      </div>`;
+    }).join('');
+
+    document.body.removeChild(tempContainer);
+
+    const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Etiquetas BabyFe</title>
+    <style>
+      *{margin:0;padding:0;box-sizing:border-box}
+      body{font-family:Arial,sans-serif;background:#fff}
+      .grid{display:grid;grid-template-columns:repeat(3,62mm);gap:3mm;padding:8mm}
+      @media print{@page{margin:6mm;size:A4}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+    </style></head><body>
+    <div class="grid">${etiquetas}</div>
+    <script>window.onload=function(){setTimeout(function(){window.print();},400);}<\/script>
+    </body></html>`;
+
+    const win=window.open('','_blank');
+    if(win){win.document.write(html);win.document.close();}
+    else{alert('Permite las ventanas emergentes en tu navegador para imprimir.');}
+  }, 400);
+}
+
+
+let conteoProdIdx = null;
+
+function buscarConteo(){
+  const q=(document.getElementById('cnt-busq').value||'').toLowerCase().trim();
+  const res=document.getElementById('cnt-res');
+  if(!q){res.style.display='none';return;}
+  const words=q.split(' ').filter(w=>w.length>0);
+  const f=inventario.filter(p=>words.every(w=>(p._search||'').includes(w))).slice(0,8);
+  if(!f.length){
+    res.style.display='block';
+    res.innerHTML='<div style="padding:8px;color:var(--text-secondary);font-size:11px">No se encontraron productos</div>';
+    return;
+  }
+  res.style.display='block';
+  res.innerHTML=f.map(p=>
+    `<div onclick="selConteo(${inventario.indexOf(p)})" style="padding:7px 4px;cursor:pointer;border-bottom:1px solid var(--border-light);font-size:11px" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background=''">
+      <strong>${p.nombre}</strong> <span style="color:var(--text-secondary)">${p.marca}</span>
+      <span class="badge badge-cod">${p.id}</span>
+      <span style="float:right;color:#3730A3;font-weight:700">Stock: ${p.stock}</span>
+    </div>`
+  ).join('');
+}
+
+function selConteo(idx){
+  conteoProdIdx=idx;
+  const p=inventario[idx];
+  document.getElementById('cnt-selnombre').textContent=p.nombre+' · '+p.marca+(p.talla?' · '+p.talla:'')+(p.genero?' · '+p.genero:'');
+  document.getElementById('cnt-stock-app').textContent=p.stock;
+  document.getElementById('cnt-stock-real').textContent='—';
+  document.getElementById('cnt-dif-blq').style.display='none';
+  document.getElementById('cnt-selblq').style.display='flex';
+  document.getElementById('cnt-res').style.display='none';
+  document.getElementById('cnt-busq').value=p.nombre;
+  document.getElementById('cnt-qty').value='';
+  document.getElementById('cnt-qty').focus();
+}
+
+function calcConteo(){
+  if(conteoProdIdx===null) return;
+  const p=inventario[conteoProdIdx];
+  const contado=parseInt(document.getElementById('cnt-qty').value);
+  if(isNaN(contado)){
+    document.getElementById('cnt-stock-real').textContent='—';
+    document.getElementById('cnt-dif-blq').style.display='none';
+    return;
+  }
+  document.getElementById('cnt-stock-real').textContent=contado;
+  const dif=contado-p.stock;
+  const blq=document.getElementById('cnt-dif-blq');
+  blq.style.display='block';
+  if(dif===0){
+    blq.style.background='#DCFCE7';blq.style.color='#166534';
+    blq.textContent='✓ Sin diferencia — stock correcto';
+  } else if(dif>0){
+    blq.style.background='#DCFCE7';blq.style.color='#166534';
+    blq.textContent='▲ Sobran '+dif+' unidades en físico';
+  } else {
+    blq.style.background='#FEE2E2';blq.style.color='var(--red)';
+    blq.textContent='▼ Faltan '+Math.abs(dif)+' unidades en físico';
+  }
+}
+
+async function ajustarConteo(){
+  if(conteoProdIdx===null){showT('t-conteo-err');return;}
+  const contado=parseInt(document.getElementById('cnt-qty').value);
+  if(isNaN(contado)||contado<0){showT('t-conteo-err');return;}
+  const p=inventario[conteoProdIdx];
+  if(contado===p.stock){showT('t-conteo-ok');return;}
+  const rowIdx=prodRowMap[p.id];
+  if(!rowIdx){showT('t-conteo-err');return;}
+  showSync('Ajustando stock en la nube...');
+  const res=await apiCall({action:'update',sheet:'Productos',rowIndex:rowIdx,
+    row:JSON.stringify([p.id,p.nombre,p.marca,p.genero||'Unisex',p.talla||'',p.caract,contado,p.costo,p.precio,p.icon||'ti-tag'])});
+  if(res&&res.status==='ok'){
+    const dif=contado-p.stock;
+    p.stock=contado;
+    document.getElementById('cnt-stock-app').textContent=contado;
+    document.getElementById('cnt-stock-real').textContent=contado;
+    const blq=document.getElementById('cnt-dif-blq');
+    blq.style.background='#DCFCE7';blq.style.color='#166534';
+    blq.textContent='✓ Stock ajustado (diferencia: '+(dif>0?'+':'')+dif+' uds.)';
+    blq.style.display='block';
+    showT('t-conteo');
+    updMetrics();renderInv();
+  } else {
+    showT('t-conteo-err');
+  }
+}
+
+function limpiarConteo(){
+  conteoProdIdx=null;
+  document.getElementById('cnt-busq').value='';
+  document.getElementById('cnt-qty').value='';
+  document.getElementById('cnt-res').style.display='none';
+  document.getElementById('cnt-selblq').style.display='none';
+  document.getElementById('cnt-dif-blq').style.display='none';
+}
+
+// ═══════════════════════════════════════════════════
 function confirmarReset(){
   const opciones=[];
   if(document.getElementById('rst-ventas').checked) opciones.push('Ventas');
