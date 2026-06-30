@@ -188,7 +188,22 @@ textarea{resize:none;font-family:inherit}
   <!-- VENTA -->
   <div id="s-venta" class="screen">
     <div class="slabel">Nueva venta</div>
-    <div class="sw"><i class="ti ti-search"></i><input type="text" id="bprod" placeholder="Buscar producto por nombre, código o marca..." oninput="debouncedBuscar()"></div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <div class="sw" style="flex:1"><i class="ti ti-search"></i><input type="text" id="bprod" placeholder="Buscar producto por nombre, código o marca..." oninput="debouncedBuscar()"></div>
+      <button id="venta-qr-btn" onclick="iniciarScannerVenta()" style="flex-shrink:0;padding:8px 10px;border-radius:var(--radius-sm);border:1.5px solid #C7D2FE;background:#EEF2FF;color:#3730A3;cursor:pointer;font-size:12px;font-weight:600;display:flex;align-items:center;gap:4px"><i class="ti ti-qrcode"></i>Scan</button>
+    </div>
+    <!-- Scanner venta -->
+    <div id="venta-scanner-blq" style="display:none;flex-direction:column;gap:6px">
+      <div style="border-radius:var(--radius-sm);overflow:hidden;background:#000;aspect-ratio:4/3;position:relative">
+        <video id="venta-video" style="width:100%;height:100%;object-fit:cover" playsinline></video>
+        <canvas id="venta-canvas" style="display:none"></canvas>
+        <div style="position:absolute;inset:0;border:2px solid #6366F1;border-radius:var(--radius-sm);pointer-events:none">
+          <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:60%;height:60%;border:2px solid #fff;border-radius:4px;opacity:0.7"></div>
+        </div>
+        <div style="position:absolute;bottom:8px;left:0;right:0;text-align:center;color:#fff;font-size:11px;text-shadow:0 1px 3px #000">Apunta al código QR del producto</div>
+      </div>
+      <button class="sec-btn" onclick="detenerScannerVenta()"><i class="ti ti-x"></i>Cerrar cámara</button>
+    </div>
     <div class="card" id="res-b" style="display:none;padding:3px 8px;max-height:130px;overflow-y:auto"></div>
     <div class="slabel">Ítems en esta venta</div>
     <div id="carrito-items">
@@ -343,10 +358,33 @@ textarea{resize:none;font-family:inherit}
         <div style="display:flex;justify-content:space-between;padding:7px 0 0;font-size:13px;font-weight:700"><span>Utilidad bruta</span><span style="color:var(--green)" id="ca-u">$0.00</span></div>
       </div>
     </div>
-    <div class="slabel">Gastos del día</div>
+    <div class="slabel">Gastos e ingresos extra</div>
+    <div class="card" style="display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;gap:6px">
+        <button type="button" id="btn-mov-gasto" onclick="selTipoMov('Gasto')" class="pay-btn pay-active" style="border-color:var(--red);background:#FEE2E2;color:var(--red)"><i class="ti ti-minus"></i> Gasto</button>
+        <button type="button" id="btn-mov-ingreso" onclick="selTipoMov('Ingreso')" class="pay-btn"><i class="ti ti-plus"></i> Ingreso extra</button>
+      </div>
+      <input type="hidden" id="mov-tipo" value="Gasto">
+      <div class="fr">
+        <div class="fg"><div class="fl">Concepto</div><input type="text" id="mov-concepto" placeholder="Ej: Pago de luz, Transporte..."></div>
+        <div class="fg"><div class="fl">Monto $</div><input type="number" id="mov-monto" placeholder="0.00" min="0"></div>
+      </div>
+      <button class="add-btn" style="background:var(--red)" id="mov-btn" onclick="registrarMovimiento()"><i class="ti ti-plus"></i>Registrar gasto</button>
+      <div class="toast tok" id="t-mov">✓ Movimiento registrado correctamente</div>
+      <div class="toast terr" id="t-mov-err">Ingresa concepto y monto válido</div>
+    </div>
+
+    <div class="slabel">Resumen del día — Gastos e ingresos</div>
+    <div class="card" style="display:flex;flex-direction:column;gap:6px">
+      <div class="cj"><span style="color:var(--red)">Total gastos</span><span style="color:var(--red);font-weight:600" id="mov-tot-gasto">$0.00</span></div>
+      <div class="cj"><span style="color:var(--green)">Total ingresos extra</span><span style="color:var(--green);font-weight:600" id="mov-tot-ingreso">$0.00</span></div>
+      <div id="mov-lista" style="max-height:160px;overflow-y:auto;margin-top:4px"></div>
+    </div>
+
+    <div class="slabel">Cierre de caja</div>
     <div class="card" style="display:flex;flex-direction:column;gap:8px">
       <div class="fr">
-        <div class="fg"><div class="fl">Gastos ($)</div><input type="number" id="gastos" placeholder="0.00" oninput="calcCaja()"></div>
+        <div class="fg"><div class="fl">Gastos ($)</div><input type="number" id="gastos" placeholder="0.00" oninput="calcCaja()" readonly style="background:var(--bg-secondary)"></div>
         <div class="fg"><div class="fl">Efectivo esperado</div><div style="font-size:15px;font-weight:700;color:var(--pink);padding-top:9px" id="c-esp">$0.00</div></div>
       </div>
     </div>
@@ -671,6 +709,9 @@ textarea{resize:none;font-family:inherit}
       <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer">
         <input type="checkbox" id="rep-compras" checked style="width:auto;accent-color:var(--pink)"> Compras / Reposición del período
       </label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer">
+        <input type="checkbox" id="rep-gastos" checked style="width:auto;accent-color:var(--pink)"> Gastos e ingresos extra del período
+      </label>
     </div>
     <button class="add-btn" onclick="expRango()"><i class="ti ti-file-spreadsheet"></i>Generar y descargar Excel</button>
     <div class="toast tok" id="t-rep">✓ Reporte generado</div>
@@ -706,6 +747,7 @@ const API = 'https://script.google.com/macros/s/AKfycbw_hWIHVC51za71YgVwiP78Uk9G
 const PINS = {admin:'1234', operador:'0000'};
 let rol = null, rolSel = null, carrito = [];
 let cajaInicio = null, cajaFin = null;
+let movimientos = []; // {fecha, hora, tipo, concepto, monto}
 let inventario = [], ventas = [], clientes = [];
 let prodId = 100;
 
@@ -1253,7 +1295,8 @@ async function guardarCli(){
 // ═══════════════════════════════════════════════════
 // CAJA
 // ═══════════════════════════════════════════════════
-function renderCaja(){
+async function renderCaja(){
+  await cargarMovimientos();
   const ef=ventas.reduce((s,v)=>s+(v.pagoEf!==undefined?v.pagoEf:(v.pago==='Efectivo'?v.tot:0)),0);
   const trf=ventas.reduce((s,v)=>s+(v.pagoTr!==undefined?v.pagoTr:(v.pago==='Transferencia'?v.tot:0)),0);
   const dc=ventas.reduce((s,v)=>s+v.dval,0);
@@ -1264,6 +1307,7 @@ function renderCaja(){
   document.getElementById('c-dc').textContent='$'+dc.toFixed(2);
   document.getElementById('c-tot').textContent='$'+tot.toFixed(2);
   if(rol==='admin'){document.getElementById('ca-i').textContent='$'+tot.toFixed(2);document.getElementById('ca-c').textContent='$'+co.toFixed(2);document.getElementById('ca-u').textContent='$'+(tot-co).toFixed(2);}
+  renderMovimientos();
   calcCaja();
   const eb=document.getElementById('caja-estado-blq');
   const cb=document.getElementById('caja-btns');
@@ -1290,9 +1334,10 @@ function renderCaja(){
 
 function abrirCaja(tipo){
   const ef=ventas.reduce((s,v)=>s+(v.pagoEf!==undefined?v.pagoEf:(v.pago==='Efectivo'?v.tot:0)),0);
-  const gastos=parseFloat(document.getElementById('gastos').value)||0;
+  const gastos=movimientos.filter(m=>m.tipo==='Gasto').reduce((s,m)=>s+m.monto,0);
+  const ingresosExtra=movimientos.filter(m=>m.tipo==='Ingreso').reduce((s,m)=>s+m.monto,0);
   const fondoI=cajaInicio?cajaInicio.monto:0;
-  const esperado=fondoI+ef-gastos;
+  const esperado=fondoI+ef+ingresosExtra-gastos;
   document.getElementById('m-caja-title').textContent=tipo==='inicio'?'Inicio de caja':'Cierre de caja';
   document.getElementById('m-caja-body').innerHTML=tipo==='inicio'?`
     <div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px">Registra el fondo con el que inicia la caja hoy.</div>
@@ -1349,11 +1394,92 @@ async function confirmarFin(esperado){
 
 function nuevaCaja(){cajaInicio=null;cajaFin=null;renderCaja();}
 
+// ═══════════════════════════════════════════════════
+// GASTOS E INGRESOS EXTRA
+// ═══════════════════════════════════════════════════
+async function cargarMovimientos(){
+  const data = await sheetRead('Gastos');
+  movimientos = [];
+  if(Array.isArray(data) && data.length>1){
+    const hoy = new Date().toLocaleDateString('es-EC');
+    data.slice(1).forEach(r=>{
+      if(r[0]===hoy){
+        movimientos.push({fecha:r[0],hora:r[1],tipo:r[2],concepto:r[3],monto:parseFloat(r[4])||0});
+      }
+    });
+  }
+}
+
+function selTipoMov(tipo){
+  document.getElementById('mov-tipo').value=tipo;
+  const btnG=document.getElementById('btn-mov-gasto');
+  const btnI=document.getElementById('btn-mov-ingreso');
+  const btn=document.getElementById('mov-btn');
+  if(tipo==='Gasto'){
+    btnG.classList.add('pay-active');btnG.style.background='#FEE2E2';btnG.style.color='var(--red)';btnG.style.borderColor='var(--red)';
+    btnI.classList.remove('pay-active');btnI.style.background='';btnI.style.color='';btnI.style.borderColor='';
+    btn.style.background='var(--red)';btn.innerHTML='<i class="ti ti-plus"></i>Registrar gasto';
+  } else {
+    btnI.classList.add('pay-active');btnI.style.background='#DCFCE7';btnI.style.color='var(--green)';btnI.style.borderColor='var(--green)';
+    btnG.classList.remove('pay-active');btnG.style.background='';btnG.style.color='';btnG.style.borderColor='';
+    btn.style.background='var(--green)';btn.innerHTML='<i class="ti ti-plus"></i>Registrar ingreso';
+  }
+}
+
+async function registrarMovimiento(){
+  const tipo=document.getElementById('mov-tipo').value;
+  const concepto=document.getElementById('mov-concepto').value.trim();
+  const monto=parseFloat(document.getElementById('mov-monto').value);
+  if(!concepto||isNaN(monto)||monto<=0){showT('t-mov-err');return;}
+  const ahora=new Date();
+  const fecha=ahora.toLocaleDateString('es-EC');
+  const hora=ahora.getHours().toString().padStart(2,'0')+':'+ahora.getMinutes().toString().padStart(2,'0');
+  showSync('Guardando movimiento...');
+  const res=await sheetAppend('Gastos',[fecha,hora,tipo,concepto,monto.toFixed(2)]);
+  if(res&&res.status==='ok'){
+    movimientos.push({fecha,hora,tipo,concepto,monto});
+    document.getElementById('mov-concepto').value='';
+    document.getElementById('mov-monto').value='';
+    showT('t-mov');
+    renderMovimientos();
+    calcCaja();
+  } else {
+    showT('t-mov-err');
+  }
+}
+
+function renderMovimientos(){
+  const lista=document.getElementById('mov-lista');
+  if(!lista) return;
+  const gastos=movimientos.filter(m=>m.tipo==='Gasto');
+  const ingresos=movimientos.filter(m=>m.tipo==='Ingreso');
+  const totG=gastos.reduce((s,m)=>s+m.monto,0);
+  const totI=ingresos.reduce((s,m)=>s+m.monto,0);
+  document.getElementById('mov-tot-gasto').textContent='$'+totG.toFixed(2);
+  document.getElementById('mov-tot-ingreso').textContent='$'+totI.toFixed(2);
+  if(!movimientos.length){
+    lista.innerHTML='<div style="text-align:center;padding:10px;color:var(--text-secondary);font-size:11px">Sin movimientos hoy</div>';
+    return;
+  }
+  lista.innerHTML=movimientos.slice().reverse().map(m=>
+    `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border-light);font-size:11px">
+      <div>
+        <span class="badge ${m.tipo==='Gasto'?'badge-low':'badge-efectivo'}">${m.tipo}</span>
+        <span style="margin-left:4px">${m.concepto}</span>
+        <div style="color:var(--text-secondary);font-size:9px">${m.hora}</div>
+      </div>
+      <strong style="color:${m.tipo==='Gasto'?'var(--red)':'var(--green)'}">${m.tipo==='Gasto'?'-':'+'}$${m.monto.toFixed(2)}</strong>
+    </div>`
+  ).join('');
+}
+
 function calcCaja(){
   const ef=ventas.reduce((s,v)=>s+(v.pagoEf!==undefined?v.pagoEf:(v.pago==='Efectivo'?v.tot:0)),0);
   const fondoI=cajaInicio?cajaInicio.monto:0;
-  const gastos=parseFloat(document.getElementById('gastos').value)||0;
-  document.getElementById('c-esp').textContent='$'+(fondoI+ef-gastos).toFixed(2);
+  const gastos=movimientos.filter(m=>m.tipo==='Gasto').reduce((s,m)=>s+m.monto,0);
+  const ingresosExtra=movimientos.filter(m=>m.tipo==='Ingreso').reduce((s,m)=>s+m.monto,0);
+  document.getElementById('gastos').value=gastos.toFixed(2);
+  document.getElementById('c-esp').textContent='$'+(fondoI+ef+ingresosExtra-gastos).toFixed(2);
 }
 
 // ═══════════════════════════════════════════════════
@@ -1581,8 +1707,75 @@ async function guardarEditProd(){
 
 
 // ═══════════════════════════════════════════════════
-// MÓDULO CONTEO DE INVENTARIO
+// ESCÁNER QR EN VENTA
 // ═══════════════════════════════════════════════════
+let ventaScannerActive = false;
+let ventaScanInterval = null;
+
+async function iniciarScannerVenta(){
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
+    alert('Tu navegador no soporta acceso a la cámara.');return;
+  }
+  try{
+    const stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
+    const video = document.getElementById('venta-video');
+    video.srcObject = stream;
+    await video.play();
+    document.getElementById('venta-scanner-blq').style.display='flex';
+    document.getElementById('venta-qr-btn').style.display='none';
+    ventaScannerActive = true;
+    escanearFrameVenta();
+  } catch(e){
+    alert('No se pudo acceder a la cámara: '+e.message);
+  }
+}
+
+function escanearFrameVenta(){
+  if(!ventaScannerActive) return;
+  const video = document.getElementById('venta-video');
+  const canvas = document.getElementById('venta-canvas');
+  if(video.readyState === video.HAVE_ENOUGH_DATA){
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video,0,0,canvas.width,canvas.height);
+    const imageData = ctx.getImageData(0,0,canvas.width,canvas.height);
+    try{
+      if(typeof jsQR !== 'undefined'){
+        const code = jsQR(imageData.data, imageData.width, imageData.height);
+        if(code && code.data){
+          const id = code.data.split('|')[0];
+          const idx = inventario.findIndex(x=>x.id===id);
+          if(idx>=0){
+            detenerScannerVenta();
+            agregarAlCarrito(idx);
+            // Flash visual feedback
+            const btn = document.getElementById('venta-qr-btn');
+            btn.style.background='#DCFCE7';btn.style.color='#166534';btn.style.borderColor='#166534';
+            btn.innerHTML='<i class="ti ti-check"></i>¡Agregado!';
+            setTimeout(()=>{
+              btn.style.background='#EEF2FF';btn.style.color='#3730A3';btn.style.borderColor='#C7D2FE';
+              btn.innerHTML='<i class="ti ti-qrcode"></i>Scan';
+            },1500);
+            return;
+          }
+        }
+      }
+    } catch(e){}
+  }
+  ventaScanInterval = requestAnimationFrame(escanearFrameVenta);
+}
+
+function detenerScannerVenta(){
+  ventaScannerActive = false;
+  if(ventaScanInterval) cancelAnimationFrame(ventaScanInterval);
+  const video = document.getElementById('venta-video');
+  if(video.srcObject) video.srcObject.getTracks().forEach(t=>t.stop());
+  document.getElementById('venta-scanner-blq').style.display='none';
+  document.getElementById('venta-qr-btn').style.display='flex';
+}
+
+
 let conteoScannerActive = false;
 let conteoScanInterval = null;
 let conteoProdSelected = null;
@@ -2300,8 +2493,9 @@ async function expRango() {
   const incI  = document.getElementById('rep-inv').checked;
   const incC  = document.getElementById('rep-caja').checked;
   const incCo = document.getElementById('rep-compras').checked;
+  const incG  = document.getElementById('rep-gastos').checked;
 
-  if (!fi || !ff || (!incV && !incI && !incC && !incCo)) { showT('t-rep-err'); return; }
+  if (!fi || !ff || (!incV && !incI && !incC && !incCo && !incG)) { showT('t-rep-err'); return; }
 
   const dateFi = new Date(fi+'T00:00:00');
   const dateFf = new Date(ff+'T23:59:59');
@@ -2419,6 +2613,37 @@ async function expRango() {
     const ws = XLSX.utils.aoa_to_sheet(rows);
     ws['!cols']=[{wch:11},{wch:7},{wch:9},{wch:26},{wch:10},{wch:13},{wch:10}];
     XLSX.utils.book_append_sheet(wb,ws,'Compras');
+  }
+
+  // ── GASTOS E INGRESOS EXTRA ──
+  if (incG) {
+    const data = await sheetRead('Gastos');
+    let movRango = [];
+    if (Array.isArray(data) && data.length > 1) {
+      movRango = data.slice(1).filter(r => {
+        if (!r[0]) return false;
+        const parts = String(r[0]).split('/');
+        if (parts.length === 3) {
+          const d = new Date(parts[2]+'-'+parts[1].padStart(2,'0')+'-'+parts[0].padStart(2,'0'));
+          return d >= dateFi && d <= dateFf;
+        }
+        return false;
+      });
+    }
+    const totGastoP = movRango.filter(r=>r[2]==='Gasto').reduce((s,r)=>s+parseFloat(r[4]||0),0);
+    const totIngresoP = movRango.filter(r=>r[2]==='Ingreso').reduce((s,r)=>s+parseFloat(r[4]||0),0);
+    const rows = [
+      ['BabyFe — Gastos e ingresos extra del período: '+rango],[],
+      ['Fecha','Hora','Tipo','Concepto','Monto'],
+      ...movRango.map(r=>[r[0],r[1],r[2],r[3],parseFloat(r[4]||0)]),
+      [],[' RESUMEN DEL PERÍODO'],
+      ['Total gastos','Total ingresos extra','Neto'],
+      [totGastoP,totIngresoP,totIngresoP-totGastoP],
+      [],['Total movimientos:',movRango.length]
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols']=[{wch:11},{wch:7},{wch:10},{wch:30},{wch:10}];
+    XLSX.utils.book_append_sheet(wb,ws,'Gastos');
   }
 
   if (!wb.SheetNames.length) { showT('t-rep-err'); return; }
