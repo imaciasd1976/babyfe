@@ -182,7 +182,9 @@ textarea{resize:none;font-family:inherit}
     </div>
     <div class="slabel">Últimas ventas</div>
     <div class="card" id="lista-v"><div class="loading"><div class="spinner"></div>Cargando ventas...</div></div>
-    <button class="sec-btn" onclick="abrirModal('m-reporte')"><i class="ti ti-file-spreadsheet"></i>Exportar reportes por rango de fechas</button>
+    <div id="blq-reporte-btn-inicio" style="display:none">
+      <button class="sec-btn" onclick="abrirModal('m-reporte')"><i class="ti ti-file-spreadsheet"></i>Exportar reportes por rango de fechas</button>
+    </div>
   </div>
 
   <!-- VENTA -->
@@ -358,27 +360,29 @@ textarea{resize:none;font-family:inherit}
         <div style="display:flex;justify-content:space-between;padding:7px 0 0;font-size:13px;font-weight:700"><span>Utilidad bruta</span><span style="color:var(--green)" id="ca-u">$0.00</span></div>
       </div>
     </div>
-    <div class="slabel">Gastos e ingresos extra</div>
-    <div class="card" style="display:flex;flex-direction:column;gap:8px">
-      <div style="display:flex;gap:6px">
-        <button type="button" id="btn-mov-gasto" onclick="selTipoMov('Gasto')" class="pay-btn pay-active" style="border-color:var(--red);background:#FEE2E2;color:var(--red)"><i class="ti ti-minus"></i> Gasto</button>
-        <button type="button" id="btn-mov-ingreso" onclick="selTipoMov('Ingreso')" class="pay-btn"><i class="ti ti-plus"></i> Ingreso extra</button>
+    <div id="blq-gastos-admin" style="display:none">
+      <div class="slabel">Gastos e ingresos extra</div>
+      <div class="card" style="display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;gap:6px">
+          <button type="button" id="btn-mov-gasto" onclick="selTipoMov('Gasto')" class="pay-btn pay-active" style="border-color:var(--red);background:#FEE2E2;color:var(--red)"><i class="ti ti-minus"></i> Gasto</button>
+          <button type="button" id="btn-mov-ingreso" onclick="selTipoMov('Ingreso')" class="pay-btn"><i class="ti ti-plus"></i> Ingreso extra</button>
+        </div>
+        <input type="hidden" id="mov-tipo" value="Gasto">
+        <div class="fr">
+          <div class="fg"><div class="fl">Concepto</div><input type="text" id="mov-concepto" placeholder="Ej: Pago de luz, Transporte..."></div>
+          <div class="fg"><div class="fl">Monto $</div><input type="number" id="mov-monto" placeholder="0.00" min="0"></div>
+        </div>
+        <button class="add-btn" style="background:var(--red)" id="mov-btn" onclick="registrarMovimiento()"><i class="ti ti-plus"></i>Registrar gasto</button>
+        <div class="toast tok" id="t-mov">✓ Movimiento registrado correctamente</div>
+        <div class="toast terr" id="t-mov-err">Ingresa concepto y monto válido</div>
       </div>
-      <input type="hidden" id="mov-tipo" value="Gasto">
-      <div class="fr">
-        <div class="fg"><div class="fl">Concepto</div><input type="text" id="mov-concepto" placeholder="Ej: Pago de luz, Transporte..."></div>
-        <div class="fg"><div class="fl">Monto $</div><input type="number" id="mov-monto" placeholder="0.00" min="0"></div>
-      </div>
-      <button class="add-btn" style="background:var(--red)" id="mov-btn" onclick="registrarMovimiento()"><i class="ti ti-plus"></i>Registrar gasto</button>
-      <div class="toast tok" id="t-mov">✓ Movimiento registrado correctamente</div>
-      <div class="toast terr" id="t-mov-err">Ingresa concepto y monto válido</div>
-    </div>
 
-    <div class="slabel">Resumen del día — Gastos e ingresos</div>
-    <div class="card" style="display:flex;flex-direction:column;gap:6px">
-      <div class="cj"><span style="color:var(--red)">Total gastos</span><span style="color:var(--red);font-weight:600" id="mov-tot-gasto">$0.00</span></div>
-      <div class="cj"><span style="color:var(--green)">Total ingresos extra</span><span style="color:var(--green);font-weight:600" id="mov-tot-ingreso">$0.00</span></div>
-      <div id="mov-lista" style="max-height:160px;overflow-y:auto;margin-top:4px"></div>
+      <div class="slabel">Resumen del día — Gastos e ingresos</div>
+      <div class="card" style="display:flex;flex-direction:column;gap:6px">
+        <div class="cj"><span style="color:var(--red)">Total gastos</span><span style="color:var(--red);font-weight:600" id="mov-tot-gasto">$0.00</span></div>
+        <div class="cj"><span style="color:var(--green)">Total ingresos extra</span><span style="color:var(--green);font-weight:600" id="mov-tot-ingreso">$0.00</span></div>
+        <div id="mov-lista" style="max-height:160px;overflow-y:auto;margin-top:4px"></div>
+      </div>
     </div>
 
     <div class="slabel">Cierre de caja</div>
@@ -388,7 +392,9 @@ textarea{resize:none;font-family:inherit}
         <div class="fg"><div class="fl">Efectivo esperado</div><div style="font-size:15px;font-weight:700;color:var(--pink);padding-top:9px" id="c-esp">$0.00</div></div>
       </div>
     </div>
-    <button class="sec-btn" onclick="abrirModal('m-reporte')"><i class="ti ti-file-spreadsheet"></i>Exportar reportes por rango de fechas</button>
+    <div id="blq-reporte-btn" style="display:none">
+      <button class="sec-btn" onclick="abrirModal('m-reporte')"><i class="ti ti-file-spreadsheet"></i>Exportar reportes por rango de fechas</button>
+    </div>
   </div>
 
   <!-- ADMIN -->
@@ -894,6 +900,12 @@ async function login() {
   document.getElementById('tb-rol').textContent = rol==='admin'?'Administrador':'Operador';
   document.getElementById('blq-util').style.display = rol==='admin'?'block':'none';
   document.getElementById('blq-rent').style.display = rol==='admin'?'block':'none';
+  const gastosBlq=document.getElementById('blq-gastos-admin');
+  if(gastosBlq) gastosBlq.style.display=rol==='admin'?'block':'none';
+  const repBtn=document.getElementById('blq-reporte-btn');
+  if(repBtn) repBtn.style.display=rol==='admin'?'block':'none';
+  const repBtnInicio=document.getElementById('blq-reporte-btn-inicio');
+  if(repBtnInicio) repBtnInicio.style.display=rol==='admin'?'block':'none';
   const reposBlq=document.getElementById('blq-repos');
   if(reposBlq) reposBlq.style.display=rol==='admin'?'flex':'none';
   const conteoBlq=document.getElementById('blq-conteo');
