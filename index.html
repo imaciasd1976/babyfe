@@ -184,6 +184,7 @@ textarea{resize:none;font-family:inherit}
     <div class="card" id="lista-v"><div class="loading"><div class="spinner"></div>Cargando ventas...</div></div>
     <div id="blq-reporte-btn-inicio" style="display:none">
       <button class="sec-btn" onclick="abrirModal('m-reporte')"><i class="ti ti-file-spreadsheet"></i>Exportar reportes por rango de fechas</button>
+      <button class="sec-btn" style="background:var(--pink-light);border-color:var(--pink);color:var(--pink-dark)" onclick="abrirEstadoResultados()"><i class="ti ti-chart-bar"></i>Estado de resultados</button>
     </div>
   </div>
 
@@ -686,6 +687,86 @@ textarea{resize:none;font-family:inherit}
       <button class="sec-btn" style="flex:1" onclick="limpiarColaQR()"><i class="ti ti-trash"></i>Limpiar</button>
     </div>
     <div class="toast terr" id="t-qr-empty">Agrega al menos un producto a la cola</div>
+  </div>
+</div>
+
+<!-- MODAL ESTADO DE RESULTADOS -->
+<div class="modal-bg" id="m-edr">
+  <div class="modal">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div class="mt"><i class="ti ti-chart-bar"></i> Estado de resultados</div>
+      <button onclick="cerrarModal('m-edr')" style="background:none;border:none;cursor:pointer;color:var(--text-secondary);font-size:18px"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="fr">
+      <div class="fg"><div class="fl">Fecha inicio</div><input type="date" id="edr-fi"></div>
+      <div class="fg"><div class="fl">Fecha fin</div><input type="date" id="edr-ff"></div>
+    </div>
+    <button class="add-btn" onclick="generarEDR()"><i class="ti ti-calculator"></i>Generar estado de resultados</button>
+
+    <div id="edr-resultado" style="display:none;flex-direction:column;gap:0">
+
+      <div style="text-align:center;font-size:11px;font-weight:700;color:var(--text-secondary);padding:4px 0;letter-spacing:1px">ESTADO DE RESULTADOS</div>
+      <div style="text-align:center;font-size:10px;color:var(--text-secondary);margin-bottom:8px" id="edr-periodo"></div>
+
+      <!-- INGRESOS -->
+      <div style="background:var(--bg-secondary);border-radius:var(--radius-sm);padding:8px 10px;margin-bottom:4px">
+        <div style="font-size:11px;font-weight:700;color:var(--text-primary);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Ingresos</div>
+        <div class="cj" style="font-size:11px"><span style="color:var(--text-secondary)">Ventas brutas</span><span id="edr-vtas-brut">$0.00</span></div>
+        <div class="cj" style="font-size:11px"><span style="color:var(--red)">(-) Descuentos</span><span style="color:var(--red)" id="edr-desc">$0.00</span></div>
+        <div class="cj" style="font-size:11px;font-weight:700;border-top:1px solid var(--border);padding-top:4px;margin-top:4px"><span>Ventas netas</span><span id="edr-vtas-net">$0.00</span></div>
+        <div class="cj" style="font-size:11px"><span style="color:var(--green)">(+) Ingresos extra</span><span style="color:var(--green)" id="edr-ing-extra">$0.00</span></div>
+        <div class="cj" style="font-size:12px;font-weight:700;border-top:1px solid var(--border);padding-top:4px;margin-top:4px"><span>Total ingresos</span><span style="color:var(--green)" id="edr-tot-ing">$0.00</span></div>
+      </div>
+
+      <!-- COSTOS Y GASTOS -->
+      <div style="background:var(--bg-secondary);border-radius:var(--radius-sm);padding:8px 10px;margin-bottom:4px">
+        <div style="font-size:11px;font-weight:700;color:var(--text-primary);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Costos y gastos</div>
+        <div class="cj" style="font-size:11px"><span style="color:var(--text-secondary)">Costo de ventas</span><span style="color:var(--red)" id="edr-costo-vtas">$0.00</span></div>
+        <div class="cj" style="font-size:11px;font-weight:700;border-top:1px solid var(--border);padding-top:4px;margin-top:4px"><span>Utilidad bruta</span><span id="edr-ut-brut">$0.00</span></div>
+        <div class="cj" style="font-size:11px"><span style="color:var(--text-secondary)">(-) Gastos operativos</span><span style="color:var(--red)" id="edr-gastos-op">$0.00</span></div>
+        <div class="cj" style="font-size:11px"><span style="color:var(--text-secondary)">(-) Compras/Reposición</span><span style="color:var(--red)" id="edr-compras">$0.00</span></div>
+        <div class="cj" style="font-size:12px;font-weight:700;border-top:1px solid var(--border);padding-top:4px;margin-top:4px"><span>Total costos</span><span style="color:var(--red)" id="edr-tot-cost">$0.00</span></div>
+      </div>
+
+      <!-- RESULTADO NETO -->
+      <div id="edr-neto-blq" style="border-radius:var(--radius-sm);padding:10px 12px;text-align:center">
+        <div style="font-size:11px;font-weight:700;letter-spacing:.5px;margin-bottom:4px">UTILIDAD / PÉRDIDA NETA</div>
+        <div style="font-size:24px;font-weight:800" id="edr-neto">$0.00</div>
+        <div style="font-size:10px;margin-top:4px" id="edr-margen-lbl"></div>
+      </div>
+
+      <!-- DESGLOSE PAGOS -->
+      <div style="background:var(--bg-secondary);border-radius:var(--radius-sm);padding:8px 10px;margin-top:4px">
+        <div style="font-size:11px;font-weight:700;color:var(--text-primary);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Desglose de cobros</div>
+        <div class="cj" style="font-size:11px"><span style="color:var(--text-secondary)">Efectivo</span><span id="edr-ef">$0.00</span></div>
+        <div class="cj" style="font-size:11px"><span style="color:var(--text-secondary)">Transferencia</span><span id="edr-tr">$0.00</span></div>
+        <div class="cj" style="font-size:11px"><span style="color:var(--text-secondary)">N° transacciones</span><span id="edr-txn">0</span></div>
+      </div>
+
+      <button class="sec-btn" style="margin-top:8px" onclick="exportarEDR()"><i class="ti ti-file-spreadsheet"></i>Exportar a Excel</button>
+      <div class="toast tok" id="t-edr">✓ Exportado correctamente</div>
+
+      <!-- ANÁLISIS POR PRODUCTO -->
+      <div style="font-size:11px;font-weight:700;color:var(--text-primary);margin-top:8px;text-transform:uppercase;letter-spacing:.5px">Análisis por producto vendido</div>
+      <div style="font-size:10px;color:var(--text-secondary);margin-bottom:4px">Costo de compra vs precio de venta · ordenado por utilidad</div>
+      <div id="edr-prod-tabla" style="max-height:280px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-sm)">
+        <table style="width:100%;border-collapse:collapse;font-size:10px">
+          <thead style="position:sticky;top:0;background:var(--bg-secondary)">
+            <tr>
+              <th style="padding:5px 6px;text-align:left;font-weight:700;border-bottom:1px solid var(--border)">Producto</th>
+              <th style="padding:5px 4px;text-align:center;font-weight:700;border-bottom:1px solid var(--border)">Uds.</th>
+              <th style="padding:5px 4px;text-align:right;font-weight:700;border-bottom:1px solid var(--border)">P.Compra</th>
+              <th style="padding:5px 4px;text-align:right;font-weight:700;border-bottom:1px solid var(--border)">P.Venta</th>
+              <th style="padding:5px 4px;text-align:right;font-weight:700;border-bottom:1px solid var(--border)">Utilidad</th>
+              <th style="padding:5px 4px;text-align:right;font-weight:700;border-bottom:1px solid var(--border)">Margen</th>
+            </tr>
+          </thead>
+          <tbody id="edr-prod-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="toast terr" id="t-edr-err">Selecciona un rango de fechas válido</div>
   </div>
 </div>
 
@@ -1407,8 +1488,234 @@ async function confirmarFin(esperado){
 function nuevaCaja(){cajaInicio=null;cajaFin=null;renderCaja();}
 
 // ═══════════════════════════════════════════════════
-// GASTOS E INGRESOS EXTRA
+// ESTADO DE RESULTADOS
 // ═══════════════════════════════════════════════════
+let edrData = null;
+
+function abrirEstadoResultados(){
+  const hoy = new Date().toISOString().split('T')[0];
+  const primerDiaMes = hoy.substring(0,8)+'01';
+  document.getElementById('edr-fi').value = primerDiaMes;
+  document.getElementById('edr-ff').value = hoy;
+  document.getElementById('edr-resultado').style.display = 'none';
+  abrirModal('m-edr');
+}
+
+async function generarEDR(){
+  const fi = document.getElementById('edr-fi').value;
+  const ff = document.getElementById('edr-ff').value;
+  if(!fi||!ff){showT('t-edr-err');return;}
+  const dateFi = new Date(fi+'T00:00:00');
+  const dateFf = new Date(ff+'T23:59:59');
+
+  showSync('Calculando estado de resultados...');
+
+  // ── Leer Ventas ──
+  const ventasData = await sheetRead('Ventas');
+  let ventasR=[], totVtaBrut=0, totDesc=0, totCostoV=0, totEf=0, totTr=0;
+  if(Array.isArray(ventasData)&&ventasData.length>1){
+    ventasR = ventasData.slice(1).filter(r=>{
+      if(!r[0]) return false;
+      const parts=String(r[0]).split('/');
+      if(parts.length===3){
+        const d=new Date(parts[2]+'-'+parts[1].padStart(2,'0')+'-'+parts[0].padStart(2,'0'));
+        return d>=dateFi&&d<=dateFf;
+      }
+      return false;
+    });
+    totVtaBrut = ventasR.reduce((s,r)=>s+parseFloat(r[4]||0),0);
+    totDesc    = ventasR.reduce((s,r)=>s+parseFloat(r[5]||0),0);
+    totCostoV  = ventasR.reduce((s,r)=>s+parseFloat(r[8]||0),0);
+    totEf      = ventasR.reduce((s,r)=>s+parseFloat(r[9]||0)||(r[7]==='Efectivo'?parseFloat(r[6]||0):0),0);
+    totTr      = ventasR.reduce((s,r)=>s+parseFloat(r[10]||0)||(r[7]==='Transferencia'?parseFloat(r[6]||0):0),0);
+  }
+
+  // ── Leer Gastos ──
+  const gastosData = await sheetRead('Gastos');
+  let totGastos=0, totIngExtra=0;
+  if(Array.isArray(gastosData)&&gastosData.length>1){
+    gastosData.slice(1).forEach(r=>{
+      if(!r[0]) return;
+      const parts=String(r[0]).split('/');
+      if(parts.length===3){
+        const d=new Date(parts[2]+'-'+parts[1].padStart(2,'0')+'-'+parts[0].padStart(2,'0'));
+        if(d>=dateFi&&d<=dateFf){
+          if(r[2]==='Gasto') totGastos+=parseFloat(r[4]||0);
+          else totIngExtra+=parseFloat(r[4]||0);
+        }
+      }
+    });
+  }
+
+  // ── Leer Compras ──
+  const comprasData = await sheetRead('Compras');
+  let totCompras=0;
+  if(Array.isArray(comprasData)&&comprasData.length>1){
+    comprasData.slice(1).forEach(r=>{
+      if(!r[0]) return;
+      const parts=String(r[0]).split('/');
+      if(parts.length===3){
+        const d=new Date(parts[2]+'-'+parts[1].padStart(2,'0')+'-'+parts[0].padStart(2,'0'));
+        if(d>=dateFi&&d<=dateFf) totCompras+=parseFloat(r[6]||0);
+      }
+    });
+  }
+
+  // ── Calcular resultados ──
+  const vtasNetas  = totVtaBrut - totDesc;
+  const totIngresos = vtasNetas + totIngExtra;
+  const utBruta    = vtasNetas - totCostoV;
+  const totCostos  = totCostoV + totGastos + totCompras;
+  const neto       = totIngresos - totCostos;
+  const margen     = totIngresos>0 ? (neto/totIngresos*100).toFixed(1) : 0;
+
+  // ── Guardar para exportar ──
+  edrData = {fi,ff,totVtaBrut,totDesc,vtasNetas,totIngExtra,totIngresos,
+             totCostoV,utBruta,totGastos,totCompras,totCostos,neto,margen,
+             totEf,totTr,txn:ventasR.length};
+
+  // ── Mostrar en modal ──
+  const fmt = v=>'$'+Math.abs(v).toFixed(2);
+  const fmtFecha = s=>{ const p=s.split('-'); return p[2]+'/'+p[1]+'/'+p[0]; };
+  document.getElementById('edr-periodo').textContent = fmtFecha(fi)+' al '+fmtFecha(ff);
+  document.getElementById('edr-vtas-brut').textContent = fmt(totVtaBrut);
+  document.getElementById('edr-desc').textContent = '-'+fmt(totDesc);
+  document.getElementById('edr-vtas-net').textContent = fmt(vtasNetas);
+  document.getElementById('edr-ing-extra').textContent = '+'+fmt(totIngExtra);
+  document.getElementById('edr-tot-ing').textContent = fmt(totIngresos);
+  document.getElementById('edr-costo-vtas').textContent = fmt(totCostoV);
+  document.getElementById('edr-ut-brut').textContent = (utBruta>=0?'':'-')+fmt(utBruta);
+  document.getElementById('edr-ut-brut').style.color = utBruta>=0?'var(--green)':'var(--red)';
+  document.getElementById('edr-gastos-op').textContent = '-'+fmt(totGastos);
+  document.getElementById('edr-compras').textContent = '-'+fmt(totCompras);
+  document.getElementById('edr-tot-cost').textContent = fmt(totCostos);
+  document.getElementById('edr-neto').textContent = (neto>=0?'':'-')+fmt(neto);
+  document.getElementById('edr-margen-lbl').textContent = 'Margen neto: '+margen+'%';
+  const netoBlq = document.getElementById('edr-neto-blq');
+  if(neto>=0){
+    netoBlq.style.background='#DCFCE7'; netoBlq.style.color='#166534';
+    document.getElementById('edr-neto').style.color='#166534';
+  } else {
+    netoBlq.style.background='#FEE2E2'; netoBlq.style.color='var(--red)';
+    document.getElementById('edr-neto').style.color='var(--red)';
+  }
+  document.getElementById('edr-ef').textContent = fmt(totEf);
+  document.getElementById('edr-tr').textContent = fmt(totTr);
+  document.getElementById('edr-txn').textContent = ventasR.length;
+  // ── Analisis por producto ──
+  const prodMap = {}; // {id: {nombre, marca, talla, uds, costoTotal, ventaTotal}}
+  ventasR.forEach(r=>{
+    const prodStr = String(r[2]||'');
+    // Parse products string: "Nombre (x2) $10.00 | Nombre2 (x1) $5.00"
+    const items = prodStr.split('|');
+    items.forEach(item=>{
+      item = item.trim();
+      // Match pattern: "Nombre [BF001] (x2) $10.00"
+      const codeMatch = item.match(/\[([A-Z0-9]+)\]/);
+      const qtyMatch  = item.match(/\(x(\d+)\)/);
+      const priceMatch= item.match(/\$([0-9.]+)$/);
+      if(codeMatch){
+        const id = codeMatch[1];
+        const qty = parseInt(qtyMatch?qtyMatch[1]:1)||1;
+        const pv  = parseFloat(priceMatch?priceMatch[1]:0)||0;
+        const prod = inventario.find(p=>p.id===id);
+        const pc   = prod?prod.costo:0;
+        if(!prodMap[id]){
+          prodMap[id]={
+            nombre: prod?(prod.nombre+(prod.talla?' · '+prod.talla:'')):'('+id+')',
+            uds:0, costoTotal:0, ventaTotal:0
+          };
+        }
+        prodMap[id].uds       += qty;
+        prodMap[id].ventaTotal += pv;
+        prodMap[id].costoTotal += pc*qty;
+      }
+    });
+  });
+
+  // Sort by utilidad desc
+  const prodRows = Object.values(prodMap)
+    .map(p=>({...p, utilidad:p.ventaTotal-p.costoTotal, margen:p.ventaTotal>0?((p.ventaTotal-p.costoTotal)/p.ventaTotal*100):0}))
+    .sort((a,b)=>b.utilidad-a.utilidad);
+
+  const tbody = document.getElementById('edr-prod-body');
+  if(prodRows.length){
+    tbody.innerHTML = prodRows.map(p=>{
+      const color = p.utilidad>=0?'#166534':'var(--red)';
+      const bg    = p.utilidad>=0?'':'#FEE2E2';
+      return `<tr style="border-bottom:1px solid var(--border-light);${bg?'background:'+bg:''}">
+        <td style="padding:5px 6px;font-weight:600">${p.nombre}</td>
+        <td style="padding:5px 4px;text-align:center">${p.uds}</td>
+        <td style="padding:5px 4px;text-align:right;color:var(--text-secondary)">$${(p.costoTotal/Math.max(p.uds,1)).toFixed(2)}</td>
+        <td style="padding:5px 4px;text-align:right;color:var(--text-secondary)">$${(p.ventaTotal/Math.max(p.uds,1)).toFixed(2)}</td>
+        <td style="padding:5px 4px;text-align:right;font-weight:700;color:${color}">$${p.utilidad.toFixed(2)}</td>
+        <td style="padding:5px 4px;text-align:right;color:${color}">${p.margen.toFixed(1)}%</td>
+      </tr>`;
+    }).join('');
+  } else {
+    tbody.innerHTML='<tr><td colspan="6" style="padding:12px;text-align:center;color:var(--text-secondary)">Sin ventas en el período</td></tr>';
+  }
+
+  // Save prodRows for export
+  edrData.prodRows = prodRows;
+
+  document.getElementById('edr-resultado').style.display = 'flex';
+}
+
+function exportarEDR(){
+  if(!edrData){return;}
+  const d = edrData;
+  const fmtFecha = s=>{ const p=s.split('-'); return p[2]+'/'+p[1]+'/'+p[0]; };
+  const periodo = fmtFecha(d.fi)+' al '+fmtFecha(d.ff);
+  const rows = [
+    ['ESTADO DE RESULTADOS — BabyFe'],
+    ['Período: '+periodo],[],
+    ['INGRESOS',''],
+    ['Ventas brutas', d.totVtaBrut],
+    ['(-) Descuentos', -d.totDesc],
+    ['Ventas netas', d.vtasNetas],
+    ['(+) Ingresos extra', d.totIngExtra],
+    ['TOTAL INGRESOS', d.totIngresos],[],
+    ['COSTOS Y GASTOS',''],
+    ['(-) Costo de ventas', -d.totCostoV],
+    ['Utilidad bruta', d.utBruta],
+    ['(-) Gastos operativos', -d.totGastos],
+    ['(-) Compras / Reposición', -d.totCompras],
+    ['TOTAL COSTOS', -d.totCostos],[],
+    ['UTILIDAD / PÉRDIDA NETA', d.neto],
+    ['Margen neto', d.margen+'%'],[],
+    ['DESGLOSE DE COBROS',''],
+    ['Efectivo', d.totEf],
+    ['Transferencia', d.totTr],
+    ['N° transacciones', d.txn],
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=[{wch:30},{wch:15}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Estado de Resultados');
+
+  // Hoja de análisis por producto
+  if(d.prodRows&&d.prodRows.length){
+    const prodSheet = [
+      ['ANÁLISIS POR PRODUCTO — '+periodo],[],
+      ['Producto','Unidades vendidas','Costo unitario','Precio venta unitario','Utilidad total','Margen %'],
+      ...d.prodRows.map(p=>[
+        p.nombre, p.uds,
+        (p.costoTotal/Math.max(p.uds,1)).toFixed(2),
+        (p.ventaTotal/Math.max(p.uds,1)).toFixed(2),
+        p.utilidad.toFixed(2),
+        p.margen.toFixed(1)+'%'
+      ])
+    ];
+    const ws2 = XLSX.utils.aoa_to_sheet(prodSheet);
+    ws2['!cols']=[{wch:30},{wch:10},{wch:14},{wch:18},{wch:14},{wch:10}];
+    XLSX.utils.book_append_sheet(wb,ws2,'Por Producto');
+  }
+  XLSX.writeFile(wb,'BabyFe_EDR_'+d.fi+'_al_'+d.ff+'.xlsx');
+  showT('t-edr');
+}
+
+
 async function cargarMovimientos(){
   const data = await sheetRead('Gastos');
   movimientos = [];
