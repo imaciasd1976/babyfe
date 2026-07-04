@@ -1042,7 +1042,11 @@ function showScreen(id){
   const nb=document.getElementById('nb-'+id); if(nb)nb.classList.add('active');
   if(id==='inventario') renderInv();
   if(id==='clientes') renderCli();
-  if(id==='inicio') renderVentas();
+  if(id==='inicio'){
+    renderVentas();
+    const repBtnInicio=document.getElementById('blq-reporte-btn-inicio');
+    if(repBtnInicio) repBtnInicio.style.display=rol==='admin'?'block':'none';
+  }
   if(id==='caja') renderCaja();
   if(id==='conteo') renderConteoScreen();
 }
