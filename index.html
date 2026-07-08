@@ -937,7 +937,16 @@ async function loadInventario() {
 async function loadVentas() {
   const data = await sheetRead('Ventas');
   if (!Array.isArray(data) || data.length < 2) { ventas=[]; return; }
-  const hoy = new Date().toLocaleDateString('es-EC');
+  const ahora = new Date();
+  const dia = ahora.getDate();
+  const mes = ahora.getMonth()+1;
+  const anio = ahora.getFullYear();
+  const esFechaHoy = (str) => {
+    if(!str) return false;
+    const parts = String(str).trim().split('/');
+    if(parts.length===3) return parseInt(parts[0])===dia && parseInt(parts[1])===mes && parseInt(parts[2])===anio;
+    return false;
+  };
   ventas = data.slice(1).filter(r => r[0]).map(r => ({
     fecha: r[0]||'', hora: r[1]||'',
     productosStr: r[2]||'', cli: r[3]||'',
@@ -946,23 +955,37 @@ async function loadVentas() {
     costo: parseFloat(r[8])||0,
     pagoEf: parseFloat(r[9])||0,
     pagoTr: parseFloat(r[10])||0,
-  })).filter(v => v.fecha === hoy);
+  })).filter(v => esFechaHoy(v.fecha));
 }
 
 async function loadCaja() {
   const data = await sheetRead('Caja');
   if (!Array.isArray(data) || data.length < 2) { cajaInicio=null; cajaFin=null; return; }
-  const hoy = new Date().toLocaleDateString('es-EC');
-  const registros = data.slice(1).filter(r => r[0] === hoy);
-  const apertura = registros.find(r => String(r[1]).toUpperCase()==='INICIO');
-  const cierre   = registros.find(r => String(r[1]).toUpperCase()==='CIERRE');
+  const ahora = new Date();
+  const dia = ahora.getDate();
+  const mes = ahora.getMonth()+1;
+  const anio = ahora.getFullYear();
+  // Match date regardless of zero-padding: 8/7/2026 or 08/07/2026
+  const esFechaHoy = (str) => {
+    if(!str) return false;
+    const s = String(str).trim();
+    // Try d/m/yyyy or dd/mm/yyyy
+    const parts = s.split('/');
+    if(parts.length===3){
+      return parseInt(parts[0])===dia && parseInt(parts[1])===mes && parseInt(parts[2])===anio;
+    }
+    return false;
+  };
+  const registros = data.slice(1).filter(r => esFechaHoy(r[0]));
+  const apertura = registros.find(r => String(r[1]||'').toUpperCase().includes('INICIO'));
+  const cierre   = registros.find(r => String(r[1]||'').toUpperCase().includes('CIERRE'));
   if(apertura){
-    cajaInicio = {hora: apertura[2], monto: parseFloat(apertura[4])||0, operador: apertura[3]};
+    cajaInicio = {hora: String(apertura[2]||''), monto: parseFloat(apertura[4])||0, operador: String(apertura[3]||'')};
   } else {
     cajaInicio = null;
   }
   if(cierre){
-    cajaFin = {hora: cierre[2], monto: parseFloat(cierre[4])||0, operador: cierre[3],
+    cajaFin = {hora: String(cierre[2]||''), monto: parseFloat(cierre[4])||0, operador: String(cierre[3]||''),
                esperado: parseFloat(cierre[5])||0, dif: parseFloat(cierre[6])||0};
   } else {
     cajaFin = null;
