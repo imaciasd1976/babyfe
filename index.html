@@ -958,14 +958,30 @@ async function loadVentas() {
   console.log('[loadVentas] hoy:', dia+'/'+mes+'/'+anio);
   const esFechaHoy = (str) => {
     if(!str) return false;
-    const parts = String(str).trim().split('/');
+    const s = String(str).trim();
+    // Formato ISO: 2026-07-08T05:00:00.000Z
+    if(s.includes('T')){
+      const d = new Date(s);
+      return d.getUTCDate()===dia && d.getUTCMonth()+1===mes && d.getUTCFullYear()===anio;
+    }
+    // Formato d/m/yyyy o dd/mm/yyyy
+    const parts = s.split('/');
     if(parts.length===3) return parseInt(parts[0])===dia && parseInt(parts[1])===mes && parseInt(parts[2])===anio;
     return false;
+  };
+  const fmtFecha = (str) => {
+    if(!str) return '';
+    const s = String(str).trim();
+    if(s.includes('T')){
+      const d = new Date(s);
+      return d.getUTCDate()+'/'+(d.getUTCMonth()+1)+'/'+d.getUTCFullYear();
+    }
+    return s;
   };
   const todas = data.slice(1).filter(r => r[0]);
   console.log('[loadVentas] primera fecha en sheet:', todas[0]?todas[0][0]:'ninguna');
   ventas = todas.map(r => ({
-    fecha: r[0]||'', hora: r[1]||'',
+    fecha: fmtFecha(r[0]), hora: r[1]||'',
     productosStr: r[2]||'', cli: r[3]||'',
     sub: toNum(r[4]), dval: toNum(r[5]),
     tot: toNum(r[6]), pago: r[7]||'',
@@ -987,11 +1003,12 @@ async function loadCaja() {
   const esFechaHoy = (str) => {
     if(!str) return false;
     const s = String(str).trim();
-    // Try d/m/yyyy or dd/mm/yyyy
-    const parts = s.split('/');
-    if(parts.length===3){
-      return parseInt(parts[0])===dia && parseInt(parts[1])===mes && parseInt(parts[2])===anio;
+    if(s.includes('T')){
+      const d = new Date(s);
+      return d.getUTCDate()===dia && d.getUTCMonth()+1===mes && d.getUTCFullYear()===anio;
     }
+    const parts = s.split('/');
+    if(parts.length===3) return parseInt(parts[0])===dia && parseInt(parts[1])===mes && parseInt(parts[2])===anio;
     return false;
   };
   const registros = data.slice(1).filter(r => esFechaHoy(r[0]));
