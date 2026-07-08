@@ -1165,11 +1165,20 @@ function buscar(){
     const div=document.createElement('div');
     div.style.cssText='padding:7px 4px;cursor:pointer;border-bottom:1px solid var(--border-light);display:flex;justify-content:space-between;align-items:center;gap:6px';
     div.innerHTML=
-      '<div>'+
-        '<div style="font-size:11px;font-weight:600;color:var(--text-primary)">'+p.nombre+(p.talla?(' <span class="badge badge-talla">'+p.talla+'</span>'):'')+'</div>'+
-        '<div style="font-size:10px;color:var(--text-secondary)">'+p.marca+' · <span style="font-family:monospace">'+p.id+'</span> · '+p.stock+' uds.</div>'+
+      '<div style="flex:1;min-width:0">'+
+        '<div style="font-size:11px;font-weight:600;color:var(--text-primary)">'+p.nombre+'</div>'+
+        '<div style="font-size:10px;color:var(--text-secondary);margin-top:1px">'+
+          p.marca+
+          (p.talla?' · <span class="badge badge-talla">'+p.talla+'</span>':'')+
+          (p.genero?' · <span style="color:var(--blue)">'+p.genero+'</span>':'')+
+        '</div>'+
+        '<div style="font-size:9px;color:var(--text-secondary);margin-top:1px">'+
+          (p.caract&&p.caract!=='Sin especificaciones'?p.caract+' · ':'')+
+          '<span style="font-family:monospace">'+p.id+'</span>'+
+          ' · '+p.stock+' uds.'+
+        '</div>'+
       '</div>'+
-      '<span style="color:var(--pink);font-weight:700;font-size:12px;white-space:nowrap">$'+p.precio.toFixed(2)+'</span>';
+      '<span style="color:var(--pink);font-weight:700;font-size:13px;white-space:nowrap;flex-shrink:0">$'+p.precio.toFixed(2)+'</span>';
     div.addEventListener('click', function(){ addCarrito(idx); });
     el.appendChild(div);
   });
@@ -2291,10 +2300,22 @@ function buscarConteoScreen(){
   }
   res.style.display='block';
   res.innerHTML=f.map(p=>
-    `<div onclick="selConteoProducto(inventario.find(x=>x.id==='${p.id}'))" style="padding:7px 4px;cursor:pointer;border-bottom:1px solid var(--border-light);font-size:11px" onmouseover="this.style.background='var(--bg-primary)'" onmouseout="this.style.background=''">
-      <strong>${p.nombre}</strong> <span style="color:var(--text-secondary)">${p.marca}${p.talla?' · '+p.talla:''}</span>
-      <span class="badge badge-cod">${p.id}</span>
-      <span style="float:right;color:#3730A3;font-weight:700">Stock: ${p.stock}</span>
+    `<div onclick="selConteoProducto(inventario.find(x=>x.id==='${p.id}'))" style="padding:7px 4px;cursor:pointer;border-bottom:1px solid var(--border-light)" onmouseover="this.style.background='var(--bg-primary)'" onmouseout="this.style.background=''">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:11px;font-weight:600;color:var(--text-primary)">${p.nombre}</div>
+          <div style="font-size:10px;color:var(--text-secondary);margin-top:1px">
+            ${p.marca}${p.talla?' · <strong>'+p.talla+'</strong>':''}${p.genero?' · <span style="color:var(--blue)">'+p.genero+'</span>':''}
+          </div>
+          <div style="font-size:9px;color:var(--text-secondary);margin-top:1px">
+            ${p.caract&&p.caract!=='Sin especificaciones'?p.caract+' · ':''}<span style="font-family:monospace">${p.id}</span>
+          </div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;margin-left:8px">
+          <div style="color:#3730A3;font-weight:700;font-size:11px">Stock: ${p.stock}</div>
+          <div style="color:var(--pink);font-weight:700;font-size:11px">$${p.precio.toFixed(2)}</div>
+        </div>
+      </div>
     </div>`
   ).join('');
 }
