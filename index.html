@@ -894,7 +894,7 @@ async function syncAll() {
   icon.style.animation = 'spin .7s linear infinite';
   showSync('⟳ Sincronizando...');
   try {
-    await Promise.all([loadInventario(), loadVentas(), loadClientes()]);
+    await Promise.all([loadInventario(), loadVentas(), loadClientes(), loadCaja()]);
     lastSyncTime = new Date();
     showSync('✓ Sincronizado — '+lastSyncTime.toLocaleTimeString('es-EC',{hour:'2-digit',minute:'2-digit'}));
   } catch(e) {
@@ -905,7 +905,9 @@ async function syncAll() {
   renderInv();
   renderVentas();
   renderCli();
+  renderCaja();
 }
+
 
 async function loadInventario() {
   const data = await sheetRead('Productos');
@@ -942,7 +944,29 @@ async function loadVentas() {
     sub: parseFloat(r[4])||0, dval: parseFloat(r[5])||0,
     tot: parseFloat(r[6])||0, pago: r[7]||'',
     costo: parseFloat(r[8])||0,
+    pagoEf: parseFloat(r[9])||0,
+    pagoTr: parseFloat(r[10])||0,
   })).filter(v => v.fecha === hoy);
+}
+
+async function loadCaja() {
+  const data = await sheetRead('Caja');
+  if (!Array.isArray(data) || data.length < 2) { cajaInicio=null; cajaFin=null; return; }
+  const hoy = new Date().toLocaleDateString('es-EC');
+  const registros = data.slice(1).filter(r => r[0] === hoy);
+  const apertura = registros.find(r => String(r[1]).toUpperCase()==='INICIO');
+  const cierre   = registros.find(r => String(r[1]).toUpperCase()==='CIERRE');
+  if(apertura){
+    cajaInicio = {hora: apertura[2], monto: parseFloat(apertura[4])||0, operador: apertura[3]};
+  } else {
+    cajaInicio = null;
+  }
+  if(cierre){
+    cajaFin = {hora: cierre[2], monto: parseFloat(cierre[4])||0, operador: cierre[3],
+               esperado: parseFloat(cierre[5])||0, dif: parseFloat(cierre[6])||0};
+  } else {
+    cajaFin = null;
+  }
 }
 
 async function loadClientes() {
@@ -1005,9 +1029,10 @@ async function login() {
   // Auto background sync every 5 minutes
   setInterval(async ()=>{
     if(rol){
-      await loadVentas(); // Only reload ventas (changes most often)
+      await Promise.all([loadVentas(), loadCaja()]);
       updMetrics();
       renderVentas();
+      renderCaja();
     }
   }, 5*60*1000);
 }
@@ -1430,6 +1455,19 @@ async function renderCaja(){
 }
 
 function abrirCaja(tipo){
+  // Guards
+  if(tipo==='inicio' && cajaInicio){
+    alert('La caja ya está abierta. Debes cerrarla antes de iniciar una nueva.');
+    return;
+  }
+  if(tipo==='fin' && !cajaInicio){
+    alert('Primero debes iniciar la caja.');
+    return;
+  }
+  if(tipo==='fin' && cajaFin){
+    alert('La caja ya fue cerrada hoy. Usa "Nueva caja del día" si necesitas reiniciar.');
+    return;
+  }
   const ef=ventas.reduce((s,v)=>s+(v.pagoEf!==undefined?v.pagoEf:(v.pago==='Efectivo'?v.tot:0)),0);
   const gastos=movimientos.filter(m=>m.tipo==='Gasto').reduce((s,m)=>s+m.monto,0);
   const ingresosExtra=movimientos.filter(m=>m.tipo==='Ingreso').reduce((s,m)=>s+m.monto,0);
