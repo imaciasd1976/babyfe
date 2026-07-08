@@ -856,9 +856,22 @@ const NAV_OPER = [
   {id:'conteo',icon:'ti-clipboard-list',lbl:'conteo'},
 ];
 
-// ═══════════════════════════════════════════════════
-// API — GOOGLE SHEETS
-// ═══════════════════════════════════════════════════
+// ── Helper: convierte texto a número, maneja comas y puntos ──
+function toNum(v){
+  if(v===null||v===undefined||v==='') return 0;
+  const s=String(v).trim().replace(/\s/g,'');
+  // Si tiene coma como separador decimal (ej: 64,96) y NO tiene punto
+  if(s.includes(',')&&!s.includes('.')){
+    return parseFloat(s.replace(',','.'))||0;
+  }
+  // Si tiene ambos (ej: 1.234,56) → formato europeo
+  if(s.includes(',')&&s.includes('.')){
+    return parseFloat(s.replace(/\./g,'').replace(',','.'))||0;
+  }
+  return parseFloat(s)||0;
+}
+
+
 async function apiCall(params) {
   try {
     const url = API + '?' + Object.entries(params).map(([k,v]) => `${k}=${encodeURIComponent(v)}`).join('&');
@@ -921,7 +934,7 @@ async function loadInventario() {
       id: String(r[0]||''), nombre: String(r[1]||''), marca: String(r[2]||''),
       genero: String(r[3]||'Unisex'), talla: String(r[4]||''),
       caract: String(r[5]||''), stock: parseInt(r[6])||0,
-      costo: parseFloat(r[7])||0, precio: parseFloat(r[8])||0,
+      stock: toNum(r[6]), costo: toNum(r[7]), precio: toNum(r[8]),
       icon: String(r[9]||'ti-tag')
     };
     p._search = (p.id+' '+p.nombre+' '+p.marca+' '+p.genero+' '+p.talla+' '+p.caract).toLowerCase();
@@ -936,26 +949,31 @@ async function loadInventario() {
 
 async function loadVentas() {
   const data = await sheetRead('Ventas');
+  console.log('[loadVentas] filas recibidas:', Array.isArray(data)?data.length:data);
   if (!Array.isArray(data) || data.length < 2) { ventas=[]; return; }
   const ahora = new Date();
   const dia = ahora.getDate();
   const mes = ahora.getMonth()+1;
   const anio = ahora.getFullYear();
+  console.log('[loadVentas] hoy:', dia+'/'+mes+'/'+anio);
   const esFechaHoy = (str) => {
     if(!str) return false;
     const parts = String(str).trim().split('/');
     if(parts.length===3) return parseInt(parts[0])===dia && parseInt(parts[1])===mes && parseInt(parts[2])===anio;
     return false;
   };
-  ventas = data.slice(1).filter(r => r[0]).map(r => ({
+  const todas = data.slice(1).filter(r => r[0]);
+  console.log('[loadVentas] primera fecha en sheet:', todas[0]?todas[0][0]:'ninguna');
+  ventas = todas.map(r => ({
     fecha: r[0]||'', hora: r[1]||'',
     productosStr: r[2]||'', cli: r[3]||'',
-    sub: parseFloat(r[4])||0, dval: parseFloat(r[5])||0,
-    tot: parseFloat(r[6])||0, pago: r[7]||'',
-    costo: parseFloat(r[8])||0,
-    pagoEf: parseFloat(r[9])||0,
-    pagoTr: parseFloat(r[10])||0,
+    sub: toNum(r[4]), dval: toNum(r[5]),
+    tot: toNum(r[6]), pago: r[7]||'',
+    costo: toNum(r[8]),
+    pagoEf: toNum(r[9]),
+    pagoTr: toNum(r[10]),
   })).filter(v => esFechaHoy(v.fecha));
+  console.log('[loadVentas] ventas de hoy encontradas:', ventas.length);
 }
 
 async function loadCaja() {
@@ -980,13 +998,13 @@ async function loadCaja() {
   const apertura = registros.find(r => String(r[1]||'').toUpperCase().includes('INICIO'));
   const cierre   = registros.find(r => String(r[1]||'').toUpperCase().includes('CIERRE'));
   if(apertura){
-    cajaInicio = {hora: String(apertura[2]||''), monto: parseFloat(apertura[4])||0, operador: String(apertura[3]||'')};
+    cajaInicio = {hora: String(apertura[2]||''), monto: toNum(apertura[4]), operador: String(apertura[3]||'')};
   } else {
     cajaInicio = null;
   }
   if(cierre){
-    cajaFin = {hora: String(cierre[2]||''), monto: parseFloat(cierre[4])||0, operador: String(cierre[3]||''),
-               esperado: parseFloat(cierre[5])||0, dif: parseFloat(cierre[6])||0};
+    cajaFin = {hora: String(cierre[2]||''), monto: toNum(cierre[4]), operador: String(cierre[3]||''),
+               esperado: toNum(cierre[5]), dif: toNum(cierre[6])};
   } else {
     cajaFin = null;
   }
@@ -1003,7 +1021,7 @@ async function loadClientes() {
     const c = {
       idNum: r[0]||'', nombre: r[1]||'', tel: r[2]||'',
       dir: r[3]||'', email: r[4]||'',
-      compras: parseInt(r[5])||0, total: parseFloat(r[6])||0,
+      compras: parseInt(r[5])||0, total: toNum(r[6]),
       rowIndex: i + 1
     };
     clientes.push(c);
