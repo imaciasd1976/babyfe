@@ -1016,36 +1016,32 @@ async function loadVentas() {
 async function loadCaja() {
   const data = await sheetRead('Caja');
   if (!Array.isArray(data) || data.length < 2) { cajaInicio=null; cajaFin=null; return; }
-  const ahora = new Date();
-  const dia = ahora.getDate();
-  const mes = ahora.getMonth()+1;
-  const anio = ahora.getFullYear();
-  // Match date regardless of zero-padding: 8/7/2026 or 08/07/2026
-  const esFechaHoy = (str) => {
-    if(!str) return false;
+  const parseDate = (str) => {
+    if(!str) return null;
     const s = String(str).trim();
-    if(s.includes('T')){
-      const d = new Date(s);
-      return d.getUTCDate()===dia && d.getUTCMonth()+1===mes && d.getUTCFullYear()===anio;
-    }
-    const parts = s.split('/');
-    if(parts.length===3) return parseInt(parts[0])===dia && parseInt(parts[1])===mes && parseInt(parts[2])===anio;
-    return false;
+    if(s.includes('T')){ const d=new Date(s); return new Date(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate()); }
+    const parts=s.split('/');
+    if(parts.length===3) return new Date(parts[2]+'-'+parts[1].padStart(2,'0')+'-'+parts[0].padStart(2,'0'));
+    return null;
   };
-  const registros = data.slice(1).filter(r => esFechaHoy(r[0]));
-  const apertura = registros.find(r => String(r[1]||'').toUpperCase().includes('INICIO'));
-  const cierre   = registros.find(r => String(r[1]||'').toUpperCase().includes('CIERRE'));
-  if(apertura){
-    cajaInicio = {hora: String(apertura[2]||''), monto: toNum(apertura[4]), operador: String(apertura[3]||'')};
-  } else {
-    cajaInicio = null;
+  const rows = data.slice(1).filter(r=>r[0]);
+  const aperturas = rows.filter(r=>String(r[1]||'').toUpperCase().includes('INICIO'));
+  const cierres   = rows.filter(r=>String(r[1]||'').toUpperCase().includes('CIERRE'));
+  if(!aperturas.length){ cajaInicio=null; cajaFin=null; return; }
+  // Find last apertura without a matching cierre
+  let lastApertura = null;
+  let matchCierre  = null;
+  for(let i=aperturas.length-1; i>=0; i--){
+    const ap = aperturas[i];
+    const apDate = parseDate(ap[0]);
+    const cierre = cierres.find(r=>{ const d=parseDate(r[0]); return d&&apDate&&d.getTime()===apDate.getTime(); });
+    if(!cierre){ lastApertura=ap; matchCierre=null; break; }
+    // If all have cierre, show the most recent one
+    if(i===aperturas.length-1){ lastApertura=ap; matchCierre=cierre; }
   }
-  if(cierre){
-    cajaFin = {hora: String(cierre[2]||''), monto: toNum(cierre[4]), operador: String(cierre[3]||''),
-               esperado: toNum(cierre[5]), dif: toNum(cierre[6])};
-  } else {
-    cajaFin = null;
-  }
+  if(!lastApertura){ lastApertura=aperturas[aperturas.length-1]; }
+  cajaInicio = { hora: String(lastApertura[2]||''), monto: toNum(lastApertura[4]), operador: String(lastApertura[3]||''), fecha: lastApertura[0]||'' };
+  cajaFin = matchCierre ? { hora: String(matchCierre[2]||''), monto: toNum(matchCierre[4]), operador: String(matchCierre[3]||''), esperado: toNum(matchCierre[5]), dif: toNum(matchCierre[6]) } : null;
 }
 
 async function loadClientes() {
@@ -1542,7 +1538,21 @@ async function renderCaja(){
     eb.innerHTML=`<div class="caja-estado ca-pendiente"><i class="ti ti-lock" style="font-size:22px;color:var(--text-secondary)"></i><div><div style="font-size:12px;font-weight:700">Caja no iniciada</div><div style="font-size:10px;color:var(--text-secondary)">Presiona el botón para iniciar</div></div></div>`;
     cb.innerHTML=`<button class="grn-btn" onclick="abrirCaja('inicio')"><i class="ti ti-lock-open"></i>Iniciar caja</button>`;
   }else if(!cajaFin){
-    eb.innerHTML=`<div class="caja-estado ca-abierta"><i class="ti ti-lock-open" style="font-size:22px;color:var(--green)"></i><div><div style="font-size:12px;font-weight:700">Caja abierta</div><div style="font-size:10px;color:var(--green)">Inicio: ${cajaInicio.hora} · Fondo: $${cajaInicio.monto.toFixed(2)} · ${cajaInicio.operador}</div></div></div>`;
+    const cajaFechaStr = cajaInicio.fecha ? String(cajaInicio.fecha) : '';
+    const esDeHoy = (()=>{
+      const ahora=new Date(); const dia=ahora.getDate(); const mes=ahora.getMonth()+1; const anio=ahora.getFullYear();
+      if(cajaFechaStr.includes('T')){const d=new Date(cajaFechaStr);return d.getUTCDate()===dia&&d.getUTCMonth()+1===mes&&d.getUTCFullYear()===anio;}
+      const parts=cajaFechaStr.split('/');
+      if(parts.length===3) return parseInt(parts[0])===dia&&parseInt(parts[1])===mes&&parseInt(parts[2])===anio;
+      return true;
+    })();
+    eb.innerHTML=`<div class="caja-estado ${esDeHoy?'ca-abierta':'ca-abierta'}" style="${esDeHoy?'':'background:#FEF3C7;border-color:#F59E0B'}">
+      <i class="ti ti-lock-open" style="font-size:22px;color:${esDeHoy?'var(--green)':'#D97706'}"></i>
+      <div>
+        <div style="font-size:12px;font-weight:700">${esDeHoy?'Caja abierta':'⚠ Caja del día anterior sin cerrar'}</div>
+        <div style="font-size:10px;color:${esDeHoy?'var(--green)':'#D97706'}">Inicio: ${cajaInicio.hora}${cajaFechaStr?' · '+cajaFechaStr:''} · Fondo: $${cajaInicio.monto.toFixed(2)} · ${cajaInicio.operador}</div>
+      </div>
+    </div>`;
     cb.innerHTML=`<button class="red-btn" onclick="abrirCaja('fin')"><i class="ti ti-lock"></i>Cerrar caja</button>`;
   }else{
     const gastos=parseFloat(document.getElementById('gastos').value)||0;
