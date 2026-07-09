@@ -955,16 +955,13 @@ async function loadVentas() {
   const dia = ahora.getDate();
   const mes = ahora.getMonth()+1;
   const anio = ahora.getFullYear();
-  console.log('[loadVentas] hoy:', dia+'/'+mes+'/'+anio);
   const esFechaHoy = (str) => {
     if(!str) return false;
     const s = String(str).trim();
-    // Formato ISO: 2026-07-08T05:00:00.000Z
     if(s.includes('T')){
       const d = new Date(s);
       return d.getUTCDate()===dia && d.getUTCMonth()+1===mes && d.getUTCFullYear()===anio;
     }
-    // Formato d/m/yyyy o dd/mm/yyyy
     const parts = s.split('/');
     if(parts.length===3) return parseInt(parts[0])===dia && parseInt(parts[1])===mes && parseInt(parts[2])===anio;
     return false;
@@ -978,17 +975,41 @@ async function loadVentas() {
     }
     return s;
   };
-  const todas = data.slice(1).filter(r => r[0]);
-  console.log('[loadVentas] primera fecha en sheet:', todas[0]?todas[0][0]:'ninguna');
-  ventas = todas.map(r => ({
-    fecha: fmtFecha(r[0]), hora: r[1]||'',
-    productosStr: r[2]||'', cli: r[3]||'',
-    sub: toNum(r[4]), dval: toNum(r[5]),
-    tot: toNum(r[6]), pago: r[7]||'',
-    costo: toNum(r[8]),
-    pagoEf: toNum(r[9]),
-    pagoTr: toNum(r[10]),
-  })).filter(v => esFechaHoy(v.fecha));
+  // New structure: one row per product, group by ID_Venta (col C / index 2)
+  const rowsHoy = data.slice(1).filter(r => r[0] && esFechaHoy(r[0]));
+  console.log('[loadVentas] filas de hoy:', rowsHoy.length);
+  const ventaMap = {};
+  rowsHoy.forEach(r => {
+    const ventaId = r[2]||'';
+    if(!ventaMap[ventaId]) ventaMap[ventaId] = [];
+    ventaMap[ventaId].push(r);
+  });
+  ventas = Object.entries(ventaMap).map(([ventaId, rows]) => {
+    const first = rows[0];
+    const productosStr = rows.map(r => (r[4]||'') + ' x' + (r[5]||1)).join(' | ');
+    return {
+      fecha: fmtFecha(first[0]),
+      hora: first[1]||'',
+      ventaId,
+      productosStr,
+      cli: first[13]||'',
+      sub: toNum(first[8]),
+      dval: toNum(first[9]),
+      tot: toNum(first[10]),
+      pagoEf: toNum(first[11]),
+      pagoTr: toNum(first[12]),
+      costo: rows.reduce((s,r)=>{
+        const prod = inventario.find(p=>p.id===r[3]);
+        return s + (prod?prod.costo:0) * (parseInt(r[5])||1);
+      },0),
+      items: rows.map(r=>({
+        id: r[3]||'', nombre: r[4]||'',
+        qty: parseInt(r[5])||1,
+        precio: toNum(r[6]),
+        total: toNum(r[7])
+      }))
+    };
+  }).sort((a,b) => b.hora.localeCompare(a.hora));
   console.log('[loadVentas] ventas de hoy encontradas:', ventas.length);
 }
 
@@ -1290,23 +1311,40 @@ async function registrarVenta(){
       alert('Los montos del pago mixto no coinciden con el total ($'+tot.toFixed(2)+')');return;
     }
   }
-  const pagoStr=pago==='Mixto'?'Mixto (Ef:$'+pagoEf.toFixed(2)+' Tr:$'+pagoTr.toFixed(2)+')':pago;
   const cli=document.getElementById('v-cli').value.trim()||'Cliente general';
   const ahora=new Date();
   const fecha=ahora.toLocaleDateString('es-EC');
   const hora=ahora.getHours().toString().padStart(2,'0')+':'+ahora.getMinutes().toString().padStart(2,'0');
   const costo=carrito.reduce((s,c)=>s+c.costo*c.qty,0);
-  const productosStr=carrito.map(c=>{ const t=c.talla?' ('+c.talla+')':''; return c.nombre+t+'  x'+c.qty; }).join(' | ');
 
-  const row=[fecha,hora,productosStr,cli,sub.toFixed(2),dval.toFixed(2),tot.toFixed(2),pagoStr,costo.toFixed(2),pagoEf.toFixed(2),pagoTr.toFixed(2)];
+  // Generate unique venta ID: V + timestamp
+  const ventaId='V'+Date.now().toString().slice(-6);
 
-  // Fire venta append + all stock updates IN PARALLEL (no re-reading 700 rows per item)
-  const updatePromises=[sheetAppend('Ventas',row)];
+  // One row per product
+  // Cols: Fecha,Hora,ID_Venta,Código,Producto,Cantidad,P_Venta,Total_Item,Subtotal_Venta,Descuento,Total_Venta,Efectivo,Transferencia,Cliente
+  const updatePromises=[];
+  carrito.forEach((c,i)=>{
+    const esUltimo=i===carrito.length-1;
+    const row=[
+      fecha, hora, ventaId,
+      c.id, c.nombre+(c.talla?' ('+c.talla+')':''),
+      c.qty, c.precio.toFixed(2), c.total.toFixed(2),
+      i===0?sub.toFixed(2):'',   // Subtotal solo en primera fila
+      i===0?dval.toFixed(2):'',  // Descuento solo en primera fila
+      i===0?tot.toFixed(2):'',   // Total solo en primera fila
+      i===0?pagoEf.toFixed(2):'',
+      i===0?pagoTr.toFixed(2):'',
+      i===0?cli:''
+    ];
+    updatePromises.push(sheetAppend('Ventas',row));
+  });
+
+  // Update stock for each product
   for(const c of carrito){
     const p=inventario[c.idx];
     if(p){
-      p.stock=Math.max(0,p.stock-c.qty); // Update local immediately
-      const rowIdx=prodRowMap[p.id];      // O(1) lookup via pre-built index
+      p.stock=Math.max(0,p.stock-c.qty);
+      const rowIdx=prodRowMap[p.id];
       if(rowIdx){
         updatePromises.push(
           apiCall({action:'update',sheet:'Productos',rowIndex:rowIdx,
@@ -1315,12 +1353,12 @@ async function registrarVenta(){
       }
     }
   }
-  await Promise.all(updatePromises); // All sheet writes fire simultaneously
+  await Promise.all(updatePromises);
 
-  // Add local venta for metrics
-  ventas.unshift({fecha,hora,productosStr,cli,sub,dval,tot,pago:pagoStr,pagoEf,pagoTr,costo});
+  // Add local venta for metrics (one entry per venta, not per product)
+  ventas.unshift({fecha,hora,ventaId,productosStr:carrito.map(c=>c.nombre+(c.talla?' ('+c.talla+')':'')+' x'+c.qty).join(' | '),cli,sub,dval,tot,pagoEf,pagoTr,costo,items:carrito.map(c=>({...c}))});
 
-  // Update client totals using clientesMap O(1) lookup
+  // Update client totals
   if(cli!=='Cliente general'){
     const idx=clientesMap[cli.toLowerCase()];
     if(idx!==undefined){
@@ -1622,21 +1660,38 @@ async function generarEDR(){
   // ── Leer Ventas ──
   const ventasData = await sheetRead('Ventas');
   let ventasR=[], totVtaBrut=0, totDesc=0, totCostoV=0, totEf=0, totTr=0;
+  const parseDate = (str) => {
+    if(!str) return null;
+    const s = String(str).trim();
+    if(s.includes('T')){
+      const d = new Date(s);
+      return new Date(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate());
+    }
+    const parts = s.split('/');
+    if(parts.length===3) return new Date(parts[2]+'-'+parts[1].padStart(2,'0')+'-'+parts[0].padStart(2,'0'));
+    return null;
+  };
   if(Array.isArray(ventasData)&&ventasData.length>1){
     ventasR = ventasData.slice(1).filter(r=>{
       if(!r[0]) return false;
-      const parts=String(r[0]).split('/');
-      if(parts.length===3){
-        const d=new Date(parts[2]+'-'+parts[1].padStart(2,'0')+'-'+parts[0].padStart(2,'0'));
-        return d>=dateFi&&d<=dateFf;
-      }
-      return false;
+      const d = parseDate(r[0]);
+      return d && d>=dateFi && d<=dateFf;
     });
-    totVtaBrut = ventasR.reduce((s,r)=>s+parseFloat(r[4]||0),0);
-    totDesc    = ventasR.reduce((s,r)=>s+parseFloat(r[5]||0),0);
-    totCostoV  = ventasR.reduce((s,r)=>s+parseFloat(r[8]||0),0);
-    totEf      = ventasR.reduce((s,r)=>s+parseFloat(r[9]||0)||(r[7]==='Efectivo'?parseFloat(r[6]||0):0),0);
-    totTr      = ventasR.reduce((s,r)=>s+parseFloat(r[10]||0)||(r[7]==='Transferencia'?parseFloat(r[6]||0):0),0);
+    // New structure: cols 0=Fecha,1=Hora,2=ID_Venta,3=Código,4=Producto,5=Cantidad,
+    // 6=P_Venta,7=Total_Item,8=Subtotal_Venta,9=Descuento,10=Total_Venta,11=Efectivo,12=Transferencia,13=Cliente
+    // Get unique ventas for totals (first row of each ventaId)
+    const ventaIds = {};
+    ventasR.forEach(r=>{ if(r[2]&&!ventaIds[r[2]]) ventaIds[r[2]]=r; });
+    const ventasUnicas = Object.values(ventaIds);
+    totVtaBrut = ventasUnicas.reduce((s,r)=>s+toNum(r[8])+toNum(r[9]),0); // subtotal + descuento = bruto
+    totDesc    = ventasUnicas.reduce((s,r)=>s+toNum(r[9]),0);
+    totEf      = ventasUnicas.reduce((s,r)=>s+toNum(r[11]),0);
+    totTr      = ventasUnicas.reduce((s,r)=>s+toNum(r[12]),0);
+    // Costo: sum qty * costo from inventario per product row
+    totCostoV  = ventasR.reduce((s,r)=>{
+      const prod = inventario.find(p=>p.id===r[3]);
+      return s + (prod?prod.costo:0) * (parseInt(r[5])||1);
+    },0);
   }
 
   // ── Leer Gastos ──
@@ -1645,13 +1700,10 @@ async function generarEDR(){
   if(Array.isArray(gastosData)&&gastosData.length>1){
     gastosData.slice(1).forEach(r=>{
       if(!r[0]) return;
-      const parts=String(r[0]).split('/');
-      if(parts.length===3){
-        const d=new Date(parts[2]+'-'+parts[1].padStart(2,'0')+'-'+parts[0].padStart(2,'0'));
-        if(d>=dateFi&&d<=dateFf){
-          if(r[2]==='Gasto') totGastos+=parseFloat(r[4]||0);
-          else totIngExtra+=parseFloat(r[4]||0);
-        }
+      const d = parseDate(r[0]);
+      if(d&&d>=dateFi&&d<=dateFf){
+        if(r[2]==='Gasto') totGastos+=toNum(r[4]);
+        else totIngExtra+=toNum(r[4]);
       }
     });
   }
@@ -1662,11 +1714,8 @@ async function generarEDR(){
   if(Array.isArray(comprasData)&&comprasData.length>1){
     comprasData.slice(1).forEach(r=>{
       if(!r[0]) return;
-      const parts=String(r[0]).split('/');
-      if(parts.length===3){
-        const d=new Date(parts[2]+'-'+parts[1].padStart(2,'0')+'-'+parts[0].padStart(2,'0'));
-        if(d>=dateFi&&d<=dateFf) totCompras+=parseFloat(r[6]||0);
-      }
+      const d = parseDate(r[0]);
+      if(d&&d>=dateFi&&d<=dateFf) totCompras+=toNum(r[6]);
     });
   }
 
@@ -1681,7 +1730,7 @@ async function generarEDR(){
   // ── Guardar para exportar ──
   edrData = {fi,ff,totVtaBrut,totDesc,vtasNetas,totIngExtra,totIngresos,
              totCostoV,utBruta,totGastos,totCompras,totCostos,neto,margen,
-             totEf,totTr,txn:ventasR.length};
+             totEf,totTr,txn:Object.keys(ventaIds||{}).length||ventasR.length};
 
   // ── Mostrar en modal ──
   const fmt = v=>'$'+Math.abs(v).toFixed(2);
@@ -1712,34 +1761,19 @@ async function generarEDR(){
   document.getElementById('edr-tr').textContent = fmt(totTr);
   document.getElementById('edr-txn').textContent = ventasR.length;
   // ── Analisis por producto ──
-  const prodMap = {}; // {id: {nombre, marca, talla, uds, costoTotal, ventaTotal}}
+  const prodMap = {};
   ventasR.forEach(r=>{
-    const prodStr = String(r[2]||'');
-    // Parse products string: "Nombre (x2) $10.00 | Nombre2 (x1) $5.00"
-    const items = prodStr.split('|');
-    items.forEach(item=>{
-      item = item.trim();
-      // Match pattern: "Nombre [BF001] (x2) $10.00"
-      const codeMatch = item.match(/\[([A-Z0-9]+)\]/);
-      const qtyMatch  = item.match(/\(x(\d+)\)/);
-      const priceMatch= item.match(/\$([0-9.]+)$/);
-      if(codeMatch){
-        const id = codeMatch[1];
-        const qty = parseInt(qtyMatch?qtyMatch[1]:1)||1;
-        const pv  = parseFloat(priceMatch?priceMatch[1]:0)||0;
-        const prod = inventario.find(p=>p.id===id);
-        const pc   = prod?prod.costo:0;
-        if(!prodMap[id]){
-          prodMap[id]={
-            nombre: prod?(prod.nombre+(prod.talla?' · '+prod.talla:'')):'('+id+')',
-            uds:0, costoTotal:0, ventaTotal:0
-          };
-        }
-        prodMap[id].uds       += qty;
-        prodMap[id].ventaTotal += pv;
-        prodMap[id].costoTotal += pc*qty;
-      }
-    });
+    const id = r[3]||'';
+    if(!id) return;
+    const qty  = parseInt(r[5])||1;
+    const pv   = toNum(r[7]); // Total_Item
+    const prod = inventario.find(p=>p.id===id);
+    const pc   = prod?prod.costo:0;
+    const nombre = r[4]||id;
+    if(!prodMap[id]) prodMap[id]={nombre, uds:0, costoTotal:0, ventaTotal:0};
+    prodMap[id].uds       += qty;
+    prodMap[id].ventaTotal += pv;
+    prodMap[id].costoTotal += pc*qty;
   });
 
   // Sort by utilidad desc
@@ -2952,30 +2986,39 @@ async function expRango() {
     if (Array.isArray(data) && data.length > 1) {
       ventasRango = data.slice(1).filter(r => {
         if (!r[0]) return false;
-        // Parse date es-EC format dd/mm/yyyy
-        const parts = String(r[0]).split('/');
-        if (parts.length === 3) {
-          const d = new Date(parts[2]+'-'+parts[1].padStart(2,'0')+'-'+parts[0].padStart(2,'0'));
-          return d >= dateFi && d <= dateFf;
+        const s = String(r[0]).trim();
+        let d;
+        if(s.includes('T')){
+          d = new Date(s);
+          d = new Date(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate());
+        } else {
+          const parts = s.split('/');
+          if(parts.length===3) d = new Date(parts[2]+'-'+parts[1].padStart(2,'0')+'-'+parts[0].padStart(2,'0'));
         }
-        return false;
+        return d && d >= dateFi && d <= dateFf;
       });
     }
-    const ef   = ventasRango.reduce((s,r)=>s+parseFloat(r[9]||0)||(r[7]==='Efectivo'?parseFloat(r[6]||0):0),0);
-    const trf  = ventasRango.reduce((s,r)=>s+parseFloat(r[10]||0)||(r[7]==='Transferencia'?parseFloat(r[6]||0):0),0);
-    const desc = ventasRango.reduce((s,r)=>s+parseFloat(r[5]||0),0);
-    const tot  = ventasRango.reduce((s,r)=>s+parseFloat(r[6]||0),0);
+    // New structure: group by ID_Venta (col C/index 2) for summary, but export all rows
+    // Col indices: 0=Fecha,1=Hora,2=ID_Venta,3=Código,4=Producto,5=Cantidad,6=P_Venta,7=Total_Item,8=Subtotal_Venta,9=Descuento,10=Total_Venta,11=Efectivo,12=Transferencia,13=Cliente
+    // Get unique ventas for totals (only first row of each ventaId)
+    const ventaIds = {};
+    ventasRango.forEach(r=>{ if(r[2]&&!ventaIds[r[2]]) ventaIds[r[2]]=r; });
+    const ventasUnicas = Object.values(ventaIds);
+    const ef   = ventasUnicas.reduce((s,r)=>s+toNum(r[11]),0);
+    const trf  = ventasUnicas.reduce((s,r)=>s+toNum(r[12]),0);
+    const desc = ventasUnicas.reduce((s,r)=>s+toNum(r[9]),0);
+    const tot  = ventasUnicas.reduce((s,r)=>s+toNum(r[10]),0);
     const rows = [
       ['BabyFe — Ventas del período: '+rango],[],
-      ['Fecha','Hora','Productos','Cliente','Subtotal','Descuento','Total','Pago','Efectivo','Transferencia'],
-      ...ventasRango.map(r=>[r[0],r[1],r[2],r[3],parseFloat(r[4]||0),parseFloat(r[5]||0),parseFloat(r[6]||0),r[7],parseFloat(r[9]||0)||'',parseFloat(r[10]||0)||'']),
+      ['Fecha','Hora','ID Venta','Código','Producto','Cantidad','P.Venta','Total Item','Subtotal','Descuento','Total Venta','Efectivo','Transferencia','Cliente'],
+      ...ventasRango.map(r=>[r[0],r[1],r[2],r[3],r[4],toNum(r[5]),toNum(r[6]),toNum(r[7]),r[8]?toNum(r[8]):'',r[9]?toNum(r[9]):'',r[10]?toNum(r[10]):'',r[11]?toNum(r[11]):'',r[12]?toNum(r[12]):'',r[13]||'']),
       [],[' RESUMEN DEL PERÍODO'],
       ['Efectivo','Transferencia','Descuentos','TOTAL'],
       [ef,trf,desc,tot],
-      [],['Total transacciones:',ventasRango.length]
+      [],['Total transacciones:',ventasUnicas.length],['Total líneas de productos:',ventasRango.length]
     ];
     const ws = XLSX.utils.aoa_to_sheet(rows);
-    ws['!cols']=[{wch:11},{wch:7},{wch:36},{wch:16},{wch:10},{wch:10},{wch:10},{wch:18},{wch:11},{wch:14}];
+    ws['!cols']=[{wch:11},{wch:7},{wch:10},{wch:9},{wch:26},{wch:8},{wch:9},{wch:10},{wch:10},{wch:10},{wch:11},{wch:10},{wch:13},{wch:16}];
     XLSX.utils.book_append_sheet(wb,ws,'Ventas');
   }
 
