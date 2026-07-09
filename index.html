@@ -191,10 +191,11 @@ textarea{resize:none;font-family:inherit}
   <!-- VENTA -->
   <div id="s-venta" class="screen">
     <div class="slabel">Nueva venta</div>
-    <div style="display:flex;gap:6px;align-items:center">
-      <div class="sw" style="flex:1"><i class="ti ti-search"></i><input type="text" id="bprod" placeholder="Buscar producto por nombre, código o marca..." oninput="debouncedBuscar()"></div>
-      <button id="venta-qr-btn" onclick="iniciarScannerVenta()" style="flex-shrink:0;padding:8px 10px;border-radius:var(--radius-sm);border:1.5px solid #C7D2FE;background:#EEF2FF;color:#3730A3;cursor:pointer;font-size:12px;font-weight:600;display:flex;align-items:center;gap:4px"><i class="ti ti-qrcode"></i>Scan</button>
-    </div>
+    <div style="position:relative">
+      <div style="display:flex;gap:6px;align-items:center">
+        <div class="sw" style="flex:1"><i class="ti ti-search"></i><input type="text" id="bprod" placeholder="Buscar producto por nombre, código o marca..." oninput="debouncedBuscar()"></div>
+        <button id="venta-qr-btn" onclick="iniciarScannerVenta()" style="flex-shrink:0;padding:8px 10px;border-radius:var(--radius-sm);border:1.5px solid #C7D2FE;background:#EEF2FF;color:#3730A3;cursor:pointer;font-size:12px;font-weight:600;display:flex;align-items:center;gap:4px"><i class="ti ti-qrcode"></i>Scan</button>
+      </div>
     <!-- Scanner venta -->
     <div id="venta-scanner-blq" style="display:none;flex-direction:column;gap:6px">
       <div style="border-radius:var(--radius-sm);overflow:hidden;background:#000;aspect-ratio:4/3;position:relative">
@@ -207,7 +208,8 @@ textarea{resize:none;font-family:inherit}
       </div>
       <button class="sec-btn" onclick="detenerScannerVenta()"><i class="ti ti-x"></i>Cerrar cámara</button>
     </div>
-    <div class="card" id="res-b" style="display:none;padding:3px 8px;max-height:130px;overflow-y:auto"></div>
+    <div id="res-b" style="display:none;position:absolute;left:0;right:0;z-index:999;background:var(--bg-primary);border:1px solid var(--border);border-radius:var(--radius-sm);box-shadow:0 4px 12px rgba(0,0,0,.12);max-height:200px;overflow-y:auto;padding:3px 8px"></div>
+    </div>
     <div class="slabel">Ítems en esta venta</div>
     <div id="carrito-items">
       <div style="text-align:center;padding:12px;color:var(--text-secondary);font-size:11px;background:var(--bg-secondary);border-radius:var(--radius-sm)"><i class="ti ti-shopping-cart" style="font-size:20px;display:block;margin-bottom:3px"></i>Agrega productos arriba</div>
@@ -1157,6 +1159,10 @@ function showScreen(id){
     renderVentas();
     const repBtnInicio=document.getElementById('blq-reporte-btn-inicio');
     if(repBtnInicio) repBtnInicio.style.display=rol==='admin'?'block':'none';
+  }
+  if(id==='venta'){
+    const fechaBlq=document.getElementById('blq-fecha-venta');
+    if(fechaBlq) fechaBlq.style.display=rol==='admin'?'flex':'none';
   }
   if(id==='caja') renderCaja();
   if(id==='conteo') renderConteoScreen();
