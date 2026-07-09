@@ -235,6 +235,15 @@ textarea{resize:none;font-family:inherit}
       <div class="fg"><div class="fl">Cliente (opcional)</div>
         <input type="text" id="v-cli" placeholder="Nombre del cliente" list="lista-cl"><datalist id="lista-cl"></datalist>
       </div>
+      <div id="blq-fecha-venta" style="display:none;background:#FEF3C7;border:1px solid #F59E0B;border-radius:var(--radius-sm);padding:8px 10px;flex-direction:column;gap:6px">
+        <div style="font-size:10px;font-weight:700;color:#D97706;display:flex;align-items:center;gap:4px">
+          <i class="ti ti-calendar-event"></i> Registrar con fecha diferente (solo admin)
+        </div>
+        <div class="fr">
+          <div class="fg"><div class="fl">Fecha de la venta</div><input type="date" id="v-fecha-override"></div>
+          <div class="fg"><div class="fl">Hora</div><input type="time" id="v-hora-override"></div>
+        </div>
+      </div>
       <hr class="divider">
       <div class="tl"><span style="color:var(--text-secondary)">Subtotal</span><span id="v-sub">$0.00</span></div>
       <div class="tl"><span style="color:var(--red)">Descuento</span><span style="color:var(--red)" id="v-ds">-$0.00</span></div>
@@ -1082,6 +1091,8 @@ async function login() {
   document.getElementById('blq-rent').style.display = rol==='admin'?'block':'none';
   const gastosBlq=document.getElementById('blq-gastos-admin');
   if(gastosBlq) gastosBlq.style.display=rol==='admin'?'block':'none';
+  const fechaVentaBlq=document.getElementById('blq-fecha-venta');
+  if(fechaVentaBlq) fechaVentaBlq.style.display=rol==='admin'?'flex':'none';
   const repBtn=document.getElementById('blq-reporte-btn');
   if(repBtn) repBtn.style.display=rol==='admin'?'block':'none';
   const repBtnInicio=document.getElementById('blq-reporte-btn-inicio');
@@ -1309,8 +1320,18 @@ async function registrarVenta(){
   }
   const cli=document.getElementById('v-cli').value.trim()||'Cliente general';
   const ahora=new Date();
-  const fecha=ahora.toLocaleDateString('es-EC');
-  const hora=ahora.getHours().toString().padStart(2,'0')+':'+ahora.getMinutes().toString().padStart(2,'0');
+  // Check for date override (admin only)
+  const fechaOverride = document.getElementById('v-fecha-override')?document.getElementById('v-fecha-override').value:'';
+  const horaOverride  = document.getElementById('v-hora-override')?document.getElementById('v-hora-override').value:'';
+  let fecha, hora;
+  if(fechaOverride){
+    const parts = fechaOverride.split('-');
+    fecha = parseInt(parts[2])+'/'+(parseInt(parts[1]))+'/'+parts[0];
+    hora  = horaOverride || ahora.getHours().toString().padStart(2,'0')+':'+ahora.getMinutes().toString().padStart(2,'0');
+  } else {
+    fecha = ahora.getDate()+'/'+(ahora.getMonth()+1)+'/'+ahora.getFullYear();
+    hora  = ahora.getHours().toString().padStart(2,'0')+':'+ahora.getMinutes().toString().padStart(2,'0');
+  }
   const costo=carrito.reduce((s,c)=>s+c.costo*c.qty,0);
 
   // Generate unique venta ID: V + timestamp
@@ -1366,6 +1387,8 @@ async function registrarVenta(){
   carrito=[];
   document.getElementById('v-dpct').value=0;document.getElementById('v-dval').value=0;document.getElementById('v-cli').value='';
   ['v-pago-ef','v-pago-tr'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  const fov=document.getElementById('v-fecha-override'); if(fov) fov.value='';
+  const hov=document.getElementById('v-hora-override');  if(hov) hov.value='';
   selPago('Efectivo');
   renderCarrito();calcCarrito();showT('t-v');updMetrics();renderVentas();
 }
