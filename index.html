@@ -410,8 +410,18 @@ textarea{resize:none;font-family:inherit}
       <div class="card" style="display:flex;flex-direction:column;gap:8px;background:#FEF3C7;border:1px solid #F59E0B">
         <div style="font-size:11px;color:#D97706">Usa esta opción para cerrar una caja de un día anterior que quedó abierta.</div>
         <div class="fr">
-          <div class="fg"><div class="fl">Fecha a cerrar</div><input type="date" id="cierre-fecha"></div>
+          <div class="fg"><div class="fl">Fecha a cerrar</div><input type="date" id="cierre-fecha" onchange="previewCierreFecha()"></div>
           <div class="fg"><div class="fl">Efectivo en caja $</div><input type="number" id="cierre-monto" placeholder="0.00" min="0"></div>
+        </div>
+        <div id="cierre-preview" style="display:none;background:var(--bg-primary);border-radius:var(--radius-sm);padding:10px;font-size:11px;flex-direction:column;gap:4px">
+          <div style="font-weight:700;color:var(--text-primary);margin-bottom:2px">Resumen del día</div>
+          <div class="cj" style="font-size:11px"><span style="color:var(--text-secondary)">Ventas (transacciones)</span><span id="cp-txn">—</span></div>
+          <div class="cj" style="font-size:11px"><span style="color:var(--text-secondary)">Total ventas</span><span id="cp-tot">—</span></div>
+          <div class="cj" style="font-size:11px"><span style="color:var(--green)">Efectivo ventas</span><span id="cp-ef">—</span></div>
+          <div class="cj" style="font-size:11px"><span style="color:var(--orange)">Transferencia ventas</span><span id="cp-tr">—</span></div>
+          <div class="cj" style="font-size:11px"><span style="color:var(--red)">Gastos</span><span id="cp-gastos">—</span></div>
+          <div class="cj" style="font-size:11px"><span style="color:var(--green)">Ingresos extra</span><span id="cp-ing">—</span></div>
+          <div class="cj" style="font-size:12px;font-weight:700;border-top:1px solid var(--border);padding-top:4px;margin-top:2px"><span>Efectivo esperado</span><span style="color:var(--pink)" id="cp-esp">—</span></div>
         </div>
         <div class="fg"><div class="fl">Observaciones</div><input type="text" id="cierre-obs" placeholder="Ej: Cierre tardío del 8/7"></div>
         <button class="add-btn" style="background:#D97706" onclick="cerrarCajaFecha()"><i class="ti ti-lock"></i>Registrar cierre por fecha</button>
@@ -1125,6 +1135,7 @@ async function login() {
   if (pin !== PINS[rolSel]){showT('t-login','PIN incorrecto');return;}
   rol = rolSel;
   operadorActual = rol==='admin'?'Administrador':'Operador';
+  document.getElementById('login-view').style.display='none';
   document.getElementById('app-view').style.display='flex';
   document.getElementById('tb-rol').textContent = rol==='admin'?'Administrador':'Operador';
   document.getElementById('blq-util').style.display = rol==='admin'?'block':'none';
@@ -1738,6 +1749,59 @@ async function confirmarFin(esperado){
 
 function nuevaCaja(){cajaInicio=null;cajaFin=null;renderCaja();}
 
+async function previewCierreFecha(){
+  const fechaVal = document.getElementById('cierre-fecha').value;
+  if(!fechaVal) return;
+  const parts = fechaVal.split('-');
+  const dia=parseInt(parts[2]), mes=parseInt(parts[1]), anio=parseInt(parts[0]);
+  const esFecha = (str) => {
+    if(!str) return false;
+    const s=String(str).trim();
+    if(s.includes('T')){const d=new Date(s);return d.getUTCDate()===dia&&d.getUTCMonth()+1===mes&&d.getUTCFullYear()===anio;}
+    const p=s.split('/');
+    return p.length===3&&parseInt(p[0])===dia&&parseInt(p[1])===mes&&parseInt(p[2])===anio;
+  };
+  showSync('Calculando resumen...');
+  // Ventas
+  const ventasData = await sheetRead('Ventas');
+  let efFecha=0, trFecha=0, totFecha=0, txnIds={};
+  if(Array.isArray(ventasData)&&ventasData.length>1){
+    const rows=ventasData.slice(1).filter(r=>r[0]&&esFecha(r[0]));
+    rows.forEach(r=>{if(r[2]) txnIds[r[2]]=true;});
+    Object.keys(txnIds).forEach(id=>{
+      const first=rows.find(r=>r[2]===id);
+      if(first){ efFecha+=toNum(first[11]); trFecha+=toNum(first[12]); totFecha+=toNum(first[10]); }
+    });
+  }
+  // Gastos
+  const gastosData = await sheetRead('Gastos');
+  let gastosFecha=0, ingresosFecha=0;
+  if(Array.isArray(gastosData)&&gastosData.length>1){
+    gastosData.slice(1).forEach(r=>{
+      if(!esFecha(r[0])) return;
+      if(r[2]==='Gasto') gastosFecha+=toNum(r[4]);
+      else ingresosFecha+=toNum(r[4]);
+    });
+  }
+  // Fondo inicial
+  const cajaData = await sheetRead('Caja');
+  let fondo=0;
+  if(Array.isArray(cajaData)&&cajaData.length>1){
+    const ap=cajaData.slice(1).find(r=>esFecha(r[0])&&String(r[1]||'').toUpperCase().includes('INICIO'));
+    if(ap) fondo=toNum(ap[4]);
+  }
+  const esperado=fondo+efFecha+ingresosFecha-gastosFecha;
+  document.getElementById('cp-txn').textContent=Object.keys(txnIds).length;
+  document.getElementById('cp-tot').textContent='$'+totFecha.toFixed(2);
+  document.getElementById('cp-ef').textContent='$'+efFecha.toFixed(2);
+  document.getElementById('cp-tr').textContent='$'+trFecha.toFixed(2);
+  document.getElementById('cp-gastos').textContent='-$'+gastosFecha.toFixed(2);
+  document.getElementById('cp-ing').textContent='+$'+ingresosFecha.toFixed(2);
+  document.getElementById('cp-esp').textContent='$'+esperado.toFixed(2);
+  document.getElementById('cierre-preview').style.display='flex';
+  showSync('✓ Resumen listo');
+}
+
 async function cerrarCajaFecha(){
   const fechaVal = document.getElementById('cierre-fecha').value;
   const monto    = parseFloat(document.getElementById('cierre-monto').value)||0;
@@ -1810,6 +1874,7 @@ async function cerrarCajaFecha(){
     document.getElementById('cierre-fecha').value='';
     document.getElementById('cierre-monto').value='';
     document.getElementById('cierre-obs').value='';
+    document.getElementById('cierre-preview').style.display='none';
     await loadCaja();
     renderCaja();
   } else {
@@ -2206,7 +2271,14 @@ function buscarRepos(){
 function selRepos(idx){
   reposProdIdx=idx;
   const p=inventario[idx];
-  document.getElementById('rep-selnombre').textContent=p.nombre+' ('+p.id+')';
+  document.getElementById('rep-selnombre').innerHTML=
+    '<div style="font-weight:700">'+p.nombre+' <span class="badge badge-cod">'+p.id+'</span></div>'+
+    '<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:3px">'+
+      '<span style="font-size:10px;color:var(--text-secondary)">'+p.marca+'</span>'+
+      (p.talla?'<span class="badge badge-talla">'+p.talla+'</span>':'')+
+      (p.genero&&p.genero!=='Unisex'?'<span class="badge" style="background:#EFF6FF;color:#1D4ED8">'+p.genero+'</span>':'<span class="badge" style="background:#F5F3FF;color:#6D28D9">Unisex</span>')+
+    '</div>'+
+    (p.caract&&p.caract!=='Sin especificaciones'?'<div style="font-size:9px;color:var(--text-secondary);margin-top:2px">'+p.caract+'</div>':'');
   document.getElementById('rep-selstock').textContent=p.stock;
   document.getElementById('rep-selblq').style.display='block';
   document.getElementById('rep-res').style.display='none';
@@ -2517,20 +2589,23 @@ function buscarConteoScreen(){
   }
   res.style.display='block';
   res.innerHTML=f.map(p=>
-    `<div onclick="selConteoProducto(inventario.find(x=>x.id==='${p.id}'))" style="padding:7px 4px;cursor:pointer;border-bottom:1px solid var(--border-light)" onmouseover="this.style.background='var(--bg-primary)'" onmouseout="this.style.background=''">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+    `<div onclick="selConteoProducto(inventario.find(x=>x.id==='${p.id}'))" style="padding:8px 4px;cursor:pointer;border-bottom:1px solid var(--border-light)" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background=''">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
         <div style="flex:1;min-width:0">
-          <div style="font-size:11px;font-weight:600;color:var(--text-primary)">${p.nombre}</div>
-          <div style="font-size:10px;color:var(--text-secondary);margin-top:1px">
-            ${p.marca}${p.talla?' · <strong>'+p.talla+'</strong>':''}${p.genero?' · <span style="color:var(--blue)">'+p.genero+'</span>':''}
+          <div style="font-size:11px;font-weight:700;color:var(--text-primary)">${p.nombre}</div>
+          <div style="font-size:10px;margin-top:2px;display:flex;flex-wrap:wrap;gap:3px">
+            <span style="color:var(--text-secondary)">${p.marca}</span>
+            ${p.talla?'<span class="badge badge-talla">'+p.talla+'</span>':''}
+            ${p.genero&&p.genero!=='Unisex'?'<span class="badge" style="background:#EFF6FF;color:#1D4ED8">'+p.genero+'</span>':''}
+            ${p.genero==='Unisex'?'<span class="badge" style="background:#F5F3FF;color:#6D28D9">Unisex</span>':''}
           </div>
-          <div style="font-size:9px;color:var(--text-secondary);margin-top:1px">
-            ${p.caract&&p.caract!=='Sin especificaciones'?p.caract+' · ':''}<span style="font-family:monospace">${p.id}</span>
-          </div>
+          ${p.caract&&p.caract!=='Sin especificaciones'?'<div style="font-size:9px;color:var(--text-secondary);margin-top:2px">'+p.caract+'</div>':''}
+          <div style="font-size:9px;color:var(--text-secondary);margin-top:1px;font-family:monospace">${p.id}</div>
         </div>
-        <div style="text-align:right;flex-shrink:0;margin-left:8px">
-          <div style="color:#3730A3;font-weight:700;font-size:11px">Stock: ${p.stock}</div>
-          <div style="color:var(--pink);font-weight:700;font-size:11px">$${p.precio.toFixed(2)}</div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="color:#3730A3;font-weight:700;font-size:11px">${p.stock} uds.</div>
+          <div style="color:var(--pink);font-weight:700;font-size:12px">$${p.precio.toFixed(2)}</div>
+          ${p.costo?'<div style="color:var(--text-secondary);font-size:9px">Costo: $'+p.costo.toFixed(2)+'</div>':''}
         </div>
       </div>
     </div>`
@@ -2543,9 +2618,18 @@ function selConteoProducto(p){
   document.getElementById('cnt-srch').value='';
   document.getElementById('cnt-srch-res').style.display='none';
   document.getElementById('cnt-sel-info').innerHTML=
-    '<span style="font-size:13px">'+p.nombre+'</span><br>'+
-    '<span style="color:var(--text-secondary);font-size:11px;font-weight:400">'+p.marca+(p.talla?' · '+p.talla:'')+(p.genero?' · '+p.genero:'')+'</span>'+
-    ' <span class="badge badge-cod">'+p.id+'</span>';
+    '<div style="font-size:13px;font-weight:700">'+p.nombre+'</div>'+
+    '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">'+
+      '<span class="badge badge-cod">'+p.id+'</span>'+
+      '<span style="background:var(--bg-secondary);padding:1px 7px;border-radius:20px;font-size:10px;color:var(--text-secondary)">'+p.marca+'</span>'+
+      (p.talla?'<span class="badge badge-talla">'+p.talla+'</span>':'')+
+      (p.genero&&p.genero!=='Unisex'?'<span class="badge" style="background:#EFF6FF;color:#1D4ED8">'+p.genero+'</span>':'<span class="badge" style="background:#F5F3FF;color:#6D28D9">Unisex</span>')+
+    '</div>'+
+    (p.caract&&p.caract!=='Sin especificaciones'?'<div style="font-size:10px;color:var(--text-secondary);margin-top:3px">'+p.caract+'</div>':'')+
+    '<div style="display:flex;gap:12px;margin-top:5px;font-size:11px">'+
+      '<span>Precio: <strong style="color:var(--pink)">$'+p.precio.toFixed(2)+'</strong></span>'+
+      (p.costo?'<span>Costo: <strong>$'+p.costo.toFixed(2)+'</strong></span>':'')+
+    '</div>';
   document.getElementById('cnt-s-app').textContent = p.stock;
   document.getElementById('cnt-s-prev').textContent = conteoData[p.id]!==undefined ? conteoData[p.id] : '—';
   document.getElementById('cnt-s-qty').value = conteoData[p.id]!==undefined ? conteoData[p.id] : '';
