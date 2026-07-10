@@ -404,6 +404,22 @@ textarea{resize:none;font-family:inherit}
         <div class="fg"><div class="fl">Efectivo esperado</div><div style="font-size:15px;font-weight:700;color:var(--pink);padding-top:9px" id="c-esp">$0.00</div></div>
       </div>
     </div>
+
+    <div id="blq-cierre-fecha" style="display:none;flex-direction:column;gap:8px">
+      <div class="slabel">Cierre de caja por fecha <span style="font-size:10px;color:var(--text-secondary)">(solo admin)</span></div>
+      <div class="card" style="display:flex;flex-direction:column;gap:8px;background:#FEF3C7;border:1px solid #F59E0B">
+        <div style="font-size:11px;color:#D97706">Usa esta opción para cerrar una caja de un día anterior que quedó abierta.</div>
+        <div class="fr">
+          <div class="fg"><div class="fl">Fecha a cerrar</div><input type="date" id="cierre-fecha"></div>
+          <div class="fg"><div class="fl">Efectivo en caja $</div><input type="number" id="cierre-monto" placeholder="0.00" min="0"></div>
+        </div>
+        <div class="fg"><div class="fl">Observaciones</div><input type="text" id="cierre-obs" placeholder="Ej: Cierre tardío del 8/7"></div>
+        <button class="add-btn" style="background:#D97706" onclick="cerrarCajaFecha()"><i class="ti ti-lock"></i>Registrar cierre por fecha</button>
+        <div class="toast tok" id="t-cierre-fecha">✓ Cierre registrado correctamente</div>
+        <div class="toast terr" id="t-cierre-fecha-err">Ingresa fecha y monto válidos</div>
+      </div>
+    </div>
+
     <div id="blq-reporte-btn" style="display:none">
       <button class="sec-btn" onclick="abrirModal('m-reporte')"><i class="ti ti-file-spreadsheet"></i>Exportar reportes por rango de fechas</button>
     </div>
@@ -843,7 +859,7 @@ const API = 'https://script.google.com/macros/s/AKfycbw_hWIHVC51za71YgVwiP78Uk9G
 // ESTADO LOCAL
 // ═══════════════════════════════════════════════════
 const PINS = {admin:'1234', operador:'0000'};
-let rol = null, rolSel = null, carrito = [];
+let rol = null, rolSel = null, carrito = [], operadorActual = 'Administrador';
 let cajaInicio = null, cajaFin = null;
 let movimientos = []; // {fecha, hora, tipo, concepto, monto}
 let inventario = [], ventas = [], clientes = [];
@@ -867,7 +883,11 @@ const NAV_OPER = [
   {id:'conteo',icon:'ti-clipboard-list',lbl:'conteo'},
 ];
 
-// ── Helper: convierte texto a número, maneja comas y puntos ──
+// ── Helper: normaliza texto eliminando tildes y convirtiendo a minúsculas ──
+function norm(str){
+  return String(str||'').toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+}
 function toNum(v){
   if(v===null||v===undefined||v==='') return 0;
   const s=String(v).trim().replace(/\s/g,'');
@@ -948,7 +968,7 @@ async function loadInventario() {
       stock: toNum(r[6]), costo: toNum(r[7]), precio: toNum(r[8]),
       icon: String(r[9]||'ti-tag')
     };
-    p._search = (p.id+' '+p.nombre+' '+p.marca+' '+p.genero+' '+p.talla+' '+p.caract).toLowerCase();
+    p._search = norm(p.id+' '+p.nombre+' '+p.marca+' '+p.genero+' '+p.talla+' '+p.caract);
     inventario.push(p);
     prodRowMap[p.id] = i + 1;
   }
@@ -1104,7 +1124,7 @@ async function login() {
   if (!rolSel){showT('t-login','Selecciona un rol');return;}
   if (pin !== PINS[rolSel]){showT('t-login','PIN incorrecto');return;}
   rol = rolSel;
-  document.getElementById('login-view').style.display='none';
+  operadorActual = rol==='admin'?'Administrador':'Operador';
   document.getElementById('app-view').style.display='flex';
   document.getElementById('tb-rol').textContent = rol==='admin'?'Administrador':'Operador';
   document.getElementById('blq-util').style.display = rol==='admin'?'block':'none';
@@ -1115,6 +1135,8 @@ async function login() {
   if(fechaVentaBlq) fechaVentaBlq.style.display=rol==='admin'?'flex':'none';
   const repBtn=document.getElementById('blq-reporte-btn');
   if(repBtn) repBtn.style.display=rol==='admin'?'block':'none';
+  const cierreFechaBlq=document.getElementById('blq-cierre-fecha');
+  if(cierreFechaBlq) cierreFechaBlq.style.display=rol==='admin'?'flex':'none';
   const repBtnInicio=document.getElementById('blq-reporte-btn-inicio');
   if(repBtnInicio) repBtnInicio.style.display=rol==='admin'?'block':'none';
   const reposBlq=document.getElementById('blq-repos');
@@ -1182,7 +1204,11 @@ function showScreen(id){
     const fechaBlq=document.getElementById('blq-fecha-venta');
     if(fechaBlq) fechaBlq.style.display=rol==='admin'?'flex':'none';
   }
-  if(id==='caja') renderCaja();
+  if(id==='caja'){
+    renderCaja();
+    const cierreFechaBlq=document.getElementById('blq-cierre-fecha');
+    if(cierreFechaBlq) cierreFechaBlq.style.display=rol==='admin'?'flex':'none';
+  }
   if(id==='conteo') renderConteoScreen();
 }
 
@@ -1203,7 +1229,7 @@ const debouncedRenderInv=debounce(renderInv, 250);
 // BÚSQUEDA Y CARRITO
 // ═══════════════════════════════════════════════════
 function buscar(){
-  const q=document.getElementById('bprod').value.toLowerCase().trim();
+  const q=norm(document.getElementById('bprod').value.trim());
   const el=document.getElementById('res-b');
   if(!q){el.style.display='none';return;}
   // Search against pre-lowercased index for performance with 700+ products
@@ -1477,7 +1503,7 @@ function renderVentas(){
 // INVENTARIO
 // ═══════════════════════════════════════════════════
 function renderInv(){
-  const q=(document.getElementById('binv').value||'').toLowerCase();
+  const q=norm(document.getElementById('binv').value);
   const el=document.getElementById('lista-inv');
   if(!q){
     el.innerHTML='<div style="text-align:center;padding:20px;color:var(--text-secondary);font-size:11px"><i class="ti ti-search" style="font-size:24px;display:block;margin-bottom:6px"></i>Escribe en el buscador para ver productos</div>';
@@ -1711,6 +1737,85 @@ async function confirmarFin(esperado){
 }
 
 function nuevaCaja(){cajaInicio=null;cajaFin=null;renderCaja();}
+
+async function cerrarCajaFecha(){
+  const fechaVal = document.getElementById('cierre-fecha').value;
+  const monto    = parseFloat(document.getElementById('cierre-monto').value)||0;
+  const obs      = document.getElementById('cierre-obs').value.trim()||'Cierre por fecha';
+  if(!fechaVal||monto<0){showT('t-cierre-fecha-err');return;}
+  // Format fecha to d/m/yyyy
+  const parts = fechaVal.split('-');
+  const fecha = parseInt(parts[2])+'/'+(parseInt(parts[1]))+'/'+parts[0];
+  const ahora = new Date();
+  const hora  = ahora.getHours().toString().padStart(2,'0')+':'+ahora.getMinutes().toString().padStart(2,'0');
+
+  // Load ventas for that date to calculate esperado
+  showSync('Calculando cierre...');
+  const data = await sheetRead('Ventas');
+  const dia=parseInt(parts[2]), mes=parseInt(parts[1]), anio=parseInt(parts[0]);
+  let efFecha=0, trFecha=0, descFecha=0;
+  if(Array.isArray(data)&&data.length>1){
+    const rowsFecha = data.slice(1).filter(r=>{
+      if(!r[0]) return false;
+      const s=String(r[0]).trim();
+      if(s.includes('T')){const d=new Date(s);return d.getUTCDate()===dia&&d.getUTCMonth()+1===mes&&d.getUTCFullYear()===anio;}
+      const p=s.split('/');
+      return p.length===3&&parseInt(p[0])===dia&&parseInt(p[1])===mes&&parseInt(p[2])===anio;
+    });
+    // Get unique ventas
+    const ids={};
+    rowsFecha.forEach(r=>{if(r[2]&&!ids[r[2]])ids[r[2]]=r;});
+    Object.values(ids).forEach(r=>{
+      efFecha+=toNum(r[11]);
+      trFecha+=toNum(r[12]);
+    });
+    rowsFecha.forEach(r=>{ descFecha+=toNum(r[9]); });
+  }
+
+  // Load gastos for that date
+  const gastosData = await sheetRead('Gastos');
+  let gastosFecha=0, ingresosFecha=0;
+  if(Array.isArray(gastosData)&&gastosData.length>1){
+    gastosData.slice(1).forEach(r=>{
+      if(!r[0]) return;
+      const s=String(r[0]).trim();
+      let match=false;
+      if(s.includes('T')){const d=new Date(s);match=d.getUTCDate()===dia&&d.getUTCMonth()+1===mes&&d.getUTCFullYear()===anio;}
+      else{const p=s.split('/');match=p.length===3&&parseInt(p[0])===dia&&parseInt(p[1])===mes&&parseInt(p[2])===anio;}
+      if(match){if(r[2]==='Gasto')gastosFecha+=toNum(r[4]);else ingresosFecha+=toNum(r[4]);}
+    });
+  }
+
+  // Find apertura for that date
+  const cajaData = await sheetRead('Caja');
+  let fondoInicial=0;
+  if(Array.isArray(cajaData)&&cajaData.length>1){
+    const ap=cajaData.slice(1).find(r=>{
+      if(!r[0]||!String(r[1]).toUpperCase().includes('INICIO')) return false;
+      const s=String(r[0]).trim();
+      if(s.includes('T')){const d=new Date(s);return d.getUTCDate()===dia&&d.getUTCMonth()+1===mes&&d.getUTCFullYear()===anio;}
+      const p=s.split('/');
+      return p.length===3&&parseInt(p[0])===dia&&parseInt(p[1])===mes&&parseInt(p[2])===anio;
+    });
+    if(ap) fondoInicial=toNum(ap[4]);
+  }
+
+  const esperado=fondoInicial+efFecha+ingresosFecha-gastosFecha;
+  const dif=monto-esperado;
+
+  const row=[fecha,'CIERRE',hora,operadorActual||'Administrador',monto.toFixed(2),esperado.toFixed(2),dif.toFixed(2),obs];
+  const res=await sheetAppend('Caja',row);
+  if(res&&res.status==='ok'){
+    showT('t-cierre-fecha');
+    document.getElementById('cierre-fecha').value='';
+    document.getElementById('cierre-monto').value='';
+    document.getElementById('cierre-obs').value='';
+    await loadCaja();
+    renderCaja();
+  } else {
+    showT('t-cierre-fecha-err');
+  }
+}
 
 // ═══════════════════════════════════════════════════
 // ESTADO DE RESULTADOS
@@ -2060,7 +2165,7 @@ async function agregarProd(){
   const result=await sheetAppend('Productos',row);
   if(result&&result.status==='ok'){
     const np={id,nombre:n,marca:m,genero:g,talla,caract:c,costo:pc,precio:pv,stock:s,icon:'ti-tag'};
-    np._search=(id+' '+n+' '+m+' '+g+' '+talla+' '+c).toLowerCase();
+    np._search=norm(id+' '+n+' '+m+' '+g+' '+talla+' '+c);
     inventario.push(np);
     prodRowMap[id]=inventario.length+1;
     ['np-n','np-m','np-tc','np-c','np-s','np-pc','np-pv'].forEach(i=>document.getElementById(i).value='');
@@ -2078,7 +2183,7 @@ async function agregarProd(){
 let reposProdIdx = null;
 
 function buscarRepos(){
-  const q=(document.getElementById('rep-busq').value||'').toLowerCase();
+  const q=norm(document.getElementById('rep-busq').value);
   const res=document.getElementById('rep-res');
   if(!q){res.style.display='none';return;}
   const words1267=q.split(" ").filter(w=>w.length>0);
@@ -2236,7 +2341,7 @@ async function guardarEditProd(){
     row:JSON.stringify([id,n,m,g,t,c,p.stock,pc,pv,p.icon||'ti-tag'])});
   if(res&&res.status==='ok'){
     p.nombre=n; p.marca=m; p.genero=g; p.talla=t; p.caract=c; p.costo=pc; p.precio=pv;
-    p._search=(id+' '+n+' '+m+' '+g+' '+t+' '+c).toLowerCase();
+    p._search=norm(id+' '+n+' '+m+' '+g+' '+t+' '+c);
     cerrarModal('m-edprod');
     showT('t-eprod');
     updMetrics(); renderInv();
@@ -2400,7 +2505,7 @@ function detenerScanner(){
 
 // ── BÚSQUEDA MANUAL ──
 function buscarConteoScreen(){
-  const q=(document.getElementById('cnt-srch').value||'').toLowerCase().trim();
+  const q=norm(document.getElementById('cnt-srch').value.trim());
   const res=document.getElementById('cnt-srch-res');
   if(!q){res.style.display='none';return;}
   const words=q.split(' ').filter(w=>w.length>0);
@@ -2614,7 +2719,7 @@ function abrirColaQR(id){
 }
 
 function buscarQR(){
-  const q=(document.getElementById('qr-busq').value||'').toLowerCase().trim();
+  const q=norm(document.getElementById('qr-busq').value.trim());
   const res=document.getElementById('qr-res');
   if(!q){res.style.display='none';return;}
   const words=q.split(' ').filter(w=>w.length>0);
@@ -2754,7 +2859,7 @@ function generarQR(){
 let conteoProdIdx = null;
 
 function buscarConteo(){
-  const q=(document.getElementById('cnt-busq').value||'').toLowerCase().trim();
+  const q=norm(document.getElementById('cnt-busq').value.trim());
   const res=document.getElementById('cnt-res');
   if(!q){res.style.display='none';return;}
   const words=q.split(' ').filter(w=>w.length>0);
