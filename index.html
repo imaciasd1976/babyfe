@@ -1767,10 +1767,20 @@ async function previewCierreFecha(){
   let efFecha=0, trFecha=0, totFecha=0, txnIds={};
   if(Array.isArray(ventasData)&&ventasData.length>1){
     const rows=ventasData.slice(1).filter(r=>r[0]&&esFecha(r[0]));
-    rows.forEach(r=>{if(r[2]) txnIds[r[2]]=true;});
-    Object.keys(txnIds).forEach(id=>{
-      const first=rows.find(r=>r[2]===id);
-      if(first){ efFecha+=toNum(first[11]); trFecha+=toNum(first[12]); totFecha+=toNum(first[10]); }
+    // Group by ID_Venta — use first row's Subtotal_Venta (col I/index 8) for total
+    rows.forEach(r=>{
+      const id=r[2];
+      if(id&&!txnIds[id]){
+        txnIds[id]=true;
+        // Col I (index 8) = Subtotal_Venta, Col L (index 11) = Efectivo, Col M (index 12) = Transferencia
+        // But Efectivo/Transferencia are split per item, so sum all rows of same venta
+        totFecha+=toNum(r[8]); // Subtotal_Venta from first row of each venta
+      }
+    });
+    // Sum efectivo and transferencia across ALL rows (they're distributed per item)
+    rows.forEach(r=>{
+      efFecha+=toNum(r[11]);
+      trFecha+=toNum(r[12]);
     });
   }
   // Gastos
@@ -1826,14 +1836,14 @@ async function cerrarCajaFecha(){
       const p=s.split('/');
       return p.length===3&&parseInt(p[0])===dia&&parseInt(p[1])===mes&&parseInt(p[2])===anio;
     });
-    // Get unique ventas
+    // Get unique ventas for total (Subtotal_Venta col I/index 8)
     const ids={};
-    rowsFecha.forEach(r=>{if(r[2]&&!ids[r[2]])ids[r[2]]=r;});
-    Object.values(ids).forEach(r=>{
+    rowsFecha.forEach(r=>{if(r[2]&&!ids[r[2]]){ids[r[2]]=true;}});
+    // Sum efectivo and transferencia across all rows
+    rowsFecha.forEach(r=>{
       efFecha+=toNum(r[11]);
       trFecha+=toNum(r[12]);
     });
-    rowsFecha.forEach(r=>{ descFecha+=toNum(r[9]); });
   }
 
   // Load gastos for that date
