@@ -998,17 +998,18 @@ async function loadVentas() {
   ventas = Object.entries(ventaMap).map(([ventaId, rows]) => {
     const first = rows[0];
     const productosStr = rows.map(r => (r[4]||'') + ' x' + (r[5]||1)).join(' | ');
+    const sub   = toNum(first[8]);
+    const dval  = rows.reduce((s,r)=>s+toNum(r[9]),0);
+    const tot   = rows.reduce((s,r)=>s+toNum(r[10]),0);
+    const pagoEf= rows.reduce((s,r)=>s+toNum(r[11]),0);
+    const pagoTr= rows.reduce((s,r)=>s+toNum(r[12]),0);
     return {
       fecha: fmtFecha(first[0]),
       hora: first[1]||'',
       ventaId,
       productosStr,
       cli: first[13]||'',
-      sub: toNum(first[8]),
-      dval: toNum(first[9]),
-      tot: toNum(first[10]),
-      pagoEf: toNum(first[11]),
-      pagoTr: toNum(first[12]),
+      sub, dval, tot, pagoEf, pagoTr,
       costo: rows.reduce((s,r)=>{
         const prod = inventario.find(p=>p.id===r[3]);
         return s + (prod?prod.costo:0) * (parseInt(r[5])||1);
@@ -1032,27 +1033,44 @@ async function loadCaja() {
     const s = String(str).trim();
     if(s.includes('T')){ const d=new Date(s); return new Date(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate()); }
     const parts=s.split('/');
-    if(parts.length===3) return new Date(parts[2]+'-'+parts[1].padStart(2,'0')+'-'+parts[0].padStart(2,'0'));
+    if(parts.length===3) return new Date(parseInt(parts[2]),parseInt(parts[1])-1,parseInt(parts[0]));
     return null;
   };
-  const rows = data.slice(1).filter(r=>r[0]);
+  const fmtHora = (str) => {
+    if(!str) return '';
+    const s = String(str).trim();
+    // Si viene como ISO hora: 1899-12-30T18:54:00.000Z
+    if(s.includes('T')){
+      const d = new Date(s);
+      return d.getUTCHours().toString().padStart(2,'0')+':'+d.getUTCMinutes().toString().padStart(2,'0');
+    }
+    return s;
+  };
+  const rows = data.slice(1).filter(r=>r[0]&&r[1]);
   const aperturas = rows.filter(r=>String(r[1]||'').toUpperCase().includes('INICIO'));
   const cierres   = rows.filter(r=>String(r[1]||'').toUpperCase().includes('CIERRE'));
   if(!aperturas.length){ cajaInicio=null; cajaFin=null; return; }
-  // Find last apertura without a matching cierre
-  let lastApertura = null;
-  let matchCierre  = null;
-  for(let i=aperturas.length-1; i>=0; i--){
-    const ap = aperturas[i];
-    const apDate = parseDate(ap[0]);
-    const cierre = cierres.find(r=>{ const d=parseDate(r[0]); return d&&apDate&&d.getTime()===apDate.getTime(); });
-    if(!cierre){ lastApertura=ap; matchCierre=null; break; }
-    // If all have cierre, show the most recent one
-    if(i===aperturas.length-1){ lastApertura=ap; matchCierre=cierre; }
-  }
-  if(!lastApertura){ lastApertura=aperturas[aperturas.length-1]; }
-  cajaInicio = { hora: String(lastApertura[2]||''), monto: toNum(lastApertura[4]), operador: String(lastApertura[3]||''), fecha: lastApertura[0]||'' };
-  cajaFin = matchCierre ? { hora: String(matchCierre[2]||''), monto: toNum(matchCierre[4]), operador: String(matchCierre[3]||''), esperado: toNum(matchCierre[5]), dif: toNum(matchCierre[6]) } : null;
+  // Find last apertura
+  const lastApertura = aperturas[aperturas.length-1];
+  const lastAperturaDate = parseDate(lastApertura[0]);
+  // Find cierre AFTER the last apertura date
+  const matchCierre = cierres.slice().reverse().find(r=>{
+    const d = parseDate(r[0]);
+    return d && lastAperturaDate && d >= lastAperturaDate;
+  });
+  cajaInicio = {
+    hora: fmtHora(lastApertura[2]),
+    monto: toNum(lastApertura[4]),
+    operador: String(lastApertura[3]||''),
+    fecha: lastApertura[0]||''
+  };
+  cajaFin = matchCierre ? {
+    hora: fmtHora(matchCierre[2]),
+    monto: toNum(matchCierre[4]),
+    operador: String(matchCierre[3]||''),
+    esperado: toNum(matchCierre[5]),
+    dif: toNum(matchCierre[6])
+  } : null;
 }
 
 async function loadClientes() {
@@ -1254,25 +1272,42 @@ function renderCarrito(){
           '<button class="qty-btn" id="qm-'+i+'">−</button>'+
           '<span style="font-size:12px;font-weight:700;min-width:18px;text-align:center">'+c.qty+'</span>'+
           '<button class="qty-btn" id="qp-'+i+'">+</button>'+
+          '<span style="font-size:10px;color:var(--text-secondary);margin-left:4px">Desc $</span>'+
+          '<input type="number" id="desc-'+i+'" value="'+(c.desc||0)+'" min="0" step="0.01" style="width:52px;font-size:11px;padding:2px 4px;border:1px solid var(--border);border-radius:4px;text-align:center" oninput="setDescItem('+i+',this.value)">'+
         '</div>'+
       '</div>'+
       '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">'+
         '<button class="del-btn" id="qdel-'+i+'"><i class="ti ti-trash"></i></button>'+
-        '<div style="font-size:13px;font-weight:700;color:var(--green)">$'+c.total.toFixed(2)+'</div>'+
+        '<div style="font-size:13px;font-weight:700;color:var(--green)">$'+(c.total-(c.desc||0)).toFixed(2)+'</div>'+
+        (c.desc>0?'<div style="font-size:10px;color:var(--red);text-decoration:line-through">$'+c.total.toFixed(2)+'</div>':'')+
       '</div>';
     el.appendChild(item);
-    // Attach events
     document.getElementById('qm-'+i).addEventListener('click', (function(ci){ return function(){ qtyCarrito(ci,-1); }; })(i));
     document.getElementById('qp-'+i).addEventListener('click', (function(ci){ return function(){ qtyCarrito(ci,1); }; })(i));
     document.getElementById('qdel-'+i).addEventListener('click', (function(ci){ return function(){ delCarrito(ci); }; })(i));
   });
 }
 
+function setDescItem(i, val){
+  const d = Math.max(0, parseFloat(val)||0);
+  carrito[i].desc = d;
+  calcCarrito();
+  // Update total display without full re-render
+  const totEl = document.getElementById('qdel-'+i);
+  if(totEl){
+    const div = totEl.parentElement;
+    const totDiv = div.querySelector('div[style*="green"]');
+    if(totDiv) totDiv.textContent='$'+(carrito[i].total-d).toFixed(2);
+  }
+}
+
 function calcCarrito(){
   const sub=carrito.reduce((s,c)=>s+c.total,0);
+  const descItems=carrito.reduce((s,c)=>s+(c.desc||0),0);
   const pct=parseFloat(document.getElementById('v-dpct').value)||0;
-  let dval=parseFloat(document.getElementById('v-dval').value)||0;
-  if(pct>0) dval=sub*pct/100;
+  let dvalExtra=parseFloat(document.getElementById('v-dval').value)||0;
+  if(pct>0) dvalExtra=sub*pct/100;
+  const dval=descItems+dvalExtra;
   const tot=Math.max(0,sub-dval);
   document.getElementById('v-sub').textContent='$'+sub.toFixed(2);
   document.getElementById('v-ds').textContent='-$'+dval.toFixed(2);
@@ -1308,9 +1343,11 @@ async function registrarVenta(){
   if(!carrito.length){showT('t-verr');return;}
   showT('t-vwarn');
   const sub=carrito.reduce((s,c)=>s+c.total,0);
+  const descItems=carrito.reduce((s,c)=>s+(c.desc||0),0);
   const pct=parseFloat(document.getElementById('v-dpct').value)||0;
-  let dval=parseFloat(document.getElementById('v-dval').value)||0;
-  if(pct>0) dval=sub*pct/100;
+  let dvalExtra=parseFloat(document.getElementById('v-dval').value)||0;
+  if(pct>0) dvalExtra=sub*pct/100;
+  const dval=descItems+dvalExtra;
   const tot=Math.max(0,sub-dval);
   const pago=document.getElementById('v-pago').value;
   let pagoEf=0, pagoTr=0;
@@ -1320,68 +1357,68 @@ async function registrarVenta(){
     pagoEf=parseFloat(document.getElementById('v-pago-ef').value)||0;
     pagoTr=parseFloat(document.getElementById('v-pago-tr').value)||0;
     const suma=pagoEf+pagoTr;
-    if(Math.abs(suma-tot)>0.01){
-      alert('Los montos del pago mixto no coinciden con el total ($'+tot.toFixed(2)+')');return;
-    }
+    if(Math.abs(suma-tot)>0.01){alert('Los montos del pago mixto no coinciden con el total ($'+tot.toFixed(2)+')');return;}
   }
   const cli=document.getElementById('v-cli').value.trim()||'Cliente general';
   const ahora=new Date();
-  // Check for date override (admin only)
-  const fechaOverride = document.getElementById('v-fecha-override')?document.getElementById('v-fecha-override').value:'';
-  const horaOverride  = document.getElementById('v-hora-override')?document.getElementById('v-hora-override').value:'';
+  const fechaOverride=document.getElementById('v-fecha-override')?document.getElementById('v-fecha-override').value:'';
+  const horaOverride=document.getElementById('v-hora-override')?document.getElementById('v-hora-override').value:'';
   let fecha, hora;
   if(fechaOverride){
-    const parts = fechaOverride.split('-');
-    fecha = parseInt(parts[2])+'/'+(parseInt(parts[1]))+'/'+parts[0];
-    hora  = horaOverride || ahora.getHours().toString().padStart(2,'0')+':'+ahora.getMinutes().toString().padStart(2,'0');
+    const parts=fechaOverride.split('-');
+    fecha=parseInt(parts[2])+'/'+(parseInt(parts[1]))+'/'+parts[0];
+    hora=horaOverride||ahora.getHours().toString().padStart(2,'0')+':'+ahora.getMinutes().toString().padStart(2,'0');
   } else {
-    fecha = ahora.getDate()+'/'+(ahora.getMonth()+1)+'/'+ahora.getFullYear();
-    hora  = ahora.getHours().toString().padStart(2,'0')+':'+ahora.getMinutes().toString().padStart(2,'0');
+    fecha=ahora.getDate()+'/'+(ahora.getMonth()+1)+'/'+ahora.getFullYear();
+    hora=ahora.getHours().toString().padStart(2,'0')+':'+ahora.getMinutes().toString().padStart(2,'0');
   }
-  const costo=carrito.reduce((s,c)=>s+c.costo*c.qty,0);
-
-  // Generate unique venta ID: V + timestamp
   const ventaId='V'+Date.now().toString().slice(-6);
 
-  // One row per product
-  // Cols: Fecha,Hora,ID_Venta,Código,Producto,Cantidad,P_Venta,Total_Item,Subtotal_Venta,Descuento,Total_Venta,Efectivo,Transferencia,Cliente
-  const updatePromises=[];
-  carrito.forEach((c,i)=>{
-    const esUltimo=i===carrito.length-1;
+  // One row per product — all columns filled — sequential
+  for(let i=0; i<carrito.length; i++){
+    const c=carrito[i];
+    const itemDesc=c.desc||0;
+    const itemTot=c.total-itemDesc;
+    const itemEf=tot>0?(itemTot/tot)*pagoEf:0;
+    const itemTr=tot>0?(itemTot/tot)*pagoTr:0;
     const row=[
       fecha, hora, ventaId,
-      c.id, c.nombre+(c.talla?' ('+c.talla+')':''),
-      c.qty, c.precio.toFixed(2), c.total.toFixed(2),
-      i===0?sub.toFixed(2):'',   // Subtotal solo en primera fila
-      i===0?dval.toFixed(2):'',  // Descuento solo en primera fila
-      i===0?tot.toFixed(2):'',   // Total solo en primera fila
-      i===0?pagoEf.toFixed(2):'',
-      i===0?pagoTr.toFixed(2):'',
-      i===0?cli:''
+      c.id,
+      c.nombre+(c.talla?' ('+c.talla+')':''),
+      c.qty,
+      c.precio.toFixed(2),
+      c.total.toFixed(2),
+      sub.toFixed(2),
+      itemDesc.toFixed(2),
+      itemTot.toFixed(2),
+      itemEf.toFixed(2),
+      itemTr.toFixed(2),
+      cli
     ];
-    updatePromises.push(sheetAppend('Ventas',row));
-  });
+    await sheetAppend('Ventas', row);
+  }
 
-  // Update stock for each product
+  // Update stock sequentially
   for(const c of carrito){
     const p=inventario[c.idx];
     if(p){
       p.stock=Math.max(0,p.stock-c.qty);
       const rowIdx=prodRowMap[p.id];
       if(rowIdx){
-        updatePromises.push(
-          apiCall({action:'update',sheet:'Productos',rowIndex:rowIdx,
-            row:JSON.stringify([p.id,p.nombre,p.marca,p.genero||'Unisex',p.talla||'',p.caract,p.stock,p.costo,p.precio,p.icon])})
-        );
+        await apiCall({action:'update',sheet:'Productos',rowIndex:rowIdx,
+          row:JSON.stringify([p.id,p.nombre,p.marca,p.genero||'Unisex',p.talla||'',p.caract,p.stock,p.costo,p.precio,p.icon])});
       }
     }
   }
-  await Promise.all(updatePromises);
 
-  // Add local venta for metrics (one entry per venta, not per product)
-  ventas.unshift({fecha,hora,ventaId,productosStr:carrito.map(c=>c.nombre+(c.talla?' ('+c.talla+')':'')+' x'+c.qty).join(' | '),cli,sub,dval,tot,pagoEf,pagoTr,costo,items:carrito.map(c=>({...c}))});
+  ventas.unshift({
+    fecha,hora,ventaId,
+    productosStr:carrito.map(c=>c.nombre+(c.talla?' ('+c.talla+')':'')+' x'+c.qty).join(' | '),
+    cli,sub,dval,tot,pagoEf,pagoTr,
+    costo:carrito.reduce((s,c)=>s+c.costo*c.qty,0),
+    items:carrito.map(c=>({...c}))
+  });
 
-  // Update client totals
   if(cli!=='Cliente general'){
     const idx=clientesMap[cli.toLowerCase()];
     if(idx!==undefined){
@@ -1391,7 +1428,9 @@ async function registrarVenta(){
   }
 
   carrito=[];
-  document.getElementById('v-dpct').value=0;document.getElementById('v-dval').value=0;document.getElementById('v-cli').value='';
+  document.getElementById('v-dpct').value=0;
+  document.getElementById('v-dval').value=0;
+  document.getElementById('v-cli').value='';
   ['v-pago-ef','v-pago-tr'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   const fov=document.getElementById('v-fecha-override'); if(fov) fov.value='';
   const hov=document.getElementById('v-hora-override');  if(hov) hov.value='';
