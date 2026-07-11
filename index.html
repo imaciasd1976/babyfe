@@ -1412,6 +1412,9 @@ async function registrarVenta(){
   const ventaId='V'+Date.now().toString().slice(-6);
 
   // One row per product — all columns filled — sequential
+  // Helper to format number for Ecuador locale (comma decimal)
+  const n2s = v => parseFloat(v.toFixed(2)).toString().replace('.',',');
+
   for(let i=0; i<carrito.length; i++){
     const c=carrito[i];
     const itemDesc=c.desc||0;
@@ -1423,13 +1426,13 @@ async function registrarVenta(){
       c.id,
       c.nombre+(c.talla?' ('+c.talla+')':''),
       c.qty,
-      c.precio.toFixed(2),
-      c.total.toFixed(2),
-      sub.toFixed(2),
-      itemDesc.toFixed(2),
-      itemTot.toFixed(2),
-      itemEf.toFixed(2),
-      itemTr.toFixed(2),
+      n2s(c.precio),
+      n2s(c.total),
+      n2s(sub),
+      n2s(itemDesc),
+      n2s(itemTot),
+      n2s(itemEf),
+      n2s(itemTr),
       cli
     ];
     await sheetAppend('Ventas', row);
@@ -1877,7 +1880,8 @@ async function cerrarCajaFecha(){
   const esperado=fondoInicial+efFecha+ingresosFecha-gastosFecha;
   const dif=monto-esperado;
 
-  const row=[fecha,'CIERRE',hora,operadorActual||'Administrador',monto.toFixed(2),esperado.toFixed(2),dif.toFixed(2),obs];
+  const n2s = v => parseFloat(v.toFixed(2)).toString().replace('.',',');
+  const row=[fecha,'CIERRE',hora,operadorActual||'Administrador',n2s(monto),n2s(esperado),n2s(dif),obs];
   const res=await sheetAppend('Caja',row);
   if(res&&res.status==='ok'){
     showT('t-cierre-fecha');
@@ -2155,7 +2159,7 @@ async function registrarMovimiento(){
   const fecha=ahora.toLocaleDateString('es-EC');
   const hora=ahora.getHours().toString().padStart(2,'0')+':'+ahora.getMinutes().toString().padStart(2,'0');
   showSync('Guardando movimiento...');
-  const res=await sheetAppend('Gastos',[fecha,hora,tipo,concepto,monto.toFixed(2)]);
+  const res=await sheetAppend('Gastos',[fecha,hora,tipo,concepto,monto.toFixed(2).replace('.',',')]);
   if(res&&res.status==='ok'){
     movimientos.push({fecha,hora,tipo,concepto,monto});
     document.getElementById('mov-concepto').value='';
@@ -2326,7 +2330,8 @@ async function registrarRepos(){
   const ahora=new Date();
   const fecha=ahora.toLocaleDateString('es-EC');
   const hora=ahora.getHours().toString().padStart(2,'0')+':'+ahora.getMinutes().toString().padStart(2,'0');
-  await sheetAppend('Compras',[fecha,hora,p.id,p.nombre,qty,costo||p.costo,(qty*(costo||p.costo)).toFixed(2)]);
+  const totComp=(qty*(costo||p.costo));
+  await sheetAppend('Compras',[fecha,hora,p.id,p.nombre,qty,(costo||p.costo).toFixed(2).replace('.',','),totComp.toFixed(2).replace('.',',')]);
   // Update local state
   p.stock=nuevoStock;
   if(costo>0) p.costo=costo;
