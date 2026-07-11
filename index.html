@@ -863,7 +863,7 @@ textarea{resize:none;font-family:inherit}
 // ═══════════════════════════════════════════════════
 // CONFIGURACIÓN — URL de tu Google Apps Script
 // ═══════════════════════════════════════════════════
-const API = 'https://script.google.com/macros/s/AKfycbw_hWIHVC51za71YgVwiP78Uk9G_gcCKwl2y6ys3Vw9im7H9LPu1wVTqC9IVPKexDeQlA/exec';
+const API = 'https://script.google.com/macros/s/AKfycby9UqZKNUz6A1F0w3oF77qc9Yk3ebmx0HwgRW1glZtnG9f4IwY6NW8bWRLpX0-D3bME_g/exec';
 
 // ═══════════════════════════════════════════════════
 // ESTADO LOCAL
@@ -1412,16 +1412,14 @@ async function registrarVenta(){
   const ventaId='V'+Date.now().toString().slice(-6);
 
   // One row per product — all columns filled — sequential
-  // Helper to format number for Ecuador locale (comma decimal)
+  // Build all rows first
   const n2s = v => parseFloat(v.toFixed(2)).toString().replace('.',',');
-
-  for(let i=0; i<carrito.length; i++){
-    const c=carrito[i];
+  const allRows = carrito.map(c=>{
     const itemDesc=c.desc||0;
     const itemTot=c.total-itemDesc;
     const itemEf=tot>0?(itemTot/tot)*pagoEf:0;
     const itemTr=tot>0?(itemTot/tot)*pagoTr:0;
-    const row=[
+    return [
       fecha, hora, ventaId,
       c.id,
       c.nombre+(c.talla?' ('+c.talla+')':''),
@@ -1435,8 +1433,10 @@ async function registrarVenta(){
       n2s(itemTr),
       cli
     ];
-    await sheetAppend('Ventas', row);
-  }
+  });
+
+  // Send all rows in one API call
+  await apiCall({action:'appendBatch', sheet:'Ventas', rows: JSON.stringify(allRows)});
 
   // Update stock sequentially
   for(const c of carrito){
