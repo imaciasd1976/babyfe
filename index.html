@@ -1725,24 +1725,28 @@ function abrirCaja(tipo){
 }
 
 async function confirmarInicio(){
+  const btn = document.querySelector('#m-caja-body .grn-btn');
+  if(btn) btn.disabled=true;
   const monto=parseFloat(document.getElementById('cj-monto').value)||0;
   const oper=document.getElementById('cj-oper').value.trim()||'Operador';
   const obs=document.getElementById('cj-obs').value.trim();
   const ahora=new Date();
-  const fecha=ahora.toLocaleDateString('es-EC');
+  const fecha=ahora.getDate()+'/'+(ahora.getMonth()+1)+'/'+ahora.getFullYear();
   const hora=ahora.getHours().toString().padStart(2,'0')+':'+ahora.getMinutes().toString().padStart(2,'0');
-  cajaInicio={hora,monto,operador:oper};cajaFin=null;
+  cajaInicio={hora,monto,operador:oper,fecha};cajaFin=null;
   await sheetAppend('Caja',[fecha,'INICIO',hora,oper,monto,'','',obs]);
   cerrarModal('m-caja');renderCaja();
 }
 
 async function confirmarFin(esperado){
+  const btn=document.getElementById('btn-confirm-fin');
+  if(btn) btn.disabled=true;
   const monto=parseFloat(document.getElementById('cj-contado').value);
-  if(isNaN(monto)||monto<0){alert('Ingresa el efectivo contado');return;}
+  if(isNaN(monto)||monto<0){alert('Ingresa el efectivo contado');if(btn)btn.disabled=false;return;}
   const oper=document.getElementById('cj-oper2').value.trim()||'Operador';
   const obs=document.getElementById('cj-obs2').value.trim();
   const ahora=new Date();
-  const fecha=ahora.toLocaleDateString('es-EC');
+  const fecha=ahora.getDate()+'/'+(ahora.getMonth()+1)+'/'+ahora.getFullYear();
   const hora=ahora.getHours().toString().padStart(2,'0')+':'+ahora.getMinutes().toString().padStart(2,'0');
   const dif=monto-esperado;
   cajaFin={hora,monto,operador:oper,esperado,dif};
