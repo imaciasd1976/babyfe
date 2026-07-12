@@ -915,6 +915,13 @@ function toNum(v){
 
 async function apiCall(params) {
   try {
+    if(params.action==='appendBatch'){
+      // Use POST to avoid URL length limits with many products
+      const formData = new FormData();
+      Object.entries(params).forEach(([k,v])=>formData.append(k,v));
+      const res = await fetch(API, {method:'POST', body: formData});
+      return await res.json();
+    }
     const url = API + '?' + Object.entries(params).map(([k,v]) => `${k}=${encodeURIComponent(v)}`).join('&');
     const res = await fetch(url);
     return await res.json();
