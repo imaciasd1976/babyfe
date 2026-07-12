@@ -417,6 +417,7 @@ textarea{resize:none;font-family:inherit}
           <div style="font-weight:700;color:var(--text-primary);margin-bottom:2px">Resumen del día</div>
           <div class="cj" style="font-size:11px"><span style="color:var(--text-secondary)">Ventas (transacciones)</span><span id="cp-txn">—</span></div>
           <div class="cj" style="font-size:11px"><span style="color:var(--text-secondary)">Total ventas</span><span id="cp-tot">—</span></div>
+          <div class="cj" style="font-size:11px"><span style="color:var(--red)">(-) Descuentos</span><span style="color:var(--red)" id="cp-desc">—</span></div>
           <div class="cj" style="font-size:11px"><span style="color:var(--green)">Efectivo ventas</span><span id="cp-ef">—</span></div>
           <div class="cj" style="font-size:11px"><span style="color:var(--orange)">Transferencia ventas</span><span id="cp-tr">—</span></div>
           <div class="cj" style="font-size:11px"><span style="color:var(--red)">Gastos</span><span id="cp-gastos">—</span></div>
@@ -1699,6 +1700,9 @@ function abrirCaja(tipo){
     return;
   }
   const ef=ventas.reduce((s,v)=>s+(v.pagoEf!==undefined?v.pagoEf:(v.pago==='Efectivo'?v.tot:0)),0);
+  const trf=ventas.reduce((s,v)=>s+(v.pagoTr!==undefined?v.pagoTr:(v.pago==='Transferencia'?v.tot:0)),0);
+  const desc=ventas.reduce((s,v)=>s+v.dval,0);
+  const totVentas=ventas.reduce((s,v)=>s+v.tot,0);
   const gastos=movimientos.filter(m=>m.tipo==='Gasto').reduce((s,m)=>s+m.monto,0);
   const ingresosExtra=movimientos.filter(m=>m.tipo==='Ingreso').reduce((s,m)=>s+m.monto,0);
   const fondoI=cajaInicio?cajaInicio.monto:0;
@@ -1713,9 +1717,13 @@ function abrirCaja(tipo){
   :`<div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px">Ingresa el efectivo físico contado al cierre.</div>
     <div class="card" style="margin-bottom:8px;display:flex;flex-direction:column;gap:4px">
       <div class="cj"><span style="color:var(--text-secondary)">Fondo inicial</span><span>$${fondoI.toFixed(2)}</span></div>
-      <div class="cj"><span style="color:var(--text-secondary)">Ventas efectivo</span><span>$${ef.toFixed(2)}</span></div>
-      <div class="cj"><span style="color:var(--text-secondary)">Gastos</span><span>$${gastos.toFixed(2)}</span></div>
-      <div class="cj" style="font-weight:700"><span>Efectivo esperado</span><span style="color:var(--pink)">$${esperado.toFixed(2)}</span></div>
+      <div class="cj"><span style="color:var(--text-secondary)">Total ventas</span><span>$${totVentas.toFixed(2)}</span></div>
+      <div class="cj"><span style="color:var(--red)">(-) Descuentos</span><span style="color:var(--red)">-$${desc.toFixed(2)}</span></div>
+      <div class="cj"><span style="color:var(--green)">Efectivo ventas</span><span>$${ef.toFixed(2)}</span></div>
+      <div class="cj"><span style="color:var(--orange)">Transferencia ventas</span><span>$${trf.toFixed(2)}</span></div>
+      <div class="cj"><span style="color:var(--red)">Gastos</span><span>-$${gastos.toFixed(2)}</span></div>
+      <div class="cj"><span style="color:var(--green)">Ingresos extra</span><span>+$${ingresosExtra.toFixed(2)}</span></div>
+      <div class="cj" style="font-weight:700;border-top:1px solid var(--border);padding-top:4px;margin-top:2px"><span>Efectivo esperado</span><span style="color:var(--pink)">$${esperado.toFixed(2)}</span></div>
     </div>
     <div class="fg"><div class="fl">Efectivo contado ($)</div><input type="number" id="cj-contado" placeholder="0.00" min="0"></div>
     <div class="fg"><div class="fl">Operador responsable</div><input type="text" id="cj-oper2" value="${rol==='admin'?'Administrador':'Operador'}" placeholder="Nombre"></div>
@@ -1791,10 +1799,11 @@ async function previewCierreFecha(){
         totFecha+=toNum(r[8]); // Subtotal_Venta from first row of each venta
       }
     });
-    // Sum efectivo and transferencia across ALL rows (they're distributed per item)
+    // Sum efectivo, transferencia and descuento across ALL rows
     rows.forEach(r=>{
       efFecha+=toNum(r[11]);
       trFecha+=toNum(r[12]);
+      descFecha+=toNum(r[9]);
     });
   }
   // Gastos
@@ -1817,6 +1826,7 @@ async function previewCierreFecha(){
   const esperado=fondo+efFecha+ingresosFecha-gastosFecha;
   document.getElementById('cp-txn').textContent=Object.keys(txnIds).length;
   document.getElementById('cp-tot').textContent='$'+totFecha.toFixed(2);
+  document.getElementById('cp-desc').textContent='-$'+descFecha.toFixed(2);
   document.getElementById('cp-ef').textContent='$'+efFecha.toFixed(2);
   document.getElementById('cp-tr').textContent='$'+trFecha.toFixed(2);
   document.getElementById('cp-gastos').textContent='-$'+gastosFecha.toFixed(2);
