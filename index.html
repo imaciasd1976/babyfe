@@ -1786,7 +1786,7 @@ async function previewCierreFecha(){
   showSync('Calculando resumen...');
   // Ventas
   const ventasData = await sheetRead('Ventas');
-  let efFecha=0, trFecha=0, totFecha=0, txnIds={};
+  let efFecha=0, trFecha=0, totFecha=0, descFecha=0, txnIds={};
   if(Array.isArray(ventasData)&&ventasData.length>1){
     const rows=ventasData.slice(1).filter(r=>r[0]&&esFecha(r[0]));
     // Group by ID_Venta — use first row's Subtotal_Venta (col I/index 8) for total
