@@ -283,6 +283,10 @@ textarea{resize:none;font-family:inherit}
         <div class="fg"><div class="fl">Cantidad a reponer</div><input type="number" id="rep-qty" placeholder="0" min="1" oninput="calcRepos()"></div>
         <div class="fg"><div class="fl">Costo unitario $</div><input type="number" id="rep-costo" placeholder="0.00" min="0" oninput="calcRepos()"></div>
       </div>
+      <div class="fr">
+        <div class="fg"><div class="fl">Ref. compra (proveedor)</div><input type="text" id="rep-ref" placeholder="Ej: REF-450, código proveedor..."></div>
+        <div class="fg"><div class="fl">Proveedor</div><input type="text" id="rep-prov" placeholder="Nombre del proveedor"></div>
+      </div>
       <div id="rep-total-blq" style="display:none;background:var(--bg-primary);border-radius:var(--radius-sm);padding:7px 10px;font-size:11px">
         Total compra: <strong style="color:var(--orange)" id="rep-total">$0.00</strong>
       </div>
@@ -586,6 +590,10 @@ textarea{resize:none;font-family:inherit}
         <div class="fg"><div class="fl">Stock</div><input type="number" id="np-s" placeholder="0" min="0"></div>
         <div class="fg"><div class="fl">P. compra $</div><input type="number" id="np-pc" placeholder="0.00"></div>
         <div class="fg"><div class="fl">P. venta $</div><input type="number" id="np-pv" placeholder="0.00"></div>
+      </div>
+      <div class="fr">
+        <div class="fg"><div class="fl">Ref. compra (proveedor)</div><input type="text" id="np-ref" placeholder="Ej: REF-450, código proveedor..."></div>
+        <div class="fg"><div class="fl">Proveedor</div><input type="text" id="np-prov" placeholder="Nombre del proveedor"></div>
       </div>
       <button class="add-btn" onclick="agregarProd()"><i class="ti ti-plus"></i>Agregar producto</button>
       <div class="toast tok" id="t-prod">✓ Producto guardado correctamente en la nube</div>
@@ -984,7 +992,8 @@ async function loadInventario() {
       genero: String(r[3]||'Unisex'), talla: String(r[4]||''),
       caract: String(r[5]||''), stock: parseInt(r[6])||0,
       stock: toNum(r[6]), costo: toNum(r[7]), precio: toNum(r[8]),
-      icon: String(r[9]||'ti-tag')
+      icon: String(r[9]||'ti-tag'),
+      refCompra: String(r[10]||'')
     };
     p._search = norm(p.id+' '+p.nombre+' '+p.marca+' '+p.genero+' '+p.talla+' '+p.caract);
     inventario.push(p);
@@ -1454,7 +1463,7 @@ async function registrarVenta(){
       const rowIdx=prodRowMap[p.id];
       if(rowIdx){
         await apiCall({action:'update',sheet:'Productos',rowIndex:rowIdx,
-          row:JSON.stringify([p.id,p.nombre,p.marca,p.genero||'Unisex',p.talla||'',p.caract,p.stock,p.costo,p.precio,p.icon])});
+          row:JSON.stringify([p.id,p.nombre,p.marca,p.genero||'Unisex',p.talla||'',p.caract,p.stock,p.costo,p.precio,p.icon,p.refCompra||''])});
       }
     }
   }
@@ -1998,7 +2007,7 @@ async function generarEDR(){
     comprasData.slice(1).forEach(r=>{
       if(!r[0]) return;
       const d = parseDate(r[0]);
-      if(d&&d>=dateFi&&d<=dateFf) totCompras+=toNum(r[6]);
+      if(d&&d>=dateFi&&d<=dateFf) totCompras+=toNum(r[8]);
     });
   }
 
@@ -2241,6 +2250,8 @@ async function agregarProd(){
   const s=parseInt(document.getElementById('np-s').value)||0;
   const pc=parseFloat(document.getElementById('np-pc').value)||0;
   const pv=parseFloat(document.getElementById('np-pv').value)||0;
+  const ref=document.getElementById('np-ref').value.trim();
+  const prov=document.getElementById('np-prov').value.trim();
   if(!n||!pv){alert('Nombre y precio de venta son obligatorios');return;}
   // ── Validación duplicado: Nombre + Marca + Talla + Género ──
   const duplicado=inventario.find(p=>
@@ -2261,22 +2272,21 @@ async function agregarProd(){
   }
   showSync('Guardando producto en la nube...');
   const id='BF'+String(++prodId).padStart(3,'0');
-  const row=[id,n,m,g,talla,c,s,pc,pv,'ti-tag'];
+  const row=[id,n,m,g,talla,c,s,pc,pv,'ti-tag',ref];
   const result=await sheetAppend('Productos',row);
   if(result&&result.status==='ok'){
-    const np={id,nombre:n,marca:m,genero:g,talla,caract:c,costo:pc,precio:pv,stock:s,icon:'ti-tag'};
+    const np={id,nombre:n,marca:m,genero:g,talla,caract:c,costo:pc,precio:pv,stock:s,icon:'ti-tag',refCompra:ref};
     np._search=norm(id+' '+n+' '+m+' '+g+' '+talla+' '+c);
     inventario.push(np);
     prodRowMap[id]=inventario.length+1;
-    // Si tiene stock inicial, registrar en Compras
     if(s>0&&pc>0){
       const ahora=new Date();
       const fecha=ahora.getDate()+'/'+(ahora.getMonth()+1)+'/'+ahora.getFullYear();
       const hora=ahora.getHours().toString().padStart(2,'0')+':'+ahora.getMinutes().toString().padStart(2,'0');
       const totComp=s*pc;
-      await sheetAppend('Compras',[fecha,hora,id,n,s,pc.toFixed(2).replace('.',','),totComp.toFixed(2).replace('.',',')]);
+      await sheetAppend('Compras',[fecha,hora,id,n,ref||'',prov||'',s,pc.toFixed(2).replace('.',','),totComp.toFixed(2).replace('.',',')]);
     }
-    ['np-n','np-m','np-tc','np-c','np-s','np-pc','np-pv'].forEach(i=>document.getElementById(i).value='');
+    ['np-n','np-m','np-tc','np-c','np-s','np-pc','np-pv','np-ref','np-prov'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
     document.getElementById('np-t').value='';
     document.getElementById('np-g').value='Unisex';
     showT('t-prod');updMetrics();renderInv();
@@ -2341,6 +2351,8 @@ function selRepos(idx){
   document.getElementById('rep-res').style.display='none';
   document.getElementById('rep-busq').value=p.nombre;
   document.getElementById('rep-costo').value=p.costo||'';
+  document.getElementById('rep-ref').value=p.refCompra||'';
+  document.getElementById('rep-prov').value='';
   calcRepos();
 }
 
@@ -2360,26 +2372,33 @@ async function registrarRepos(){
   if(reposProdIdx===null){showT('t-repos-err');return;}
   const qty=parseInt(document.getElementById('rep-qty').value)||0;
   const costo=parseFloat(document.getElementById('rep-costo').value)||0;
+  const ref=document.getElementById('rep-ref').value.trim();
+  const prov=document.getElementById('rep-prov').value.trim();
   if(qty<1){showT('t-repos-err');return;}
   const p=inventario[reposProdIdx];
   const nuevoStock=p.stock+qty;
   const rowIdx=prodRowMap[p.id];
   if(!rowIdx){showT('t-repos-err');return;}
   showSync('Actualizando stock en la nube...');
-  // Update product stock in sheet
+  const costoFinal=costo||p.costo;
+  const refFinal=ref||p.refCompra||'';
+  // Update product stock and refCompra in sheet
   const res=await apiCall({action:'update',sheet:'Productos',rowIndex:rowIdx,
-    row:JSON.stringify([p.id,p.nombre,p.marca,p.genero||'Unisex',p.talla||'',p.caract,nuevoStock,costo||p.costo,p.precio,p.icon])});
-  // Append to Compras sheet for history
+    row:JSON.stringify([p.id,p.nombre,p.marca,p.genero||'Unisex',p.talla||'',p.caract,nuevoStock,costoFinal,p.precio,p.icon,refFinal])});
+  // Append to Compras sheet
   const ahora=new Date();
-  const fecha=ahora.toLocaleDateString('es-EC');
+  const fecha=ahora.getDate()+'/'+(ahora.getMonth()+1)+'/'+ahora.getFullYear();
   const hora=ahora.getHours().toString().padStart(2,'0')+':'+ahora.getMinutes().toString().padStart(2,'0');
-  const totComp=(qty*(costo||p.costo));
-  await sheetAppend('Compras',[fecha,hora,p.id,p.nombre,qty,(costo||p.costo).toFixed(2).replace('.',','),totComp.toFixed(2).replace('.',',')]);
+  const totComp=qty*costoFinal;
+  await sheetAppend('Compras',[fecha,hora,p.id,p.nombre,refFinal,prov,qty,costoFinal.toFixed(2).replace('.',','),totComp.toFixed(2).replace('.',',')]);
   // Update local state
   p.stock=nuevoStock;
-  if(costo>0) p.costo=costo;
+  if(costo>0) p.costo=costoFinal;
+  if(refFinal) p.refCompra=refFinal;
   document.getElementById('rep-selstock').textContent=nuevoStock;
   document.getElementById('rep-qty').value='';
+  document.getElementById('rep-ref').value='';
+  document.getElementById('rep-prov').value='';
   document.getElementById('rep-total-blq').style.display='none';
   showT('t-repos');
   updMetrics();renderInv();
@@ -2468,7 +2487,7 @@ async function guardarEditProd(){
   if(!rowIdx){showT('t-eprod-err');return;}
   showSync('Actualizando producto en la nube...');
   const res=await apiCall({action:'update',sheet:'Productos',rowIndex:rowIdx,
-    row:JSON.stringify([id,n,m,g,t,c,p.stock,pc,pv,p.icon||'ti-tag'])});
+    row:JSON.stringify([id,n,m,g,t,c,p.stock,pc,pv,p.icon||'ti-tag',p.refCompra||''])});
   if(res&&res.status==='ok'){
     p.nombre=n; p.marca=m; p.genero=g; p.talla=t; p.caract=c; p.costo=pc; p.precio=pv;
     p._search=norm(id+' '+n+' '+m+' '+g+' '+t+' '+c);
@@ -2776,7 +2795,7 @@ async function aplicarAjustes(){
     const rowIdx = prodRowMap[id];
     if(!rowIdx){errores++;continue;}
     const res = await apiCall({action:'update',sheet:'Productos',rowIndex:rowIdx,
-      row:JSON.stringify([p.id,p.nombre,p.marca,p.genero||'Unisex',p.talla||'',p.caract,nuevoStock,p.costo,p.precio,p.icon||'ti-tag'])});
+      row:JSON.stringify([p.id,p.nombre,p.marca,p.genero||'Unisex',p.talla||'',p.caract,nuevoStock,p.costo,p.precio,p.icon||'ti-tag',p.refCompra||''])});
     if(res&&res.status==='ok') p.stock=nuevoStock;
     else errores++;
   }
@@ -3094,7 +3113,7 @@ async function ajustarConteo(){
   if(!rowIdx){showT('t-conteo-err');return;}
   showSync('Ajustando stock en la nube...');
   const res=await apiCall({action:'update',sheet:'Productos',rowIndex:rowIdx,
-    row:JSON.stringify([p.id,p.nombre,p.marca,p.genero||'Unisex',p.talla||'',p.caract,contado,p.costo,p.precio,p.icon||'ti-tag'])});
+    row:JSON.stringify([p.id,p.nombre,p.marca,p.genero||'Unisex',p.talla||'',p.caract,contado,p.costo,p.precio,p.icon||'ti-tag',p.refCompra||''])});
   if(res&&res.status==='ok'){
     const dif=contado-p.stock;
     p.stock=contado;
@@ -3294,7 +3313,7 @@ async function importarInventario(event) {
     // Save to Google Sheet and local state
     showSync('Subiendo '+importados+' productos a la nube...');
     for (const p of nuevos) {
-      await sheetAppend('Productos',[p.id,p.nombre,p.marca,p.genero||'Unisex',p.talla,p.caract,p.stock,p.costo,p.precio,p.icon]);
+      await sheetAppend('Productos',[p.id,p.nombre,p.marca,p.genero||'Unisex',p.talla,p.caract,p.stock,p.costo,p.precio,p.icon,p.refCompra||'']);
       inventario.push(p);
     }
     showT('t-imp');
@@ -3431,19 +3450,19 @@ async function expRango() {
         return false;
       });
     }
-    const totCant = comprasRango.reduce((s,r)=>s+parseFloat(r[4]||0),0);
-    const totGasto = comprasRango.reduce((s,r)=>s+parseFloat(r[6]||0),0);
+    const totCant = comprasRango.reduce((s,r)=>s+toNum(r[6]),0);
+    const totGasto = comprasRango.reduce((s,r)=>s+toNum(r[8]),0);
     const rows = [
       ['BabyFe — Compras / Reposición del período: '+rango],[],
-      ['Fecha','Hora','Código','Producto','Cantidad','Costo unitario','Total'],
-      ...comprasRango.map(r=>[r[0],r[1],r[2],r[3],parseFloat(r[4]||0),parseFloat(r[5]||0),parseFloat(r[6]||0)]),
+      ['Fecha','Hora','Código','Producto','Ref_Compra','Proveedor','Cantidad','Costo unitario','Total'],
+      ...comprasRango.map(r=>[r[0],r[1],r[2],r[3],r[4]||'',r[5]||'',toNum(r[6]),toNum(r[7]),toNum(r[8])]),
       [],[' RESUMEN DEL PERÍODO'],
       ['Total unidades repuestas','Total invertido en compras'],
       [totCant,totGasto],
       [],['Total movimientos:',comprasRango.length]
     ];
     const ws = XLSX.utils.aoa_to_sheet(rows);
-    ws['!cols']=[{wch:11},{wch:7},{wch:9},{wch:26},{wch:10},{wch:13},{wch:10}];
+    ws['!cols']=[{wch:11},{wch:7},{wch:9},{wch:26},{wch:16},{wch:16},{wch:10},{wch:13},{wch:10}];
     XLSX.utils.book_append_sheet(wb,ws,'Compras');
   }
 
