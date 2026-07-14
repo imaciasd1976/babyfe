@@ -903,6 +903,18 @@ const API = 'https://script.google.com/macros/s/AKfycbzmM8otLJ-rB9WDqmvC1ws_YQcZ
 // ESTADO LOCAL
 // ═══════════════════════════════════════════════════
 const PINS = {admin:'1234', operador:'0000'};
+
+async function loadConfig(){
+  const data = await sheetRead('Config');
+  if(!Array.isArray(data)||data.length<2) return;
+  data.slice(1).forEach(r=>{
+    const clave=String(r[0]||'').trim();
+    const valor=String(r[1]||'').trim();
+    if(!valor) return;
+    if(clave==='PIN_ADMIN') PINS.admin=valor;
+    if(clave==='PIN_OPER') PINS.operador=valor;
+  });
+}
 let rol = null, rolSel = null, carrito = [], operadorActual = 'Administrador';
 let cajaInicio = null, cajaFin = null;
 let movimientos = []; // {fecha, hora, tipo, concepto, monto}
@@ -1169,6 +1181,9 @@ async function loadClientes() {
 // LOGIN
 // ═══════════════════════════════════════════════════
 function selRol(r){rolSel=r;document.getElementById('rc-admin').classList.toggle('sel',r==='admin');document.getElementById('rc-oper').classList.toggle('sel',r==='operador');}
+
+// Load PINs from Sheets before login
+loadConfig().catch(()=>{});
 function updDots(){const l=document.getElementById('lpin').value.length;for(let i=0;i<6;i++)document.getElementById('ld'+i).classList.toggle('on',i<l);}
 
 async function login() {
@@ -2445,12 +2460,26 @@ function chkStr(inp,lbl){
   el.style.color=v.length>=6?'var(--green)':'var(--blue)';
 }
 
-function cambiarPin(r){
+async function cambiarPin(r){
   const nv=r==='admin'?document.getElementById('na-pin').value:document.getElementById('no-pin').value;
   const cv=r==='admin'?document.getElementById('ca-pin').value:document.getElementById('co-pin').value;
   const ok=r==='admin'?'t-ap':'t-op', err=r==='admin'?'t-ae':'t-oe';
   if(nv.length<4||nv!==cv){showT(err);return;}
   PINS[r]=nv;
+  // Save to Config sheet
+  showSync('Guardando PIN...');
+  const clave = r==='admin'?'PIN_ADMIN':'PIN_OPER';
+  const data = await sheetRead('Config');
+  if(Array.isArray(data)&&data.length>1){
+    const rowIdx = data.findIndex(row=>String(row[0]).trim()===clave);
+    if(rowIdx>=0){
+      await apiCall({action:'update',sheet:'Config',rowIndex:rowIdx+1,row:JSON.stringify([clave,nv])});
+    } else {
+      await sheetAppend('Config',[clave,nv]);
+    }
+  } else {
+    await sheetAppend('Config',[clave,nv]);
+  }
   if(r==='admin'){document.getElementById('na-pin').value='';document.getElementById('ca-pin').value='';document.getElementById('str-a').textContent='';document.getElementById('disp-admin').textContent='PIN: '+'•'.repeat(nv.length);}
   else{document.getElementById('no-pin').value='';document.getElementById('co-pin').value='';document.getElementById('str-o').textContent='';document.getElementById('disp-oper').textContent='PIN: '+'•'.repeat(nv.length);}
   showT(ok);
