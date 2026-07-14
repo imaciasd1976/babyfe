@@ -266,6 +266,10 @@ textarea{resize:none;font-family:inherit}
     <div class="sw"><i class="ti ti-search"></i><input type="text" id="binv" placeholder="Buscar por nombre, código o marca..." oninput="debouncedRenderInv()"></div>
     <div class="card" id="lista-inv"><div class="loading"><div class="spinner"></div>Cargando inventario...</div></div>
     <button class="sec-btn" onclick="expInv()"><i class="ti ti-file-spreadsheet"></i>Exportar inventario a Excel</button>
+    <div id="blq-etiquetas-inv" style="display:none;gap:6px;flex-direction:column">
+      <button class="sec-btn" style="background:#EEF2FF;border-color:#C7D2FE;color:#3730A3" onclick="imprimirTodasEtiquetas()"><i class="ti ti-qrcode"></i>Imprimir todas las etiquetas del inventario</button>
+      <button class="sec-btn" style="background:#EEF2FF;border-color:#C7D2FE;color:#3730A3" onclick="abrirReimpresion()"><i class="ti ti-refresh"></i>Reimprimir etiquetas por cambio de precio</button>
+    </div>
     <div id="blq-repos" style="display:none;background:var(--orange-light);border-radius:var(--radius);padding:11px;flex-direction:column;gap:8px">
       <div style="font-size:11px;font-weight:700;color:var(--orange);display:flex;align-items:center;gap:6px">
         <i class="ti ti-package-import" style="font-size:15px"></i>Reposición / Compra de stock
@@ -569,12 +573,12 @@ textarea{resize:none;font-family:inherit}
           <select id="np-t">
             <option value="">Sin talla</option>
             <option value="RN">RN (Recién Nacido)</option>
-            <option value="0-3m">0-3 meses</option>
-            <option value="3-6m">3-6 meses</option>
-            <option value="6-9m">6-9 meses</option>
-            <option value="9-12m">9-12 meses</option>
-            <option value="12-18m">12-18 meses</option>
-            <option value="18-24m">18-24 meses</option>
+            <option value="0-3 meses">0-3 meses</option>
+            <option value="3-6 meses">3-6 meses</option>
+            <option value="6-9 meses">6-9 meses</option>
+            <option value="9-12 meses">9-12 meses</option>
+            <option value="12-18 meses">12-18 meses</option>
+            <option value="18-24 meses">18-24 meses</option>
             <option value="2T">2T</option><option value="3T">3T</option>
             <option value="4T">4T</option><option value="5T">5T</option>
             <option value="XS">XS</option><option value="S">S</option>
@@ -687,7 +691,7 @@ textarea{resize:none;font-family:inherit}
           <option value="Niña">Niña</option>
         </select>
       </div>
-      <div class="fg"><div class="fl">Talla</div><input type="text" id="ep-t" placeholder="Ej: 2T, 0-3m, S"></div>
+      <div class="fg"><div class="fl">Talla</div><input type="text" id="ep-t" placeholder="Ej: 2T, 0-3 meses, S"></div>
     </div>
     <div class="fg"><div class="fl">Características</div><input type="text" id="ep-c" placeholder="Color, material, etc."></div>
     <div class="fr">
@@ -813,6 +817,27 @@ textarea{resize:none;font-family:inherit}
     </div>
 
     <div class="toast terr" id="t-edr-err">Selecciona un rango de fechas válido</div>
+  </div>
+</div>
+
+<!-- MODAL REIMPRESION ETIQUETAS -->
+<div class="modal-bg" id="m-reimp">
+  <div class="modal">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div class="mt"><i class="ti ti-refresh"></i> Reimprimir etiquetas</div>
+      <button onclick="cerrarModal('m-reimp')" style="background:none;border:none;cursor:pointer;color:var(--text-secondary);font-size:18px"><i class="ti ti-x"></i></button>
+    </div>
+    <div style="font-size:11px;color:var(--text-secondary)">Busca los productos y define cuántas etiquetas necesitas reimprimir (ej: por cambio de precio).</div>
+    <div class="sw"><i class="ti ti-search"></i><input type="text" id="reimp-busq" placeholder="Buscar producto..." oninput="buscarReimp()"></div>
+    <div id="reimp-res" style="display:none;background:var(--bg-secondary);border-radius:var(--radius-sm);max-height:130px;overflow-y:auto;padding:3px 8px"></div>
+    <div style="font-size:11px;font-weight:700;color:var(--text-primary)">Cola de reimpresión <span id="reimp-badge" style="background:#EEF2FF;color:#3730A3;padding:1px 7px;border-radius:20px;font-size:10px">0</span></div>
+    <div id="reimp-cola" style="max-height:180px;overflow-y:auto;display:flex;flex-direction:column;gap:4px">
+      <div style="text-align:center;padding:12px;color:var(--text-secondary);font-size:11px"><i class="ti ti-inbox" style="font-size:18px;display:block;margin-bottom:3px"></i>Sin productos aún</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="add-btn" style="background:#3730A3;flex:2" onclick="imprimirReimp()"><i class="ti ti-printer"></i>Imprimir etiquetas</button>
+      <button class="sec-btn" style="flex:1" onclick="limpiarReimp()"><i class="ti ti-trash"></i>Limpiar</button>
+    </div>
   </div>
 </div>
 
@@ -964,7 +989,7 @@ async function syncAll() {
   icon.style.animation = 'spin .7s linear infinite';
   showSync('⟳ Sincronizando...');
   try {
-    await Promise.all([loadInventario(), loadVentas(), loadClientes(), loadCaja()]);
+    await Promise.all([loadInventario(), loadVentas(), loadClientes(), loadCaja(), loadColaPendiente()]);
     lastSyncTime = new Date();
     showSync('✓ Sincronizado — '+lastSyncTime.toLocaleTimeString('es-EC',{hour:'2-digit',minute:'2-digit'}));
   } catch(e) {
@@ -1169,6 +1194,8 @@ async function login() {
   if(repBtnInicio) repBtnInicio.style.display=rol==='admin'?'block':'none';
   const reposBlq=document.getElementById('blq-repos');
   if(reposBlq) reposBlq.style.display=rol==='admin'?'flex':'none';
+  const etiqBlq=document.getElementById('blq-etiquetas-inv');
+  if(etiqBlq) etiqBlq.style.display=rol==='admin'?'flex':'none';
   const conteoBlq=document.getElementById('blq-conteo');
   if(conteoBlq) conteoBlq.style.display=rol==='admin'?'flex':'none';
   const h = new Date();
@@ -2284,7 +2311,7 @@ async function agregarProd(){
       const fecha=ahora.getDate()+'/'+(ahora.getMonth()+1)+'/'+ahora.getFullYear();
       const hora=ahora.getHours().toString().padStart(2,'0')+':'+ahora.getMinutes().toString().padStart(2,'0');
       const totComp=s*pc;
-      await sheetAppend('Compras',[fecha,hora,id,n,ref||'',prov||'',s,pc.toFixed(2).replace('.',','),totComp.toFixed(2).replace('.',',')]);
+      await sheetAppend('Compras',[fecha,hora,id,n,ref||'',prov||'',s,pc.toFixed(2).replace('.',','),totComp.toFixed(2).replace('.',','),'Pendiente']);
     }
     ['np-n','np-m','np-tc','np-c','np-s','np-pc','np-pv','np-ref','np-prov'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
     document.getElementById('np-t').value='';
@@ -2390,7 +2417,7 @@ async function registrarRepos(){
   const fecha=ahora.getDate()+'/'+(ahora.getMonth()+1)+'/'+ahora.getFullYear();
   const hora=ahora.getHours().toString().padStart(2,'0')+':'+ahora.getMinutes().toString().padStart(2,'0');
   const totComp=qty*costoFinal;
-  await sheetAppend('Compras',[fecha,hora,p.id,p.nombre,refFinal,prov,qty,costoFinal.toFixed(2).replace('.',','),totComp.toFixed(2).replace('.',',')]);
+  await sheetAppend('Compras',[fecha,hora,p.id,p.nombre,refFinal,prov,qty,costoFinal.toFixed(2).replace('.',','),totComp.toFixed(2).replace('.',','),'Pendiente']);
   // Update local state
   p.stock=nuevoStock;
   if(costo>0) p.costo=costoFinal;
@@ -2865,8 +2892,149 @@ function imprimirHojaConteo(){
   const win=window.open('','_blank');
   if(win){win.document.write(html);win.document.close();}
   else alert('Permite las ventanas emergentes para imprimir.');
+  // Mark as printed in Compras sheet
+  const ids=qrCola.map(x=>x.id).filter(id=>comprasRowMap[id]&&comprasRowMap[id].length);
+  if(ids.length) marcarComoImpreso(ids);
 }
 
+
+// ═══════════════════════════════════════════════════
+// COLA PENDIENTE DE IMPRESIÓN (desde Compras)
+// ═══════════════════════════════════════════════════
+let comprasRowMap = {}; // {rowKey: rowIndex} para marcar como impreso
+
+async function loadColaPendiente(){
+  const data = await sheetRead('Compras');
+  if(!Array.isArray(data)||data.length<2) return;
+  // Col J (index 9) = Impresión
+  const pendientes = data.slice(1).map((r,i)=>({r,idx:i+2})).filter(({r})=>String(r[9]||'').trim()==='Pendiente');
+  if(!pendientes.length) return;
+  // Build cola from pending rows — group by product id, sum qty
+  const colaMap = {};
+  pendientes.forEach(({r,idx})=>{
+    const id=String(r[2]||'').trim();
+    const qty=parseInt(r[6])||0;
+    if(!id||!qty) return;
+    if(!colaMap[id]) colaMap[id]={qty:0, rowIdxs:[]};
+    colaMap[id].qty+=qty;
+    colaMap[id].rowIdxs.push(idx);
+  });
+  // Merge into qrCola without duplicating existing entries
+  Object.entries(colaMap).forEach(([id,{qty,rowIdxs}])=>{
+    const existe=qrCola.find(x=>x.id===id);
+    if(existe) existe.qty+=qty;
+    else qrCola.push({id,qty,rowIdxs});
+    // Store row indices for marking as printed
+    comprasRowMap[id]=(comprasRowMap[id]||[]).concat(rowIdxs);
+  });
+  // Show badge if there are pending labels
+  const total=qrCola.reduce((s,x)=>s+x.qty,0);
+  if(total>0) showSync('🏷 '+total+' etiquetas pendientes de imprimir');
+}
+
+async function marcarComoImpreso(ids){
+  // Mark all rows for these product ids as Impreso in Compras
+  for(const id of ids){
+    const rowIdxs=comprasRowMap[id]||[];
+    for(const rowIdx of rowIdxs){
+      const data=await sheetRead('Compras');
+      if(Array.isArray(data)&&data[rowIdx-1]){
+        const r=data[rowIdx-1];
+        await apiCall({action:'update',sheet:'Compras',rowIndex:rowIdx,
+          row:JSON.stringify([r[0],r[1],r[2],r[3],r[4],r[5],r[6],r[7],r[8],'Impreso'])});
+      }
+    }
+    delete comprasRowMap[id];
+  }
+}
+
+
+function imprimirTodasEtiquetas(){
+  if(!inventario.length){alert('No hay productos en el inventario.');return;}
+  qrCola = inventario.filter(p=>p.stock>0).map(p=>({id:p.id,qty:p.stock}));
+  if(!qrCola.length){alert('No hay productos con stock disponible.');return;}
+  abrirModal('m-qr');
+  renderColaQR();
+}
+
+// ═══════════════════════════════════════════════════
+// REIMPRESIÓN DE ETIQUETAS POR PRECIO
+// ═══════════════════════════════════════════════════
+let reimpCola = [];
+
+function abrirReimpresion(){
+  reimpCola=[];
+  renderReimpCola();
+  abrirModal('m-reimp');
+}
+
+function buscarReimp(){
+  const q=norm(document.getElementById('reimp-busq').value.trim());
+  const res=document.getElementById('reimp-res');
+  if(!q){res.style.display='none';return;}
+  const words=q.split(' ').filter(w=>w.length>0);
+  const f=inventario.filter(p=>words.every(w=>(p._search||'').includes(w))).slice(0,8);
+  if(!f.length){res.style.display='block';res.innerHTML='<div style="padding:8px;font-size:11px;color:var(--text-secondary)">No encontrado</div>';return;}
+  res.style.display='block';
+  res.innerHTML=f.map(p=>
+    `<div onclick="agregarReimp('${p.id}')" style="padding:7px 4px;cursor:pointer;border-bottom:1px solid var(--border-light);font-size:11px;display:flex;justify-content:space-between;align-items:center" onmouseover="this.style.background='var(--bg-primary)'" onmouseout="this.style.background=''">
+      <div>
+        <strong>${p.nombre}</strong> <span style="color:var(--text-secondary)">${p.marca}${p.talla?' · '+p.talla:''}</span>
+        ${p.genero&&p.genero!=='Unisex'?'<span class="badge" style="background:#EFF6FF;color:#1D4ED8;font-size:9px">'+p.genero+'</span>':''}
+      </div>
+      <span style="color:var(--pink);font-weight:700">$${p.precio.toFixed(2)}</span>
+    </div>`
+  ).join('');
+}
+
+function agregarReimp(id){
+  const existe=reimpCola.find(x=>x.id===id);
+  if(existe) existe.qty++;
+  else reimpCola.push({id,qty:1});
+  document.getElementById('reimp-busq').value='';
+  document.getElementById('reimp-res').style.display='none';
+  renderReimpCola();
+}
+
+function renderReimpCola(){
+  const badge=document.getElementById('reimp-badge');
+  const cont=document.getElementById('reimp-cola');
+  const total=reimpCola.reduce((s,x)=>s+x.qty,0);
+  badge.textContent=total;
+  if(!reimpCola.length){
+    cont.innerHTML='<div style="text-align:center;padding:12px;color:var(--text-secondary);font-size:11px"><i class="ti ti-inbox" style="font-size:18px;display:block;margin-bottom:3px"></i>Sin productos aún</div>';
+    return;
+  }
+  cont.innerHTML=reimpCola.map((item,i)=>{
+    const p=inventario.find(x=>x.id===item.id);
+    if(!p) return '';
+    return `<div style="display:flex;align-items:center;gap:6px;background:var(--bg-secondary);border-radius:var(--radius-sm);padding:6px 8px;font-size:11px">
+      <div style="flex:1;min-width:0">
+        <strong>${p.nombre}</strong> · ${p.marca}${p.talla?' · '+p.talla:''}
+        <div style="color:var(--pink);font-size:10px;font-weight:700">$${p.precio.toFixed(2)}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:4px">
+        <button onclick="cambiarQtyReimp(${i},-1)" style="width:22px;height:22px;border-radius:50%;border:1px solid var(--border);background:var(--bg-primary);cursor:pointer;font-size:13px">−</button>
+        <span style="font-weight:700;min-width:18px;text-align:center">${item.qty}</span>
+        <button onclick="cambiarQtyReimp(${i},1)" style="width:22px;height:22px;border-radius:50%;border:1px solid var(--border);background:var(--bg-primary);cursor:pointer;font-size:13px">+</button>
+        <button onclick="quitarReimp(${i})" style="width:22px;height:22px;border-radius:50%;border:1px solid var(--red);background:#FEE2E2;color:var(--red);cursor:pointer;font-size:11px"><i class="ti ti-x"></i></button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function cambiarQtyReimp(i,d){reimpCola[i].qty=Math.max(1,reimpCola[i].qty+d);renderReimpCola();}
+function quitarReimp(i){reimpCola.splice(i,1);renderReimpCola();}
+function limpiarReimp(){reimpCola=[];renderReimpCola();}
+
+function imprimirReimp(){
+  if(!reimpCola.length){alert('Agrega al menos un producto.');return;}
+  const backupCola=[...qrCola];
+  qrCola=reimpCola.map(x=>({...x}));
+  cerrarModal('m-reimp');
+  generarQR();
+  setTimeout(()=>{qrCola=backupCola;},500);
+}
 
 let qrCola = []; // [{id, qty}]
 
@@ -2976,7 +3144,7 @@ function generarQR(){
     const div=document.createElement('div');
     tempContainer.appendChild(div);
     const qrData=p.id+'|'+p.nombre+'|'+p.marca+'|'+(p.talla||'')+'|$'+p.precio.toFixed(2);
-    new QRCode(div,{text:qrData,width:90,height:90,colorDark:'#000',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.M});
+    new QRCode(div,{text:qrData,width:60,height:60,colorDark:'#000',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.M});
     imagenes.push({p, div, idx});
   });
 
@@ -2984,15 +3152,18 @@ function generarQR(){
     const etiquetas=imagenes.map(({p,div})=>{
       const canvas=div.querySelector('canvas');
       const src=canvas?canvas.toDataURL('image/png'):'';
-      const nombre=p.nombre.length>20?p.nombre.substring(0,19)+'…':p.nombre;
-      const marca=p.marca+(p.talla?' · '+p.talla:'');
-      return `<div style="width:62mm;height:37mm;border:0.4px solid #ddd;border-radius:2px;padding:2mm;display:flex;align-items:center;gap:2mm;box-sizing:border-box;page-break-inside:avoid;font-family:Arial,sans-serif;overflow:hidden">
-        <img src="${src}" style="width:29mm;height:29mm;flex-shrink:0">
+      const nombre=p.nombre.length>22?p.nombre.substring(0,21)+'…':p.nombre;
+      const marca=(p.marca||'')+(p.talla?' · '+p.talla:'');
+      const genero=p.genero&&p.genero!=='Unisex'?p.genero:'';
+      return `<div style="width:45mm;height:25mm;border:0.3px solid #ccc;border-radius:1px;padding:1.2mm;display:flex;align-items:center;gap:1.5mm;box-sizing:border-box;page-break-inside:avoid;font-family:Arial,sans-serif;overflow:hidden">
+        <img src="${src}" style="width:19mm;height:19mm;flex-shrink:0">
         <div style="flex:1;overflow:hidden;min-width:0">
-          <div style="font-size:6.5pt;font-weight:700;line-height:1.3;word-break:break-word">${nombre}</div>
-          <div style="font-size:5.5pt;color:#666;margin-top:1mm;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${marca}</div>
-          <div style="font-size:9pt;font-weight:700;color:#000;margin-top:2mm">$${p.precio.toFixed(2)}</div>
-          <div style="font-size:5pt;color:#aaa;margin-top:1mm">${p.id} · BabyFe</div>
+          <div style="font-size:5.5pt;font-weight:700;line-height:1.25;word-break:break-word">${nombre}</div>
+          <div style="font-size:4.5pt;color:#555;margin-top:0.5mm;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${marca}</div>
+          ${genero?'<div style="font-size:4pt;color:#1D4ED8;margin-top:0.3mm">'+genero+'</div>':''}
+          ${p.caract&&p.caract!=='Sin especificaciones'?'<div style="font-size:3.8pt;color:#777;margin-top:0.3mm;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+p.caract+'</div>':''}
+          <div style="font-size:8pt;font-weight:700;color:#000;margin-top:1mm">$${p.precio.toFixed(2)}</div>
+          <div style="font-size:4pt;color:#aaa;margin-top:0.5mm">${p.id} · BabyFe</div>
         </div>
       </div>`;
     }).join('');
@@ -3003,8 +3174,8 @@ function generarQR(){
     <style>
       *{margin:0;padding:0;box-sizing:border-box}
       body{font-family:Arial,sans-serif;background:#fff}
-      .grid{display:grid;grid-template-columns:repeat(3,62mm);gap:3mm;padding:8mm}
-      @media print{@page{margin:6mm;size:A4}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+      .grid{display:grid;grid-template-columns:repeat(4,45mm);gap:2mm;padding:6mm}
+      @media print{@page{margin:5mm;size:A4}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
     </style></head><body>
     <div class="grid">${etiquetas}</div>
     <script>window.onload=function(){setTimeout(function(){window.print();},400);}<\/script>
@@ -3224,7 +3395,7 @@ function descargarPlantilla() {
   const wb = XLSX.utils.book_new();
   const headers = ['ID','Nombre','Marca','Género','Talla','Características','Stock','P.Compra','P.Venta'];
   const ejemplos = [
-    ['BF001','Body manga corta',"Carter's",'Unisex','0-3m','Algodón 100%, manga corta, color rosado',10,6.00,12.00],
+    ['BF001','Body manga corta',"Carter's",'Unisex','0-3 meses','Algodón 100%, manga corta, color rosado',10,6.00,12.00],
     ['BF002','Conjunto pijama','Osh Kosh','Niña','3-6m','Set 2 piezas, algodón suave, estampado osos',5,9.00,18.00],
     ['BF003','Gorro tejido','Artesanal','Unisex','Única','Lana acrílica, varios colores',8,3.50,8.00],
     ['','(Agrega tus productos aquí)','','','',0,0,0],
