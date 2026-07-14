@@ -2466,14 +2466,18 @@ async function cambiarPin(r){
   const ok=r==='admin'?'t-ap':'t-op', err=r==='admin'?'t-ae':'t-oe';
   if(nv.length<4||nv!==cv){showT(err);return;}
   PINS[r]=nv;
-  // Save to Config sheet
   showSync('Guardando PIN...');
   const clave = r==='admin'?'PIN_ADMIN':'PIN_OPER';
   const data = await sheetRead('Config');
   if(Array.isArray(data)&&data.length>1){
-    const rowIdx = data.findIndex(row=>String(row[0]).trim()===clave);
-    if(rowIdx>=0){
-      await apiCall({action:'update',sheet:'Config',rowIndex:rowIdx+1,row:JSON.stringify([clave,nv])});
+    // Skip header row (index 0), search from index 1
+    let foundIdx = -1;
+    for(let i=1; i<data.length; i++){
+      if(String(data[i][0]).trim()===clave){ foundIdx=i; break; }
+    }
+    if(foundIdx>=0){
+      // rowIndex in sheet = foundIdx + 1 (1-based)
+      await apiCall({action:'update',sheet:'Config',rowIndex:foundIdx+1,row:JSON.stringify([clave,nv])});
     } else {
       await sheetAppend('Config',[clave,nv]);
     }
