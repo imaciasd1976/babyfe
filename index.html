@@ -1087,13 +1087,14 @@ async function loadVentas() {
     const tot   = rows.reduce((s,r)=>s+toNum(r[10]),0);
     const pagoEf= rows.reduce((s,r)=>s+toNum(r[11]),0);
     const pagoTr= rows.reduce((s,r)=>s+toNum(r[12]),0);
+    const pago = pagoEf>0&&pagoTr>0?'Mixto':pagoTr>0?'Transferencia':'Efectivo';
     return {
       fecha: fmtFecha(first[0]),
       hora: first[1]||'',
       ventaId,
       productosStr,
       cli: first[13]||'',
-      sub, dval, tot, pagoEf, pagoTr,
+      sub, dval, tot, pagoEf, pagoTr, pago,
       costo: rows.reduce((s,r)=>{
         const prod = inventario.find(p=>p.id===r[3]);
         return s + (prod?prod.costo:0) * (parseInt(r[5])||1);
@@ -1567,7 +1568,7 @@ function renderVentas(){
       </div>
       <div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:2px;margin-left:8px;flex-shrink:0">
         <div style="font-size:12px;font-weight:700;color:var(--green)">$${v.tot.toFixed(2)}</div>
-        <span class="badge badge-${v.pago.startsWith('Mixto')?'mixto':v.pago.toLowerCase()}">${v.pago.startsWith('Mixto')?'Mixto':v.pago}</span>
+        <span class="badge badge-${(v.pago||'').startsWith('Mixto')?'mixto':(v.pago||'efectivo').toLowerCase()}">${(v.pago||'').startsWith('Mixto')?'Mixto':(v.pago||'Efectivo')}</span>
       </div>
     </div>`).join('');
 }
