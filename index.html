@@ -670,6 +670,55 @@ textarea{resize:none;font-family:inherit}
   </div>
 </div>
 
+<!-- MODAL EDITAR VENTA -->
+<div class="modal-bg" id="m-edit-venta">
+  <div class="modal">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div class="mt"><i class="ti ti-pencil"></i> Editar venta</div>
+      <button onclick="cerrarModal('m-edit-venta')" style="background:none;border:none;cursor:pointer;color:var(--text-secondary);font-size:18px"><i class="ti ti-x"></i></button>
+    </div>
+    <div style="font-size:10px;color:var(--text-secondary)" id="ev-id-label"></div>
+
+    <!-- Items -->
+    <div style="font-size:11px;font-weight:700;margin-bottom:4px">Productos</div>
+    <div id="ev-items" style="display:flex;flex-direction:column;gap:4px;max-height:200px;overflow-y:auto"></div>
+
+    <!-- Totales -->
+    <div id="ev-totales" style="background:var(--bg-secondary);border-radius:var(--radius-sm);padding:8px 10px;font-size:11px;display:flex;flex-direction:column;gap:3px">
+      <div class="cj"><span>Subtotal</span><span id="ev-sub">$0.00</span></div>
+      <div class="cj"><span style="color:var(--red)">Descuentos</span><span style="color:var(--red)" id="ev-desc">$0.00</span></div>
+      <div class="cj" style="font-weight:700"><span>Total</span><span style="color:var(--green)" id="ev-tot">$0.00</span></div>
+    </div>
+
+    <!-- Pago -->
+    <div class="fg">
+      <div class="fl">Forma de pago</div>
+      <div style="display:flex;gap:6px">
+        <button type="button" id="ev-btn-ef" onclick="selPagoEdit('Efectivo')" class="pay-btn pay-active"><i class="ti ti-cash"></i> Efectivo</button>
+        <button type="button" id="ev-btn-tr" onclick="selPagoEdit('Transferencia')" class="pay-btn"><i class="ti ti-transfer"></i> Transferencia</button>
+        <button type="button" id="ev-btn-mx" onclick="selPagoEdit('Mixto')" class="pay-btn"><i class="ti ti-layout-columns"></i> Mixto</button>
+      </div>
+      <input type="hidden" id="ev-pago" value="Efectivo">
+      <div id="ev-blq-mixto" style="display:none;margin-top:6px;background:var(--bg-secondary);border-radius:var(--radius-sm);padding:8px;flex-direction:column;gap:6px">
+        <div class="fr">
+          <div class="fg"><div class="fl">Efectivo $</div><input type="number" id="ev-pago-ef" placeholder="0.00" min="0"></div>
+          <div class="fg"><div class="fl">Transferencia $</div><input type="number" id="ev-pago-tr" placeholder="0.00" min="0"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cliente -->
+    <div class="fg">
+      <div class="fl">Cliente</div>
+      <input type="text" id="ev-cli" placeholder="Cliente general">
+    </div>
+
+    <button class="add-btn" onclick="guardarEditVenta()"><i class="ti ti-check"></i>Guardar cambios</button>
+    <div class="toast tok" id="t-ev-ok">✓ Venta actualizada correctamente</div>
+    <div class="toast terr" id="t-ev-err">Error al actualizar venta</div>
+  </div>
+</div>
+
 <!-- MODAL EDITAR PRODUCTO -->
 <div class="modal-bg" id="m-edprod">
   <div class="modal">
@@ -1560,20 +1609,195 @@ function updMetrics(){
 function renderVentas(){
   const el=document.getElementById('lista-v');
   if(!ventas.length){el.innerHTML='<div style="text-align:center;padding:16px;color:var(--text-secondary);font-size:11px"><i class="ti ti-receipt" style="font-size:24px;display:block;margin-bottom:4px"></i>Sin ventas hoy</div>';return;}
-  el.innerHTML=ventas.slice(0,8).map(v=>`
-    <div class="row">
-      <div style="flex:1;min-width:0">
-        <div style="font-size:11px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${v.productosStr}</div>
-        <div style="font-size:10px;color:var(--text-secondary)">${v.cli} · ${v.hora}${v.dval>0?' · <span style="color:var(--red)">-$'+v.dval.toFixed(2)+'</span>':''}</div>
+  el.innerHTML=ventas.slice(0,20).map((v,i)=>`
+    <div class="row" style="flex-direction:column;gap:4px">
+      <div style="display:flex;align-items:flex-start;gap:8px">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:11px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${v.productosStr}</div>
+          <div style="font-size:10px;color:var(--text-secondary)">${v.cli} · ${v.hora}${v.dval>0?' · <span style="color:var(--red)">-$'+v.dval.toFixed(2)+'</span>':''}</div>
+        </div>
+        <div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex-shrink:0">
+          <div style="font-size:12px;font-weight:700;color:var(--green)">$${v.tot.toFixed(2)}</div>
+          <span class="badge badge-${(v.pago||'').startsWith('Mixto')?'mixto':(v.pago||'efectivo').toLowerCase()}">${(v.pago||'').startsWith('Mixto')?'Mixto':(v.pago||'Efectivo')}</span>
+        </div>
       </div>
-      <div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:2px;margin-left:8px;flex-shrink:0">
-        <div style="font-size:12px;font-weight:700;color:var(--green)">$${v.tot.toFixed(2)}</div>
-        <span class="badge badge-${(v.pago||'').startsWith('Mixto')?'mixto':(v.pago||'efectivo').toLowerCase()}">${(v.pago||'').startsWith('Mixto')?'Mixto':(v.pago||'Efectivo')}</span>
-      </div>
+      ${rol==='admin'?`<div style="display:flex;gap:6px;justify-content:flex-end">
+        <button onclick="abrirEditVenta('${v.ventaId}')" style="font-size:10px;padding:2px 8px;border-radius:20px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-secondary);cursor:pointer"><i class="ti ti-pencil"></i> Editar</button>
+        <button onclick="anularVenta('${v.ventaId}')" style="font-size:10px;padding:2px 8px;border-radius:20px;border:1px solid var(--red);background:#FEE2E2;color:var(--red);cursor:pointer"><i class="ti ti-x"></i> Anular</button>
+      </div>`:''}
     </div>`).join('');
 }
 
 // ═══════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════
+// EDITAR / ANULAR VENTA (solo admin)
+// ═══════════════════════════════════════════════════
+let editVentaId = null;
+let editVentaItems = [];
+
+async function abrirEditVenta(ventaId){
+  const v = ventas.find(x=>x.ventaId===ventaId);
+  if(!v) return;
+  editVentaId = ventaId;
+  editVentaItems = v.items.map(i=>({...i}));
+  document.getElementById('ev-id-label').textContent = 'ID: '+ventaId+' · '+v.fecha+' '+v.hora;
+  document.getElementById('ev-cli').value = v.cli||'';
+  selPagoEdit(v.pago||'Efectivo');
+  if(v.pagoEf>0&&v.pagoTr>0){
+    document.getElementById('ev-pago-ef').value=v.pagoEf.toFixed(2);
+    document.getElementById('ev-pago-tr').value=v.pagoTr.toFixed(2);
+  }
+  renderEditItems();
+  abrirModal('m-edit-venta');
+}
+
+function renderEditItems(){
+  const cont=document.getElementById('ev-items');
+  cont.innerHTML=editVentaItems.map((item,i)=>`
+    <div style="display:flex;align-items:center;gap:6px;background:var(--bg-secondary);border-radius:var(--radius-sm);padding:6px 8px;font-size:11px">
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:600">${item.nombre}</div>
+        <div style="color:var(--text-secondary);font-size:10px">$${item.precio.toFixed(2)}/u</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:4px">
+        <button onclick="cambiarQtyEdit(${i},-1)" style="width:22px;height:22px;border-radius:50%;border:1px solid var(--border);background:var(--bg-primary);cursor:pointer;font-size:13px">−</button>
+        <span style="font-weight:700;min-width:20px;text-align:center">${item.qty}</span>
+        <button onclick="cambiarQtyEdit(${i},1)" style="width:22px;height:22px;border-radius:50%;border:1px solid var(--border);background:var(--bg-primary);cursor:pointer;font-size:13px">+</button>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px">
+        <span style="font-weight:700;color:var(--green)">$${(item.precio*item.qty).toFixed(2)}</span>
+        <button onclick="eliminarItemEdit(${i})" style="font-size:9px;padding:1px 6px;border-radius:20px;border:1px solid var(--red);background:#FEE2E2;color:var(--red);cursor:pointer"><i class="ti ti-x"></i></button>
+      </div>
+    </div>`).join('');
+  calcTotalesEdit();
+}
+
+function cambiarQtyEdit(i,delta){
+  editVentaItems[i].qty=Math.max(1,editVentaItems[i].qty+delta);
+  editVentaItems[i].total=editVentaItems[i].precio*editVentaItems[i].qty;
+  renderEditItems();
+}
+
+function eliminarItemEdit(i){
+  if(editVentaItems.length===1){alert('La venta debe tener al menos un producto. Si quieres eliminarla usa "Anular".');return;}
+  editVentaItems.splice(i,1);
+  renderEditItems();
+}
+
+function calcTotalesEdit(){
+  const sub=editVentaItems.reduce((s,i)=>s+i.precio*i.qty,0);
+  const desc=editVentaItems.reduce((s,i)=>s+(i.descItem||0),0);
+  const tot=sub-desc;
+  document.getElementById('ev-sub').textContent='$'+sub.toFixed(2);
+  document.getElementById('ev-desc').textContent='-$'+desc.toFixed(2);
+  document.getElementById('ev-tot').textContent='$'+tot.toFixed(2);
+  return {sub,desc,tot};
+}
+
+function selPagoEdit(tipo){
+  document.getElementById('ev-pago').value=tipo;
+  ['ef','tr','mx'].forEach(k=>document.getElementById('ev-btn-'+k).classList.remove('pay-active'));
+  const map={Efectivo:'ef',Transferencia:'tr',Mixto:'mx'};
+  const key=map[tipo]||'ef';
+  document.getElementById('ev-btn-'+key).classList.add('pay-active');
+  document.getElementById('ev-blq-mixto').style.display=tipo==='Mixto'?'flex':'none';
+}
+
+async function guardarEditVenta(){
+  if(!editVentaId) return;
+  const v=ventas.find(x=>x.ventaId===editVentaId);
+  if(!v) return;
+  const {sub,desc,tot}=calcTotalesEdit();
+  const pago=document.getElementById('ev-pago').value;
+  let pagoEf=0,pagoTr=0;
+  if(pago==='Efectivo') pagoEf=tot;
+  else if(pago==='Transferencia') pagoTr=tot;
+  else if(pago==='Mixto'){
+    pagoEf=parseFloat(document.getElementById('ev-pago-ef').value)||0;
+    pagoTr=parseFloat(document.getElementById('ev-pago-tr').value)||0;
+  }
+  const cli=document.getElementById('ev-cli').value.trim()||'Cliente general';
+  const n2s=val=>parseFloat(val.toFixed(2)).toString().replace('.',',');
+  showSync('Actualizando venta...');
+
+  // 1. Ajustar stock según diferencias
+  for(const orig of v.items){
+    const p=inventario.find(x=>x.id===orig.id);
+    if(!p) continue;
+    const newItem=editVentaItems.find(x=>x.id===orig.id);
+    const diff=orig.qty-(newItem?newItem.qty:0);
+    if(diff!==0){
+      p.stock+=diff;
+      const rowIdx=prodRowMap[p.id];
+      if(rowIdx) await apiCall({action:'update',sheet:'Productos',rowIndex:rowIdx,
+        row:JSON.stringify([p.id,p.nombre,p.marca,p.genero||'Unisex',p.talla||'',p.caract,p.stock,p.costo,p.precio,p.icon,p.refCompra||''])});
+    }
+  }
+
+  // 2. Eliminar filas originales (de abajo hacia arriba)
+  const data=await sheetRead('Ventas');
+  if(Array.isArray(data)){
+    const rowsToDelete=[];
+    data.forEach((r,i)=>{if(i>0&&String(r[2]).trim()===editVentaId) rowsToDelete.push(i+1);});
+    for(let i=rowsToDelete.length-1;i>=0;i--){
+      await apiCall({action:'delete',sheet:'Ventas',rowIndex:rowsToDelete[i]});
+    }
+  }
+
+  // 3. Insertar filas nuevas
+  for(const item of editVentaItems){
+    const itemTot=item.precio*item.qty-(item.descItem||0);
+    const itemEf=tot>0?(itemTot/tot)*pagoEf:0;
+    const itemTr=tot>0?(itemTot/tot)*pagoTr:0;
+    const row=[v.fecha,v.hora,editVentaId,item.id,item.nombre,item.qty,
+      n2s(item.precio),n2s(item.precio*item.qty),n2s(sub),n2s(item.descItem||0),
+      n2s(itemTot),n2s(itemEf),n2s(itemTr),cli];
+    await sheetAppend('Ventas',row);
+  }
+
+  // 4. Actualizar estado local
+  v.items=editVentaItems.map(i=>({...i}));
+  v.productosStr=editVentaItems.map(i=>i.nombre+' x'+i.qty).join(' | ');
+  v.sub=sub;v.dval=desc;v.tot=tot;v.pagoEf=pagoEf;v.pagoTr=pagoTr;v.cli=cli;
+  v.pago=pago;
+  cerrarModal('m-edit-venta');
+  showT('t-ev-ok');
+  updMetrics();renderVentas();
+}
+
+async function anularVenta(ventaId){
+  if(!confirm('¿Anular esta venta? Se restaurará el stock de todos los productos.')) return;
+  const v=ventas.find(x=>x.ventaId===ventaId);
+  if(!v) return;
+  showSync('Anulando venta...');
+
+  // Restaurar stock
+  for(const item of v.items){
+    const p=inventario.find(x=>x.id===item.id);
+    if(!p) continue;
+    p.stock+=item.qty;
+    const rowIdx=prodRowMap[p.id];
+    if(rowIdx) await apiCall({action:'update',sheet:'Productos',rowIndex:rowIdx,
+      row:JSON.stringify([p.id,p.nombre,p.marca,p.genero||'Unisex',p.talla||'',p.caract,p.stock,p.costo,p.precio,p.icon,p.refCompra||''])});
+  }
+
+  // Eliminar filas de Sheets
+  const data=await sheetRead('Ventas');
+  if(Array.isArray(data)){
+    const rowsToDelete=[];
+    data.forEach((r,i)=>{if(i>0&&String(r[2]).trim()===ventaId) rowsToDelete.push(i+1);});
+    for(let i=rowsToDelete.length-1;i>=0;i--){
+      await apiCall({action:'delete',sheet:'Ventas',rowIndex:rowsToDelete[i]});
+    }
+  }
+
+  // Eliminar de estado local
+  const idx=ventas.findIndex(x=>x.ventaId===ventaId);
+  if(idx>=0) ventas.splice(idx,1);
+  updMetrics();renderVentas();
+  showSync('✓ Venta anulada correctamente');
+}
+
 // INVENTARIO
 // ═══════════════════════════════════════════════════
 function renderInv(){
