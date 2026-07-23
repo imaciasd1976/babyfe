@@ -2219,6 +2219,7 @@ async function generarEDR(){
   // ── Leer Ventas ──
   const ventasData = await sheetRead('Ventas');
   let ventasR=[], totVtaBrut=0, totDesc=0, totCostoV=0, totEf=0, totTr=0;
+  let ventaIds = {};
   const parseDate = (str) => {
     if(!str) return null;
     const s = String(str).trim();
@@ -2239,7 +2240,6 @@ async function generarEDR(){
     // New structure: cols 0=Fecha,1=Hora,2=ID_Venta,3=Código,4=Producto,5=Cantidad,
     // 6=P_Venta,7=Total_Item,8=Subtotal_Venta,9=Descuento,10=Total_Venta,11=Efectivo,12=Transferencia,13=Cliente
     // Get unique ventas for totals (first row of each ventaId)
-    const ventaIds = {};
     ventasR.forEach(r=>{ if(r[2]&&!ventaIds[r[2]]) ventaIds[r[2]]=r; });
     const ventasUnicas = Object.values(ventaIds);
     totVtaBrut = ventasUnicas.reduce((s,r)=>s+toNum(r[8])+toNum(r[9]),0); // subtotal + descuento = bruto
