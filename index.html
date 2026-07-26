@@ -397,11 +397,13 @@ textarea{resize:none;font-family:inherit}
         <div class="toast terr" id="t-mov-err">Ingresa concepto y monto válido</div>
       </div>
 
-      <div class="slabel">Resumen del día — Gastos e ingresos</div>
-      <div class="card" style="display:flex;flex-direction:column;gap:6px">
-        <div class="cj"><span style="color:var(--red)">Total gastos</span><span style="color:var(--red);font-weight:600" id="mov-tot-gasto">$0.00</span></div>
-        <div class="cj"><span style="color:var(--green)">Total ingresos extra</span><span style="color:var(--green);font-weight:600" id="mov-tot-ingreso">$0.00</span></div>
-        <div id="mov-lista" style="max-height:160px;overflow-y:auto;margin-top:4px"></div>
+      <div id="blq-gastos-resumen" style="display:none">
+        <div class="slabel">Resumen del día — Gastos e ingresos</div>
+        <div class="card" style="display:flex;flex-direction:column;gap:6px">
+          <div class="cj"><span style="color:var(--red)">Total gastos</span><span style="color:var(--red);font-weight:600" id="mov-tot-gasto">$0.00</span></div>
+          <div class="cj"><span style="color:var(--green)">Total ingresos extra</span><span style="color:var(--green);font-weight:600" id="mov-tot-ingreso">$0.00</span></div>
+          <div id="mov-lista" style="max-height:160px;overflow-y:auto;margin-top:4px"></div>
+        </div>
       </div>
     </div>
 
@@ -1248,7 +1250,9 @@ async function login() {
   document.getElementById('blq-util').style.display = rol==='admin'?'block':'none';
   document.getElementById('blq-rent').style.display = rol==='admin'?'block':'none';
   const gastosBlq=document.getElementById('blq-gastos-admin');
-  if(gastosBlq) gastosBlq.style.display=rol==='admin'?'block':'none';
+  if(gastosBlq) gastosBlq.style.display='block';
+  const gastosResumen=document.getElementById('blq-gastos-resumen');
+  if(gastosResumen) gastosResumen.style.display=rol==='admin'?'block':'none';
   const fechaVentaBlq=document.getElementById('blq-fecha-venta');
   if(fechaVentaBlq) fechaVentaBlq.style.display=rol==='admin'?'flex':'none';
   const repBtn=document.getElementById('blq-reporte-btn');
@@ -1523,7 +1527,7 @@ async function registrarVenta(){
   // One row per product — all columns filled — sequential
   // Build all rows first
   const n2s = v => parseFloat(v.toFixed(2)).toString().replace('.',',');
-  const allRows = carrito.map(c=>{
+  const allRows = carrito.map((c,i)=>{
     const itemDesc=c.desc||0;
     const itemTot=c.total-itemDesc;
     const itemEf=tot>0?(itemTot/tot)*pagoEf:0;
@@ -1535,9 +1539,9 @@ async function registrarVenta(){
       c.qty,
       n2s(c.precio),
       n2s(c.total),
-      n2s(sub),
-      n2s(itemDesc),
-      n2s(itemTot),
+      i===0?n2s(sub):'',
+      i===0?n2s(dval):'',
+      i===0?n2s(tot):'',
       n2s(itemEf),
       n2s(itemTr),
       cli
