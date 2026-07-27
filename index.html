@@ -415,6 +415,25 @@ textarea{resize:none;font-family:inherit}
       </div>
     </div>
 
+    <div id="blq-retiro" style="display:none;flex-direction:column;gap:8px">
+      <div class="slabel">Retiro de caja <span style="font-size:10px;color:var(--text-secondary)">(solo admin)</span></div>
+      <div class="card" style="display:flex;flex-direction:column;gap:8px;background:#F0FDF4;border:1px solid #86EFAC">
+        <div style="font-size:11px;color:#166534">Registra el dinero retirado de caja para depósito. No se descuenta de ventas ni gastos.</div>
+        <div class="fr">
+          <div class="fg"><div class="fl">Monto a retirar $</div><input type="number" id="retiro-monto" placeholder="0.00" min="0"></div>
+          <div class="fg"><div class="fl">Destino</div><input type="text" id="retiro-desc" placeholder="Ej: Depósito banco, Caja fuerte..."></div>
+        </div>
+        <button class="add-btn" style="background:#166534" onclick="registrarRetiro()"><i class="ti ti-building-bank"></i>Registrar retiro</button>
+        <div id="retiro-lista" style="max-height:120px;overflow-y:auto"></div>
+        <div class="cj" style="font-size:12px;font-weight:700;border-top:1px solid #86EFAC;padding-top:6px">
+          <span style="color:#166534">Total retirado hoy</span>
+          <span style="color:#166534" id="retiro-total">$0.00</span>
+        </div>
+        <div class="toast tok" id="t-retiro">✓ Retiro registrado correctamente</div>
+        <div class="toast terr" id="t-retiro-err">Ingresa un monto válido</div>
+      </div>
+    </div>
+
     <div id="blq-cierre-fecha" style="display:none;flex-direction:column;gap:8px">
       <div class="slabel">Cierre de caja por fecha <span style="font-size:10px;color:var(--text-secondary)">(solo admin)</span></div>
       <div class="card" style="display:flex;flex-direction:column;gap:8px;background:#FEF3C7;border:1px solid #F59E0B">
@@ -1253,6 +1272,8 @@ async function login() {
   if(gastosBlq) gastosBlq.style.display='block';
   const gastosResumen=document.getElementById('blq-gastos-resumen');
   if(gastosResumen) gastosResumen.style.display=rol==='admin'?'block':'none';
+  const retiroBlq=document.getElementById('blq-retiro');
+  if(retiroBlq) retiroBlq.style.display=rol==='admin'?'flex':'none';
   const fechaVentaBlq=document.getElementById('blq-fecha-venta');
   if(fechaVentaBlq) fechaVentaBlq.style.display=rol==='admin'?'flex':'none';
   const repBtn=document.getElementById('blq-reporte-btn');
@@ -1332,6 +1353,8 @@ function showScreen(id){
     renderCaja();
     const cierreFechaBlq=document.getElementById('blq-cierre-fecha');
     if(cierreFechaBlq) cierreFechaBlq.style.display=rol==='admin'?'flex':'none';
+    const retiroBlq=document.getElementById('blq-retiro');
+    if(retiroBlq) retiroBlq.style.display=rol==='admin'?'flex':'none';
   }
   if(id==='conteo') renderConteoScreen();
 }
@@ -1927,6 +1950,7 @@ async function renderCaja(){
   document.getElementById('c-tot').textContent='$'+tot.toFixed(2);
   if(rol==='admin'){document.getElementById('ca-i').textContent='$'+tot.toFixed(2);document.getElementById('ca-c').textContent='$'+co.toFixed(2);document.getElementById('ca-u').textContent='$'+(tot-co).toFixed(2);}
   renderMovimientos();
+  if(rol==='admin') cargarRetiros();
   calcCaja();
   const eb=document.getElementById('caja-estado-blq');
   const cb=document.getElementById('caja-btns');
@@ -2432,6 +2456,64 @@ async function cargarMovimientos(){
         movimientos.push({fecha:r[0],hora:r[1],tipo:r[2],concepto:r[3],monto:parseFloat(r[4])||0});
       }
     });
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// RETIRO DE CAJA
+// ═══════════════════════════════════════════════════
+let retiros = [];
+
+async function cargarRetiros(){
+  const data = await sheetRead('Gastos');
+  retiros = [];
+  if(!Array.isArray(data)||data.length<2) return;
+  const ahora=new Date();
+  const dia=ahora.getDate(), mes=ahora.getMonth()+1, anio=ahora.getFullYear();
+  data.slice(1).forEach(r=>{
+    if(String(r[2]||'').trim()==='Retiro'){
+      const s=String(r[0]||'').trim();
+      let esHoy=false;
+      if(s.includes('T')){const d=new Date(s);esHoy=d.getUTCDate()===dia&&d.getUTCMonth()+1===mes&&d.getUTCFullYear()===anio;}
+      else{const p=s.split('/');esHoy=p.length===3&&parseInt(p[0])===dia&&parseInt(p[1])===mes&&parseInt(p[2])===anio;}
+      if(esHoy) retiros.push({hora:String(r[1]||''),desc:String(r[3]||''),monto:toNum(r[4])});
+    }
+  });
+  renderRetiros();
+}
+
+function renderRetiros(){
+  const lista=document.getElementById('retiro-lista');
+  const totEl=document.getElementById('retiro-total');
+  if(!lista||!totEl) return;
+  const tot=retiros.reduce((s,r)=>s+r.monto,0);
+  totEl.textContent='$'+tot.toFixed(2);
+  if(!retiros.length){lista.innerHTML='';return;}
+  lista.innerHTML=retiros.map(r=>
+    `<div style="display:flex;justify-content:space-between;font-size:11px;padding:4px 0;border-bottom:1px solid #86EFAC">
+      <span style="color:#166534">${r.hora} · ${r.desc||'Retiro'}</span>
+      <strong style="color:#166534">$${r.monto.toFixed(2)}</strong>
+    </div>`
+  ).join('');
+}
+
+async function registrarRetiro(){
+  const monto=parseFloat(document.getElementById('retiro-monto').value)||0;
+  const desc=document.getElementById('retiro-desc').value.trim()||'Retiro de caja';
+  if(monto<=0){showT('t-retiro-err');return;}
+  const ahora=new Date();
+  const fecha=ahora.getDate()+'/'+(ahora.getMonth()+1)+'/'+ahora.getFullYear();
+  const hora=ahora.getHours().toString().padStart(2,'0')+':'+ahora.getMinutes().toString().padStart(2,'0');
+  showSync('Registrando retiro...');
+  const res=await sheetAppend('Gastos',[fecha,hora,'Retiro',desc,monto.toFixed(2).replace('.',',')]);
+  if(res&&res.status==='ok'){
+    retiros.push({hora,desc,monto});
+    document.getElementById('retiro-monto').value='';
+    document.getElementById('retiro-desc').value='';
+    renderRetiros();
+    showT('t-retiro');
+  } else {
+    showT('t-retiro-err');
   }
 }
 
