@@ -3295,8 +3295,11 @@ async function marcarComoImpreso(ids){
 
 function imprimirTodasEtiquetas(){
   if(!inventario.length){alert('No hay productos en el inventario.');return;}
-  qrCola = inventario.filter(p=>p.stock>0).map(p=>({id:p.id,qty:p.stock}));
-  if(!qrCola.length){alert('No hay productos con stock disponible.');return;}
+  const conStock=inventario.filter(p=>p.stock>0);
+  if(!conStock.length){alert('No hay productos con stock disponible.');return;}
+  const total=conStock.reduce((s,p)=>s+p.stock,0);
+  if(!confirm('Se generarán '+total+' etiquetas para '+conStock.length+' productos. ¿Continuar?')) return;
+  qrCola=conStock.map(p=>({id:p.id,qty:p.stock}));
   abrirModal('m-qr');
   renderColaQR();
 }
@@ -3469,50 +3472,57 @@ function limpiarColaQR(){
 
 function generarQR(){
   if(!qrCola.length){showT('t-qr-empty');return;}
-
-  // Generate all QR images first using temporary divs
-  const pendientes=[];
-  qrCola.forEach(item=>{
-    const p=inventario.find(x=>x.id===item.id);
-    if(!p) return;
-    for(let i=0;i<item.qty;i++) pendientes.push(p);
-  });
-
-  let generados=0;
+  // Generate ONE QR per unique product only
+  const uniqueIds=[...new Set(qrCola.map(x=>x.id))];
   const imagenes=[];
   const tempContainer=document.createElement('div');
   tempContainer.style.cssText='position:absolute;left:-9999px;top:0';
   document.body.appendChild(tempContainer);
 
-  pendientes.forEach((p,idx)=>{
+  // Generate QR only once per unique product
+  uniqueIds.forEach(id=>{
+    const p=inventario.find(x=>x.id===id);
+    if(!p) return;
     const div=document.createElement('div');
     tempContainer.appendChild(div);
     const qrData=p.id+'|'+p.nombre+'|'+p.marca+'|'+(p.talla||'')+'|$'+p.precio.toFixed(2);
     new QRCode(div,{text:qrData,width:60,height:60,colorDark:'#000',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.M});
-    imagenes.push({p, div, idx});
+    imagenes.push({p,div});
   });
 
+  showSync('Generando etiquetas...');
+
   setTimeout(()=>{
-    const etiquetas=imagenes.map(({p,div})=>{
+    // Build src map from unique QRs
+    const srcMap={};
+    imagenes.forEach(({p,div})=>{
       const canvas=div.querySelector('canvas');
-      const src=canvas?canvas.toDataURL('image/png'):'';
+      srcMap[p.id]=canvas?canvas.toDataURL('image/png'):'';
+    });
+    document.body.removeChild(tempContainer);
+
+    // Build etiquetas repeating by qty
+    const etiquetas=[];
+    qrCola.forEach(item=>{
+      const p=inventario.find(x=>x.id===item.id);
+      if(!p) return;
+      const src=srcMap[p.id]||'';
       const nombre=p.nombre.length>22?p.nombre.substring(0,21)+'…':p.nombre;
       const marca=(p.marca||'')+(p.talla?' · '+p.talla:'');
       const genero=p.genero&&p.genero!=='Unisex'?p.genero:'';
-      return `<div style="width:45mm;height:25mm;border:0.3px solid #ccc;border-radius:1px;padding:1.2mm;display:flex;align-items:center;gap:1.5mm;box-sizing:border-box;page-break-inside:avoid;font-family:Arial,sans-serif;overflow:hidden">
+      const etq=`<div style="width:45mm;height:25mm;border:0.3px solid #ccc;border-radius:1px;padding:1.2mm;display:flex;align-items:center;gap:1.5mm;box-sizing:border-box;page-break-inside:avoid;font-family:Arial,sans-serif;overflow:hidden">
         <img src="${src}" style="width:19mm;height:19mm;flex-shrink:0">
         <div style="flex:1;overflow:hidden;min-width:0">
           <div style="font-size:5.5pt;font-weight:700;line-height:1.25;word-break:break-word">${nombre}</div>
           <div style="font-size:4.5pt;color:#555;margin-top:0.5mm;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${marca}</div>
-          ${genero?'<div style="font-size:4pt;color:#1D4ED8;margin-top:0.3mm">'+genero+'</div>':''}
-          ${p.caract&&p.caract!=='Sin especificaciones'?'<div style="font-size:3.8pt;color:#777;margin-top:0.3mm;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+p.caract+'</div>':''}
-          <div style="font-size:8pt;font-weight:700;color:#000;margin-top:1mm">$${p.precio.toFixed(2)}</div>
+          ${genero?'<div style="font-size:4pt;color:#1D4ED8;margin-top:0.3mm">'+genero+'</div>':''}`+
+          `${p.caract&&p.caract!=='Sin especificaciones'?'<div style="font-size:3.8pt;color:#777;margin-top:0.3mm;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+p.caract+'</div>':''}`+
+          `<div style="font-size:8pt;font-weight:700;color:#000;margin-top:1mm">$${p.precio.toFixed(2)}</div>
           <div style="font-size:4pt;color:#aaa;margin-top:0.5mm">${p.id} · BabyFe</div>
         </div>
       </div>`;
-    }).join('');
-
-    document.body.removeChild(tempContainer);
+      for(let i=0;i<item.qty;i++) etiquetas.push(etq);
+    });
 
     const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Etiquetas BabyFe</title>
     <style>
@@ -3521,14 +3531,16 @@ function generarQR(){
       .grid{display:grid;grid-template-columns:repeat(4,45mm);gap:2mm;padding:6mm}
       @media print{@page{margin:5mm;size:A4}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
     </style></head><body>
-    <div class="grid">${etiquetas}</div>
-    <script>window.onload=function(){setTimeout(function(){window.print();},400);}<\/script>
+    <div class="grid">${etiquetas.join('')}</div>
+    <script>window.onload=function(){setTimeout(function(){window.print();},500);}<\/script>
     </body></html>`;
 
     const win=window.open('','_blank');
     if(win){win.document.write(html);win.document.close();}
-    else{alert('Permite las ventanas emergentes en tu navegador para imprimir.');}
-  }, 400);
+    else alert('Permite las ventanas emergentes en tu navegador para imprimir.');
+    const ids=qrCola.map(x=>x.id).filter(id=>comprasRowMap[id]&&comprasRowMap[id].length);
+    if(ids.length) marcarComoImpreso(ids);
+  }, 500);
 }
 
 
