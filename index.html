@@ -267,6 +267,7 @@ textarea{resize:none;font-family:inherit}
     <div class="card" id="lista-inv"><div class="loading"><div class="spinner"></div>Cargando inventario...</div></div>
     <button class="sec-btn" onclick="expInv()"><i class="ti ti-file-spreadsheet"></i>Exportar inventario a Excel</button>
     <div id="blq-etiquetas-inv" style="display:none;gap:6px;flex-direction:column">
+      <button class="sec-btn" style="background:#EEF2FF;border-color:#C7D2FE;color:#3730A3" onclick="verEtiquetasPendientes()"><i class="ti ti-clock"></i>Ver e imprimir etiquetas pendientes <span id="badge-pendientes" style="background:#3730A3;color:#fff;padding:1px 7px;border-radius:20px;font-size:10px;margin-left:4px">0</span></button>
       <button class="sec-btn" style="background:#EEF2FF;border-color:#C7D2FE;color:#3730A3" onclick="imprimirTodasEtiquetas()"><i class="ti ti-qrcode"></i>Imprimir todas las etiquetas del inventario</button>
       <button class="sec-btn" style="background:#EEF2FF;border-color:#C7D2FE;color:#3730A3" onclick="abrirReimpresion()"><i class="ti ti-refresh"></i>Reimprimir etiquetas por cambio de precio</button>
     </div>
@@ -786,6 +787,9 @@ textarea{resize:none;font-family:inherit}
       <button onclick="cerrarModal('m-qr')" style="background:none;border:none;cursor:pointer;color:var(--text-secondary);font-size:18px"><i class="ti ti-x"></i></button>
     </div>
     <div style="font-size:11px;color:var(--text-secondary)">Agrega productos a la lista y luego imprime todas las etiquetas en una sola hoja.</div>
+    <div id="qr-pendientes-aviso" style="display:none;background:#EEF2FF;border:1px solid #C7D2FE;border-radius:var(--radius-sm);padding:7px 10px;font-size:11px;color:#3730A3">
+      <i class="ti ti-clock"></i> Tienes etiquetas pendientes de imprimir cargadas automáticamente desde tus compras.
+    </div>
 
     <!-- Buscador -->
     <div class="fg">
@@ -803,8 +807,11 @@ textarea{resize:none;font-family:inherit}
     </div>
 
     <div style="display:flex;gap:8px">
-      <button class="add-btn" style="background:#3730A3;flex:2" onclick="generarQR()"><i class="ti ti-printer"></i>Imprimir todas</button>
+      <button class="add-btn" style="background:#3730A3;flex:2" id="btn-generar-qr" onclick="generarQR()"><i class="ti ti-printer"></i>Imprimir todas</button>
       <button class="sec-btn" style="flex:1" onclick="limpiarColaQR()"><i class="ti ti-trash"></i>Limpiar</button>
+    </div>
+    <div id="qr-progreso" style="display:none;background:#EEF2FF;border-radius:var(--radius-sm);padding:8px;text-align:center;font-size:11px;color:#3730A3">
+      <i class="ti ti-loader" style="animation:spin .7s linear infinite"></i> Generando etiquetas, espera un momento...
     </div>
     <div class="toast terr" id="t-qr-empty">Agrega al menos un producto a la cola</div>
   </div>
@@ -3273,7 +3280,24 @@ async function loadColaPendiente(){
   });
   // Show badge if there are pending labels
   const total=qrCola.reduce((s,x)=>s+x.qty,0);
-  if(total>0) showSync('🏷 '+total+' etiquetas pendientes de imprimir');
+  if(total>0){
+    showSync('🏷 '+total+' etiquetas pendientes de imprimir');
+    const aviso=document.getElementById('qr-pendientes-aviso');
+    if(aviso) aviso.style.display='block';
+  }
+  // Update badge
+  const badge=document.getElementById('badge-pendientes');
+  if(badge) badge.textContent=total>0?total:'0';
+}
+
+function verEtiquetasPendientes(){
+  const total=qrCola.reduce((s,x)=>s+x.qty,0);
+  if(!total){
+    alert('No hay etiquetas pendientes de imprimir. Las etiquetas pendientes se cargan automáticamente desde la hoja Compras al abrir la app.');
+    return;
+  }
+  abrirModal('m-qr');
+  renderColaQR();
 }
 
 async function marcarComoImpreso(ids){
@@ -3472,7 +3496,12 @@ function limpiarColaQR(){
 
 function generarQR(){
   if(!qrCola.length){showT('t-qr-empty');return;}
-  // Generate ONE QR per unique product only
+  const total=qrCola.reduce((s,x)=>s+x.qty,0);
+  // Show progress
+  const progreso=document.getElementById('qr-progreso');
+  const btnGen=document.getElementById('btn-generar-qr');
+  if(progreso) progreso.style.display='block';
+  if(btnGen) btnGen.disabled=true;
   const uniqueIds=[...new Set(qrCola.map(x=>x.id))];
   const imagenes=[];
   const tempContainer=document.createElement('div');
@@ -3538,6 +3567,8 @@ function generarQR(){
     const win=window.open('','_blank');
     if(win){win.document.write(html);win.document.close();}
     else alert('Permite las ventanas emergentes en tu navegador para imprimir.');
+    if(progreso) progreso.style.display='none';
+    if(btnGen) btnGen.disabled=false;
     const ids=qrCola.map(x=>x.id).filter(id=>comprasRowMap[id]&&comprasRowMap[id].length);
     if(ids.length) marcarComoImpreso(ids);
   }, 500);
