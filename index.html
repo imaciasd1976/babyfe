@@ -3489,8 +3489,17 @@ function quitarDeColaQR(i){
   renderColaQR();
 }
 
-function limpiarColaQR(){
+async function limpiarColaQR(){
+  if(!qrCola.length){return;}
+  if(!confirm('¿Limpiar la cola? Los pendientes se marcarán como Impreso en Google Sheets.')) return;
+  // Mark all pending items as printed
+  const ids=qrCola.map(x=>x.id).filter(id=>comprasRowMap[id]&&comprasRowMap[id].length);
+  if(ids.length) await marcarComoImpreso(ids);
   qrCola=[];
+  const badge=document.getElementById('badge-pendientes');
+  if(badge) badge.textContent='0';
+  const aviso=document.getElementById('qr-pendientes-aviso');
+  if(aviso) aviso.style.display='none';
   renderColaQR();
 }
 
