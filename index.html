@@ -2014,7 +2014,7 @@ function abrirCaja(tipo){
   const trf=ventas.reduce((s,v)=>s+(v.pagoTr!==undefined?v.pagoTr:(v.pago==='Transferencia'?v.tot:0)),0);
   const desc=ventas.reduce((s,v)=>s+v.dval,0);
   const totVentas=ventas.reduce((s,v)=>s+v.tot,0);
-  const gastos=movimientos.filter(m=>m.tipo==='Gasto').reduce((s,m)=>s+m.monto,0);
+  const gastos=movimientos.filter(m=>m.tipo==='Gasto'||m.tipo==='Retiro').reduce((s,m)=>s+m.monto,0);
   const ingresosExtra=movimientos.filter(m=>m.tipo==='Ingreso').reduce((s,m)=>s+m.monto,0);
   const fondoI=cajaInicio?cajaInicio.monto:0;
   const esperado=fondoI+ef+ingresosExtra-gastos;
@@ -2119,12 +2119,13 @@ async function previewCierreFecha(){
   }
   // Gastos
   const gastosData = await sheetRead('Gastos');
-  let gastosFecha=0, ingresosFecha=0;
+  let gastosFecha=0, ingresosFecha=0, retirosFecha=0;
   if(Array.isArray(gastosData)&&gastosData.length>1){
     gastosData.slice(1).forEach(r=>{
       if(!esFecha(r[0])) return;
       if(r[2]==='Gasto') gastosFecha+=toNum(r[4]);
-      else ingresosFecha+=toNum(r[4]);
+      else if(r[2]==='Retiro') retirosFecha+=toNum(r[4]);
+      else if(r[2]==='Ingreso') ingresosFecha+=toNum(r[4]);
     });
   }
   // Fondo inicial
@@ -2134,13 +2135,13 @@ async function previewCierreFecha(){
     const ap=cajaData.slice(1).find(r=>esFecha(r[0])&&String(r[1]||'').toUpperCase().includes('INICIO'));
     if(ap) fondo=toNum(ap[4]);
   }
-  const esperado=fondo+efFecha+ingresosFecha-gastosFecha;
+  const esperado=fondo+efFecha+ingresosFecha-gastosFecha-retirosFecha;
   document.getElementById('cp-txn').textContent=Object.keys(txnIds).length;
   document.getElementById('cp-tot').textContent='$'+totFecha.toFixed(2);
   document.getElementById('cp-desc').textContent='-$'+descFecha.toFixed(2);
   document.getElementById('cp-ef').textContent='$'+efFecha.toFixed(2);
   document.getElementById('cp-tr').textContent='$'+trFecha.toFixed(2);
-  document.getElementById('cp-gastos').textContent='-$'+gastosFecha.toFixed(2);
+  document.getElementById('cp-gastos').textContent='-$'+(gastosFecha+retirosFecha).toFixed(2);
   document.getElementById('cp-ing').textContent='+$'+ingresosFecha.toFixed(2);
   document.getElementById('cp-esp').textContent='$'+esperado.toFixed(2);
   document.getElementById('cierre-preview').style.display='flex';
@@ -2191,7 +2192,11 @@ async function cerrarCajaFecha(){
       let match=false;
       if(s.includes('T')){const d=new Date(s);match=d.getUTCDate()===dia&&d.getUTCMonth()+1===mes&&d.getUTCFullYear()===anio;}
       else{const p=s.split('/');match=p.length===3&&parseInt(p[0])===dia&&parseInt(p[1])===mes&&parseInt(p[2])===anio;}
-      if(match){if(r[2]==='Gasto')gastosFecha+=toNum(r[4]);else ingresosFecha+=toNum(r[4]);}
+      if(match){
+        if(r[2]==='Gasto') gastosFecha+=toNum(r[4]);
+        else if(r[2]==='Retiro') gastosFecha+=toNum(r[4]); // Retiro also reduces cash
+        else if(r[2]==='Ingreso') ingresosFecha+=toNum(r[4]);
+      }
     });
   }
 
@@ -2296,8 +2301,8 @@ async function generarEDR(){
       if(!r[0]) return;
       const d = parseDate(r[0]);
       if(d&&d>=dateFi&&d<=dateFf){
-        if(r[2]==='Gasto') totGastos+=toNum(r[4]);
-        else totIngExtra+=toNum(r[4]);
+        if(r[2]==='Gasto'||r[2]==='Retiro') totGastos+=toNum(r[4]);
+        else if(r[2]==='Ingreso') totIngExtra+=toNum(r[4]);
       }
     });
   }
@@ -2457,7 +2462,7 @@ async function cargarMovimientos(){
   const data = await sheetRead('Gastos');
   movimientos = [];
   if(Array.isArray(data) && data.length>1){
-    const hoy = new Date().toLocaleDateString('es-EC');
+    const hoy = ((d=new Date()),d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear());
     data.slice(1).forEach(r=>{
       if(r[0]===hoy){
         movimientos.push({fecha:r[0],hora:r[1],tipo:r[2],concepto:r[3],monto:parseFloat(r[4])||0});
@@ -2546,7 +2551,7 @@ async function registrarMovimiento(){
   const monto=parseFloat(document.getElementById('mov-monto').value);
   if(!concepto||isNaN(monto)||monto<=0){showT('t-mov-err');return;}
   const ahora=new Date();
-  const fecha=ahora.toLocaleDateString('es-EC');
+  const fecha=ahora.getDate()+'/'+(ahora.getMonth()+1)+'/'+ahora.getFullYear();
   const hora=ahora.getHours().toString().padStart(2,'0')+':'+ahora.getMinutes().toString().padStart(2,'0');
   showSync('Guardando movimiento...');
   const res=await sheetAppend('Gastos',[fecha,hora,tipo,concepto,monto.toFixed(2).replace('.',',')]);
@@ -2578,11 +2583,11 @@ function renderMovimientos(){
   lista.innerHTML=movimientos.slice().reverse().map(m=>
     `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border-light);font-size:11px">
       <div>
-        <span class="badge ${m.tipo==='Gasto'?'badge-low':'badge-efectivo'}">${m.tipo}</span>
+        <span class="badge ${m.tipo==='Gasto'||m.tipo==='Retiro'?'badge-low':'badge-efectivo'}">${m.tipo}</span>
         <span style="margin-left:4px">${m.concepto}</span>
         <div style="color:var(--text-secondary);font-size:9px">${m.hora}</div>
       </div>
-      <strong style="color:${m.tipo==='Gasto'?'var(--red)':'var(--green)'}">${m.tipo==='Gasto'?'-':'+'}$${m.monto.toFixed(2)}</strong>
+      <strong style="color:${m.tipo==='Gasto'||m.tipo==='Retiro'?'var(--red)':'var(--green)'}">${m.tipo==='Gasto'||m.tipo==='Retiro'?'-':'+'}$${m.monto.toFixed(2)}</strong>
     </div>`
   ).join('');
 }
@@ -2590,7 +2595,7 @@ function renderMovimientos(){
 function calcCaja(){
   const ef=ventas.reduce((s,v)=>s+(v.pagoEf!==undefined?v.pagoEf:(v.pago==='Efectivo'?v.tot:0)),0);
   const fondoI=cajaInicio?cajaInicio.monto:0;
-  const gastos=movimientos.filter(m=>m.tipo==='Gasto').reduce((s,m)=>s+m.monto,0);
+  const gastos=movimientos.filter(m=>m.tipo==='Gasto'||m.tipo==='Retiro').reduce((s,m)=>s+m.monto,0);
   const ingresosExtra=movimientos.filter(m=>m.tipo==='Ingreso').reduce((s,m)=>s+m.monto,0);
   document.getElementById('gastos').value=gastos.toFixed(2);
   document.getElementById('c-esp').textContent='$'+(fondoI+ef+ingresosExtra-gastos).toFixed(2);
@@ -3098,7 +3103,7 @@ async function registrarConteoItem(){
   if(isNaN(qty)||qty<0){showT('t-cnt-err');return;}
   const p = conteoProdSelected;
   const ahora = new Date();
-  const fecha = ahora.toLocaleDateString('es-EC');
+  const fecha = ahora.getDate()+'/'+(ahora.getMonth()+1)+'/'+ahora.getFullYear();
   const hora = ahora.getHours().toString().padStart(2,'0')+':'+ahora.getMinutes().toString().padStart(2,'0');
   // Si ya existe en Sheets lo actualizamos, si no lo añadimos
   showSync('Guardando conteo...');
@@ -3217,7 +3222,7 @@ function imprimirHojaConteo(){
       <td style="border-bottom:1px solid #000;min-width:60px">&nbsp;</td>
     </tr>`
   ).join('');
-  const fecha = new Date().toLocaleDateString('es-EC');
+  const fecha = ((d=new Date()),d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear());
   const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Hoja de Conteo BabyFe</title>
   <style>
     body{font-family:Arial,sans-serif;font-size:9pt;margin:10mm}
@@ -3301,19 +3306,23 @@ function verEtiquetasPendientes(){
 }
 
 async function marcarComoImpreso(ids){
-  // Mark all rows for these product ids as Impreso in Compras
-  for(const id of ids){
-    const rowIdxs=comprasRowMap[id]||[];
-    for(const rowIdx of rowIdxs){
-      const data=await sheetRead('Compras');
-      if(Array.isArray(data)&&data[rowIdx-1]){
-        const r=data[rowIdx-1];
-        await apiCall({action:'update',sheet:'Compras',rowIndex:rowIdx,
-          row:JSON.stringify([r[0],r[1],r[2],r[3],r[4],r[5],r[6],r[7],r[8],'Impreso'])});
-      }
+  const data=await sheetRead('Compras');
+  if(!Array.isArray(data)) return;
+  // Find all row indices for these product ids with Pendiente status
+  const updates=[];
+  data.forEach((r,i)=>{
+    if(i===0) return; // skip header
+    const id=String(r[2]||'').trim();
+    const estado=String(r[9]||'').trim();
+    if(ids.includes(id)&&estado==='Pendiente'){
+      updates.push({rowIndex:i+1, row:[r[0],r[1],r[2],r[3],r[4],r[5],r[6],r[7],r[8],'Impreso']});
     }
-    delete comprasRowMap[id];
+  });
+  // Update all rows sequentially but only those that need changing
+  for(const u of updates){
+    await apiCall({action:'update',sheet:'Compras',rowIndex:u.rowIndex,row:JSON.stringify(u.row)});
   }
+  ids.forEach(id=>{ delete comprasRowMap[id]; });
 }
 
 
@@ -3503,7 +3512,7 @@ async function limpiarColaQR(){
   renderColaQR();
 }
 
-function generarQR(){
+async function generarQR(){
   if(!qrCola.length){showT('t-qr-empty');return;}
   const total=qrCola.reduce((s,x)=>s+x.qty,0);
   // Show progress
@@ -3530,7 +3539,7 @@ function generarQR(){
 
   showSync('Generando etiquetas...');
 
-  setTimeout(()=>{
+  setTimeout(async ()=>{
     // Build src map from unique QRs
     const srcMap={};
     imagenes.forEach(({p,div})=>{
@@ -3548,34 +3557,36 @@ function generarQR(){
       const nombre=p.nombre.length>22?p.nombre.substring(0,21)+'…':p.nombre;
       const marca=(p.marca||'')+(p.talla?' · '+p.talla:'');
       const genero=p.genero&&p.genero!=='Unisex'?p.genero:'';
-      const etq=`<div style="width:45mm;height:25mm;border:0.3px solid #ccc;border-radius:1px;padding:1.2mm;display:flex;align-items:center;gap:1.5mm;box-sizing:border-box;page-break-inside:avoid;font-family:Arial,sans-serif;overflow:hidden">
-        <img src="${src}" style="width:19mm;height:19mm;flex-shrink:0">
+      const etq=`<div style="width:35mm;height:20mm;border:0.3px solid #ccc;border-radius:1px;padding:1mm;display:flex;align-items:center;gap:1mm;box-sizing:border-box;page-break-inside:avoid;font-family:Arial,sans-serif;overflow:hidden">
+        <img src="${src}" style="width:15mm;height:15mm;flex-shrink:0">
         <div style="flex:1;overflow:hidden;min-width:0">
-          <div style="font-size:5.5pt;font-weight:700;line-height:1.25;word-break:break-word">${nombre}</div>
-          <div style="font-size:4.5pt;color:#555;margin-top:0.5mm;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${marca}</div>
-          ${genero?'<div style="font-size:4pt;color:#1D4ED8;margin-top:0.3mm">'+genero+'</div>':''}`+
-          `${p.caract&&p.caract!=='Sin especificaciones'?'<div style="font-size:3.8pt;color:#777;margin-top:0.3mm;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+p.caract+'</div>':''}`+
-          `<div style="font-size:8pt;font-weight:700;color:#000;margin-top:1mm">$${p.precio.toFixed(2)}</div>
-          <div style="font-size:4pt;color:#aaa;margin-top:0.5mm">${p.id} · BabyFe</div>
+          <div style="font-size:4.5pt;font-weight:700;line-height:1.2;word-break:break-word">${nombre}</div>
+          <div style="font-size:3.8pt;color:#555;margin-top:0.3mm;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${marca}</div>
+          ${genero?`<div style="font-size:3.5pt;color:#1D4ED8;margin-top:0.2mm">${genero}</div>`:''}
+          ${p.caract&&p.caract!=='Sin especificaciones'?`<div style="font-size:3.2pt;color:#777;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.caract}</div>`:''}
+          <div style="font-size:7pt;font-weight:700;color:#000;margin-top:0.8mm">$${p.precio.toFixed(2)}</div>
+          <div style="font-size:3.5pt;color:#aaa;margin-top:0.3mm">${p.id}</div>
         </div>
       </div>`;
       for(let i=0;i<item.qty;i++) etiquetas.push(etq);
     });
 
-    const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Etiquetas BabyFe</title>
-    <style>
-      *{margin:0;padding:0;box-sizing:border-box}
-      body{font-family:Arial,sans-serif;background:#fff}
-      .grid{display:grid;grid-template-columns:repeat(4,45mm);gap:2mm;padding:6mm}
-      @media print{@page{margin:5mm;size:A4}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
-    </style></head><body>
-    <div class="grid">${etiquetas.join('')}</div>
-    <script>window.onload=function(){setTimeout(function(){window.print();},500);}<\/script>
-    </body></html>`;
-
-    const win=window.open('','_blank');
-    if(win){win.document.write(html);win.document.close();}
-    else alert('Permite las ventanas emergentes en tu navegador para imprimir.');
+    // Print in batches of 65 (5 cols x 13 rows per A4)
+    const BATCH=65;
+    const totalLotes=Math.ceil(etiquetas.length/BATCH);
+    for(let lote=0;lote<totalLotes;lote++){
+      const slice=etiquetas.slice(lote*BATCH,(lote+1)*BATCH);
+      const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Etiquetas BabyFe ${lote+1}/${totalLotes}</title>
+      <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;background:#fff}.grid{display:grid;grid-template-columns:repeat(5,35mm);gap:1.5mm;padding:5mm}@media print{@page{margin:4mm;size:A4}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style>
+      </head><body><div class="grid">${slice.join('')}</div>
+      <script>window.onload=function(){setTimeout(function(){window.print();},400);}<\/script></body></html>`;
+      const win=window.open('','_blank');
+      if(win){win.document.write(html);win.document.close();}
+      else{alert('Permite las ventanas emergentes. Lote '+(lote+1)+' de '+totalLotes);break;}
+      if(lote<totalLotes-1){
+        await new Promise(r=>setTimeout(r,800));
+      }
+    }
     if(progreso) progreso.style.display='none';
     if(btnGen) btnGen.disabled=false;
     const ids=qrCola.map(x=>x.id).filter(id=>comprasRowMap[id]&&comprasRowMap[id].length);
@@ -3770,7 +3781,7 @@ function expInv(){
     ?['Código','Producto','Marca','Talla','Características','Stock','P.Compra','P.Venta','Margen%','Stock contado','Diferencia']
     :['Código','Producto','Marca','Talla','Características','Stock','P.Venta','Stock contado','Diferencia'];
   const rows=[
-    ['BabyFe — Inventario',new Date().toLocaleDateString('es-EC')],[],hdrs,
+    ['BabyFe — Inventario',((d=new Date()),d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear())],[],hdrs,
     ...inventario.map(p=>esAdmin
       ?[p.id,p.nombre,p.marca,p.talla||'',p.caract,p.stock,p.costo,p.precio,p.precio>0?Math.round((p.precio-p.costo)/p.precio*100)+'%':'','','']
       :[p.id,p.nombre,p.marca,p.talla||'',p.caract,p.stock,p.precio,'','']),
@@ -3781,7 +3792,7 @@ function expInv(){
     ?[{wch:8},{wch:22},{wch:12},{wch:10},{wch:28},{wch:7},{wch:10},{wch:9},{wch:8},{wch:13},{wch:11}]
     :[{wch:8},{wch:22},{wch:12},{wch:10},{wch:28},{wch:7},{wch:9},{wch:13},{wch:11}];
   XLSX.utils.book_append_sheet(wb,ws,'Inventario');
-  XLSX.writeFile(wb,'BabyFe_Inventario_'+new Date().toLocaleDateString('es-EC').replace(/[/]/g,'-')+'.xlsx');
+  XLSX.writeFile(wb,'BabyFe_Inventario_'+((d=new Date()),d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear()).replace(/[/]/g,'-')+'.xlsx');
 }
 
 // ═══════════════════════════════════════════════════
