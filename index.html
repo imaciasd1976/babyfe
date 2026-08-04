@@ -450,7 +450,8 @@ textarea{resize:none;font-family:inherit}
           <div class="cj" style="font-size:11px"><span style="color:var(--red)">(-) Descuentos</span><span style="color:var(--red)" id="cp-desc">—</span></div>
           <div class="cj" style="font-size:11px"><span style="color:var(--green)">Efectivo ventas</span><span id="cp-ef">—</span></div>
           <div class="cj" style="font-size:11px"><span style="color:var(--orange)">Transferencia ventas</span><span id="cp-tr">—</span></div>
-          <div class="cj" style="font-size:11px"><span style="color:var(--red)">Gastos</span><span id="cp-gastos">—</span></div>
+          <div class="cj" style="font-size:11px"><span style="color:var(--red)">Gastos</span><span style="color:var(--red)" id="cp-gastos">—</span></div>
+          <div class="cj" style="font-size:11px"><span style="color:var(--orange)">Retiros de caja</span><span style="color:var(--orange)" id="cp-retiro">—</span></div>
           <div class="cj" style="font-size:11px"><span style="color:var(--green)">Ingresos extra</span><span id="cp-ing">—</span></div>
           <div class="cj" style="font-size:12px;font-weight:700;border-top:1px solid var(--border);padding-top:4px;margin-top:2px"><span>Efectivo esperado</span><span style="color:var(--pink)" id="cp-esp">—</span></div>
         </div>
@@ -2014,10 +2015,11 @@ function abrirCaja(tipo){
   const trf=ventas.reduce((s,v)=>s+(v.pagoTr!==undefined?v.pagoTr:(v.pago==='Transferencia'?v.tot:0)),0);
   const desc=ventas.reduce((s,v)=>s+v.dval,0);
   const totVentas=ventas.reduce((s,v)=>s+v.tot,0);
-  const gastos=movimientos.filter(m=>m.tipo==='Gasto'||m.tipo==='Retiro').reduce((s,m)=>s+m.monto,0);
+  const gastos=movimientos.filter(m=>m.tipo==='Gasto').reduce((s,m)=>s+m.monto,0);
+  const retiros=movimientos.filter(m=>m.tipo==='Retiro').reduce((s,m)=>s+m.monto,0);
   const ingresosExtra=movimientos.filter(m=>m.tipo==='Ingreso').reduce((s,m)=>s+m.monto,0);
   const fondoI=cajaInicio?cajaInicio.monto:0;
-  const esperado=fondoI+ef+ingresosExtra-gastos;
+  const esperado=fondoI+ef+ingresosExtra-gastos-retiros;
   document.getElementById('m-caja-title').textContent=tipo==='inicio'?'Inicio de caja':'Cierre de caja';
   document.getElementById('m-caja-body').innerHTML=tipo==='inicio'?`
     <div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px">Registra el fondo con el que inicia la caja hoy.</div>
@@ -2033,6 +2035,7 @@ function abrirCaja(tipo){
       <div class="cj"><span style="color:var(--green)">Efectivo ventas</span><span>$${ef.toFixed(2)}</span></div>
       <div class="cj"><span style="color:var(--orange)">Transferencia ventas</span><span>$${trf.toFixed(2)}</span></div>
       <div class="cj"><span style="color:var(--red)">Gastos</span><span>-$${gastos.toFixed(2)}</span></div>
+      <div class="cj"><span style="color:var(--orange)">Retiros de caja</span><span>-$${retiros.toFixed(2)}</span></div>
       <div class="cj"><span style="color:var(--green)">Ingresos extra</span><span>+$${ingresosExtra.toFixed(2)}</span></div>
       <div class="cj" style="font-weight:700;border-top:1px solid var(--border);padding-top:4px;margin-top:2px"><span>Efectivo esperado</span><span style="color:var(--pink)">$${esperado.toFixed(2)}</span></div>
     </div>
@@ -2141,7 +2144,8 @@ async function previewCierreFecha(){
   document.getElementById('cp-desc').textContent='-$'+descFecha.toFixed(2);
   document.getElementById('cp-ef').textContent='$'+efFecha.toFixed(2);
   document.getElementById('cp-tr').textContent='$'+trFecha.toFixed(2);
-  document.getElementById('cp-gastos').textContent='-$'+(gastosFecha+retirosFecha).toFixed(2);
+  document.getElementById('cp-gastos').textContent='-$'+gastosFecha.toFixed(2);
+  document.getElementById('cp-retiro').textContent='-$'+retirosFecha.toFixed(2);
   document.getElementById('cp-ing').textContent='+$'+ingresosFecha.toFixed(2);
   document.getElementById('cp-esp').textContent='$'+esperado.toFixed(2);
   document.getElementById('cierre-preview').style.display='flex';
@@ -2194,7 +2198,7 @@ async function cerrarCajaFecha(){
       else{const p=s.split('/');match=p.length===3&&parseInt(p[0])===dia&&parseInt(p[1])===mes&&parseInt(p[2])===anio;}
       if(match){
         if(r[2]==='Gasto') gastosFecha+=toNum(r[4]);
-        else if(r[2]==='Retiro') gastosFecha+=toNum(r[4]); // Retiro also reduces cash
+        else if(r[2]==='Retiro') gastosFecha+=toNum(r[4]); // retiro reduces cash too
         else if(r[2]==='Ingreso') ingresosFecha+=toNum(r[4]);
       }
     });
@@ -2301,7 +2305,7 @@ async function generarEDR(){
       if(!r[0]) return;
       const d = parseDate(r[0]);
       if(d&&d>=dateFi&&d<=dateFf){
-        if(r[2]==='Gasto'||r[2]==='Retiro') totGastos+=toNum(r[4]);
+        if(r[2]==='Gasto') totGastos+=toNum(r[4]);
         else if(r[2]==='Ingreso') totIngExtra+=toNum(r[4]);
       }
     });
@@ -2595,10 +2599,11 @@ function renderMovimientos(){
 function calcCaja(){
   const ef=ventas.reduce((s,v)=>s+(v.pagoEf!==undefined?v.pagoEf:(v.pago==='Efectivo'?v.tot:0)),0);
   const fondoI=cajaInicio?cajaInicio.monto:0;
-  const gastos=movimientos.filter(m=>m.tipo==='Gasto'||m.tipo==='Retiro').reduce((s,m)=>s+m.monto,0);
+  const gastos=movimientos.filter(m=>m.tipo==='Gasto').reduce((s,m)=>s+m.monto,0);
+  const retiros=movimientos.filter(m=>m.tipo==='Retiro').reduce((s,m)=>s+m.monto,0);
   const ingresosExtra=movimientos.filter(m=>m.tipo==='Ingreso').reduce((s,m)=>s+m.monto,0);
   document.getElementById('gastos').value=gastos.toFixed(2);
-  document.getElementById('c-esp').textContent='$'+(fondoI+ef+ingresosExtra-gastos).toFixed(2);
+  document.getElementById('c-esp').textContent='$'+(fondoI+ef+ingresosExtra-gastos-retiros).toFixed(2);
 }
 
 // ═══════════════════════════════════════════════════
@@ -3308,17 +3313,27 @@ function verEtiquetasPendientes(){
 async function marcarComoImpreso(ids){
   const data=await sheetRead('Compras');
   if(!Array.isArray(data)) return;
-  // Find all row indices for these product ids with Pendiente status
+  const fmtF=(s)=>{
+    if(!s) return s;
+    const v=String(s).trim();
+    if(v.includes('T')){const d=new Date(v);return d.getUTCDate()+'/'+(d.getUTCMonth()+1)+'/'+d.getUTCFullYear();}
+    return v;
+  };
+  const fmtH=(s)=>{
+    if(!s) return s;
+    const v=String(s).trim();
+    if(v.includes('T')||v.includes('1899')){const d=new Date(v);return d.getUTCHours().toString().padStart(2,'0')+':'+d.getUTCMinutes().toString().padStart(2,'0');}
+    return v;
+  };
   const updates=[];
   data.forEach((r,i)=>{
-    if(i===0) return; // skip header
+    if(i===0) return;
     const id=String(r[2]||'').trim();
     const estado=String(r[9]||'').trim();
     if(ids.includes(id)&&estado==='Pendiente'){
-      updates.push({rowIndex:i+1, row:[r[0],r[1],r[2],r[3],r[4],r[5],r[6],r[7],r[8],'Impreso']});
+      updates.push({rowIndex:i+1, row:[fmtF(r[0]),fmtH(r[1]),r[2],r[3],r[4],r[5],r[6],r[7],r[8],'Impreso']});
     }
   });
-  // Update all rows sequentially but only those that need changing
   for(const u of updates){
     await apiCall({action:'update',sheet:'Compras',rowIndex:u.rowIndex,row:JSON.stringify(u.row)});
   }
