@@ -450,7 +450,8 @@ textarea{resize:none;font-family:inherit}
           <div class="cj" style="font-size:11px"><span style="color:var(--red)">(-) Descuentos</span><span style="color:var(--red)" id="cp-desc">—</span></div>
           <div class="cj" style="font-size:11px"><span style="color:var(--green)">Efectivo ventas</span><span id="cp-ef">—</span></div>
           <div class="cj" style="font-size:11px"><span style="color:var(--orange)">Transferencia ventas</span><span id="cp-tr">—</span></div>
-          <div class="cj" style="font-size:11px"><span style="color:var(--red)">Gastos</span><span id="cp-gastos">—</span></div>
+          <div class="cj" style="font-size:11px"><span style="color:var(--red)">Gastos</span><span style="color:var(--red)" id="cp-gastos">—</span></div>
+          <div class="cj" style="font-size:11px"><span style="color:var(--orange)">Retiros de caja</span><span style="color:var(--orange)" id="cp-retiro">—</span></div>
           <div class="cj" style="font-size:11px"><span style="color:var(--green)">Ingresos extra</span><span id="cp-ing">—</span></div>
           <div class="cj" style="font-size:12px;font-weight:700;border-top:1px solid var(--border);padding-top:4px;margin-top:2px"><span>Efectivo esperado</span><span style="color:var(--pink)" id="cp-esp">—</span></div>
         </div>
@@ -2014,10 +2015,11 @@ function abrirCaja(tipo){
   const trf=ventas.reduce((s,v)=>s+(v.pagoTr!==undefined?v.pagoTr:(v.pago==='Transferencia'?v.tot:0)),0);
   const desc=ventas.reduce((s,v)=>s+v.dval,0);
   const totVentas=ventas.reduce((s,v)=>s+v.tot,0);
-  const gastos=movimientos.filter(m=>m.tipo==='Gasto'||m.tipo==='Retiro').reduce((s,m)=>s+m.monto,0);
+  const gastos=movimientos.filter(m=>m.tipo==='Gasto').reduce((s,m)=>s+m.monto,0);
+  const retiros=movimientos.filter(m=>m.tipo==='Retiro').reduce((s,m)=>s+m.monto,0);
   const ingresosExtra=movimientos.filter(m=>m.tipo==='Ingreso').reduce((s,m)=>s+m.monto,0);
   const fondoI=cajaInicio?cajaInicio.monto:0;
-  const esperado=fondoI+ef+ingresosExtra-gastos;
+  const esperado=fondoI+ef+ingresosExtra-gastos-retiros;
   document.getElementById('m-caja-title').textContent=tipo==='inicio'?'Inicio de caja':'Cierre de caja';
   document.getElementById('m-caja-body').innerHTML=tipo==='inicio'?`
     <div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px">Registra el fondo con el que inicia la caja hoy.</div>
@@ -2033,6 +2035,7 @@ function abrirCaja(tipo){
       <div class="cj"><span style="color:var(--green)">Efectivo ventas</span><span>$${ef.toFixed(2)}</span></div>
       <div class="cj"><span style="color:var(--orange)">Transferencia ventas</span><span>$${trf.toFixed(2)}</span></div>
       <div class="cj"><span style="color:var(--red)">Gastos</span><span>-$${gastos.toFixed(2)}</span></div>
+      <div class="cj"><span style="color:var(--orange)">Retiros de caja</span><span>-$${retiros.toFixed(2)}</span></div>
       <div class="cj"><span style="color:var(--green)">Ingresos extra</span><span>+$${ingresosExtra.toFixed(2)}</span></div>
       <div class="cj" style="font-weight:700;border-top:1px solid var(--border);padding-top:4px;margin-top:2px"><span>Efectivo esperado</span><span style="color:var(--pink)">$${esperado.toFixed(2)}</span></div>
     </div>
@@ -2141,7 +2144,8 @@ async function previewCierreFecha(){
   document.getElementById('cp-desc').textContent='-$'+descFecha.toFixed(2);
   document.getElementById('cp-ef').textContent='$'+efFecha.toFixed(2);
   document.getElementById('cp-tr').textContent='$'+trFecha.toFixed(2);
-  document.getElementById('cp-gastos').textContent='-$'+(gastosFecha+retirosFecha).toFixed(2);
+  document.getElementById('cp-gastos').textContent='-$'+gastosFecha.toFixed(2);
+  document.getElementById('cp-retiro').textContent='-$'+retirosFecha.toFixed(2);
   document.getElementById('cp-ing').textContent='+$'+ingresosFecha.toFixed(2);
   document.getElementById('cp-esp').textContent='$'+esperado.toFixed(2);
   document.getElementById('cierre-preview').style.display='flex';
@@ -2194,7 +2198,7 @@ async function cerrarCajaFecha(){
       else{const p=s.split('/');match=p.length===3&&parseInt(p[0])===dia&&parseInt(p[1])===mes&&parseInt(p[2])===anio;}
       if(match){
         if(r[2]==='Gasto') gastosFecha+=toNum(r[4]);
-        else if(r[2]==='Retiro') gastosFecha+=toNum(r[4]); // Retiro also reduces cash
+        else if(r[2]==='Retiro') gastosFecha+=toNum(r[4]); // retiro reduces cash too
         else if(r[2]==='Ingreso') ingresosFecha+=toNum(r[4]);
       }
     });
@@ -2301,7 +2305,7 @@ async function generarEDR(){
       if(!r[0]) return;
       const d = parseDate(r[0]);
       if(d&&d>=dateFi&&d<=dateFf){
-        if(r[2]==='Gasto'||r[2]==='Retiro') totGastos+=toNum(r[4]);
+        if(r[2]==='Gasto') totGastos+=toNum(r[4]);
         else if(r[2]==='Ingreso') totIngExtra+=toNum(r[4]);
       }
     });
@@ -2595,10 +2599,11 @@ function renderMovimientos(){
 function calcCaja(){
   const ef=ventas.reduce((s,v)=>s+(v.pagoEf!==undefined?v.pagoEf:(v.pago==='Efectivo'?v.tot:0)),0);
   const fondoI=cajaInicio?cajaInicio.monto:0;
-  const gastos=movimientos.filter(m=>m.tipo==='Gasto'||m.tipo==='Retiro').reduce((s,m)=>s+m.monto,0);
+  const gastos=movimientos.filter(m=>m.tipo==='Gasto').reduce((s,m)=>s+m.monto,0);
+  const retiros=movimientos.filter(m=>m.tipo==='Retiro').reduce((s,m)=>s+m.monto,0);
   const ingresosExtra=movimientos.filter(m=>m.tipo==='Ingreso').reduce((s,m)=>s+m.monto,0);
   document.getElementById('gastos').value=gastos.toFixed(2);
-  document.getElementById('c-esp').textContent='$'+(fondoI+ef+ingresosExtra-gastos).toFixed(2);
+  document.getElementById('c-esp').textContent='$'+(fondoI+ef+ingresosExtra-gastos-retiros).toFixed(2);
 }
 
 // ═══════════════════════════════════════════════════
@@ -3298,27 +3303,45 @@ async function loadColaPendiente(){
 function verEtiquetasPendientes(){
   const total=qrCola.reduce((s,x)=>s+x.qty,0);
   if(!total){
-    alert('No hay etiquetas pendientes de imprimir. Las etiquetas pendientes se cargan automáticamente desde la hoja Compras al abrir la app.');
+    alert('No hay etiquetas pendientes de imprimir.');
     return;
   }
-  abrirModal('m-qr');
-  renderColaQR();
+  if(confirm('¿Imprimir '+total+' etiquetas pendientes?')){
+    const ids=qrCola.map(x=>x.id).filter(id=>comprasRowMap[id]&&comprasRowMap[id].length);
+    imprimirEtiquetasRapido([...qrCola]);
+    if(ids.length) marcarComoImpreso(ids);
+    qrCola=[];
+    const badge=document.getElementById('badge-pendientes');
+    if(badge) badge.textContent='0';
+    const aviso=document.getElementById('qr-pendientes-aviso');
+    if(aviso) aviso.style.display='none';
+  }
 }
 
 async function marcarComoImpreso(ids){
   const data=await sheetRead('Compras');
   if(!Array.isArray(data)) return;
-  // Find all row indices for these product ids with Pendiente status
+  const fmtF=(s)=>{
+    if(!s) return s;
+    const v=String(s).trim();
+    if(v.includes('T')){const d=new Date(v);return d.getUTCDate()+'/'+(d.getUTCMonth()+1)+'/'+d.getUTCFullYear();}
+    return v;
+  };
+  const fmtH=(s)=>{
+    if(!s) return s;
+    const v=String(s).trim();
+    if(v.includes('T')||v.includes('1899')){const d=new Date(v);return d.getUTCHours().toString().padStart(2,'0')+':'+d.getUTCMinutes().toString().padStart(2,'0');}
+    return v;
+  };
   const updates=[];
   data.forEach((r,i)=>{
-    if(i===0) return; // skip header
+    if(i===0) return;
     const id=String(r[2]||'').trim();
     const estado=String(r[9]||'').trim();
     if(ids.includes(id)&&estado==='Pendiente'){
-      updates.push({rowIndex:i+1, row:[r[0],r[1],r[2],r[3],r[4],r[5],r[6],r[7],r[8],'Impreso']});
+      updates.push({rowIndex:i+1, row:[fmtF(r[0]),fmtH(r[1]),r[2],r[3],r[4],r[5],r[6],r[7],r[8],'Impreso']});
     }
   });
-  // Update all rows sequentially but only those that need changing
   for(const u of updates){
     await apiCall({action:'update',sheet:'Compras',rowIndex:u.rowIndex,row:JSON.stringify(u.row)});
   }
@@ -3331,10 +3354,68 @@ function imprimirTodasEtiquetas(){
   const conStock=inventario.filter(p=>p.stock>0);
   if(!conStock.length){alert('No hay productos con stock disponible.');return;}
   const total=conStock.reduce((s,p)=>s+p.stock,0);
-  if(!confirm('Se generarán '+total+' etiquetas para '+conStock.length+' productos. ¿Continuar?')) return;
-  qrCola=conStock.map(p=>({id:p.id,qty:p.stock}));
-  abrirModal('m-qr');
-  renderColaQR();
+  if(!confirm('Se imprimirán '+total+' etiquetas para '+conStock.length+' productos. ¿Continuar?')) return;
+  const items=conStock.map(p=>({id:p.id,qty:p.stock}));
+  imprimirEtiquetasRapido(items);
+}
+
+function imprimirEtiquetasRapido(items){
+  // Build all labels instantly using CSS barcode font (no canvas/QR generation)
+  const etiquetas=[];
+  items.forEach(item=>{
+    const p=inventario.find(x=>x.id===item.id);
+    if(!p) return;
+    const nombre=p.nombre.length>24?p.nombre.substring(0,23)+'…':p.nombre;
+    const linea2=(p.marca||'')+(p.talla?' · '+p.talla:'')+(p.genero&&p.genero!=='Unisex'?' · '+p.genero:'');
+    const caract=p.caract&&p.caract!=='Sin especificaciones'?p.caract:'';
+    const etq=`<div class="etq">
+      <div class="etq-txt">
+        <div class="etq-nom">${nombre}</div>
+        <div class="etq-sub">${linea2}</div>
+        ${caract?`<div class="etq-car">${caract}</div>`:''}
+        <div class="etq-precio">$${p.precio.toFixed(2)}</div>
+      </div>
+      <div class="etq-bar">
+        <div class="barcode">${p.id}</div>
+        <div class="etq-cod">${p.id}</div>
+      </div>
+    </div>`;
+    for(let i=0;i<item.qty;i++) etiquetas.push(etq);
+  });
+
+  const BATCH=80;
+  const totalLotes=Math.ceil(etiquetas.length/BATCH);
+
+  for(let lote=0;lote<totalLotes;lote++){
+    const slice=etiquetas.slice(lote*BATCH,(lote+1)*BATCH);
+    const html=`<!DOCTYPE html><html><head><meta charset="UTF-8">
+    <title>Etiquetas BabyFe ${lote+1}/${totalLotes}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Libre+Barcode+128&display=swap" rel="stylesheet">
+    <style>
+      *{margin:0;padding:0;box-sizing:border-box}
+      body{font-family:Arial,sans-serif;background:#fff}
+      .grid{display:grid;grid-template-columns:repeat(5,38mm);gap:1mm;padding:4mm}
+      .etq{width:38mm;height:22mm;border:0.3px solid #ddd;padding:1mm;display:flex;gap:1mm;overflow:hidden;page-break-inside:avoid}
+      .etq-txt{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center}
+      .etq-nom{font-size:5pt;font-weight:700;line-height:1.2;word-break:break-word}
+      .etq-sub{font-size:4pt;color:#555;margin-top:0.5mm}
+      .etq-car{font-size:3.5pt;color:#777;margin-top:0.3mm;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      .etq-precio{font-size:8pt;font-weight:700;margin-top:1mm}
+      .etq-bar{display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0}
+      .barcode{font-family:'Libre Barcode 128',cursive;font-size:28pt;line-height:1;color:#000}
+      .etq-cod{font-size:3.5pt;color:#666;text-align:center;margin-top:0.5mm}
+      @media print{@page{margin:3mm;size:A4}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+    </style></head><body>
+    <div class="grid">${slice.join('')}</div>
+    <script>
+      // Wait for barcode font to load then print
+      document.fonts.ready.then(function(){setTimeout(function(){window.print();},300);});
+    <\/script></body></html>`;
+    const win=window.open('','_blank');
+    if(win){win.document.write(html);win.document.close();}
+    else{alert('Permite ventanas emergentes. Lote '+(lote+1)+' de '+totalLotes);break;}
+  }
 }
 
 // ═══════════════════════════════════════════════════
@@ -3409,11 +3490,8 @@ function limpiarReimp(){reimpCola=[];renderReimpCola();}
 
 function imprimirReimp(){
   if(!reimpCola.length){alert('Agrega al menos un producto.');return;}
-  const backupCola=[...qrCola];
-  qrCola=reimpCola.map(x=>({...x}));
   cerrarModal('m-reimp');
-  generarQR();
-  setTimeout(()=>{qrCola=backupCola;},500);
+  imprimirEtiquetasRapido(reimpCola);
 }
 
 let qrCola = []; // [{id, qty}]
@@ -3514,84 +3592,15 @@ async function limpiarColaQR(){
 
 async function generarQR(){
   if(!qrCola.length){showT('t-qr-empty');return;}
-  const total=qrCola.reduce((s,x)=>s+x.qty,0);
-  // Show progress
   const progreso=document.getElementById('qr-progreso');
   const btnGen=document.getElementById('btn-generar-qr');
   if(progreso) progreso.style.display='block';
   if(btnGen) btnGen.disabled=true;
-  const uniqueIds=[...new Set(qrCola.map(x=>x.id))];
-  const imagenes=[];
-  const tempContainer=document.createElement('div');
-  tempContainer.style.cssText='position:absolute;left:-9999px;top:0';
-  document.body.appendChild(tempContainer);
-
-  // Generate QR only once per unique product
-  uniqueIds.forEach(id=>{
-    const p=inventario.find(x=>x.id===id);
-    if(!p) return;
-    const div=document.createElement('div');
-    tempContainer.appendChild(div);
-    const qrData=p.id+'|'+p.nombre+'|'+p.marca+'|'+(p.talla||'')+'|$'+p.precio.toFixed(2);
-    new QRCode(div,{text:qrData,width:60,height:60,colorDark:'#000',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.M});
-    imagenes.push({p,div});
-  });
-
-  showSync('Generando etiquetas...');
-
-  setTimeout(async ()=>{
-    // Build src map from unique QRs
-    const srcMap={};
-    imagenes.forEach(({p,div})=>{
-      const canvas=div.querySelector('canvas');
-      srcMap[p.id]=canvas?canvas.toDataURL('image/png'):'';
-    });
-    document.body.removeChild(tempContainer);
-
-    // Build etiquetas repeating by qty
-    const etiquetas=[];
-    qrCola.forEach(item=>{
-      const p=inventario.find(x=>x.id===item.id);
-      if(!p) return;
-      const src=srcMap[p.id]||'';
-      const nombre=p.nombre.length>22?p.nombre.substring(0,21)+'…':p.nombre;
-      const marca=(p.marca||'')+(p.talla?' · '+p.talla:'');
-      const genero=p.genero&&p.genero!=='Unisex'?p.genero:'';
-      const etq=`<div style="width:35mm;height:20mm;border:0.3px solid #ccc;border-radius:1px;padding:1mm;display:flex;align-items:center;gap:1mm;box-sizing:border-box;page-break-inside:avoid;font-family:Arial,sans-serif;overflow:hidden">
-        <img src="${src}" style="width:15mm;height:15mm;flex-shrink:0">
-        <div style="flex:1;overflow:hidden;min-width:0">
-          <div style="font-size:4.5pt;font-weight:700;line-height:1.2;word-break:break-word">${nombre}</div>
-          <div style="font-size:3.8pt;color:#555;margin-top:0.3mm;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${marca}</div>
-          ${genero?`<div style="font-size:3.5pt;color:#1D4ED8;margin-top:0.2mm">${genero}</div>`:''}
-          ${p.caract&&p.caract!=='Sin especificaciones'?`<div style="font-size:3.2pt;color:#777;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.caract}</div>`:''}
-          <div style="font-size:7pt;font-weight:700;color:#000;margin-top:0.8mm">$${p.precio.toFixed(2)}</div>
-          <div style="font-size:3.5pt;color:#aaa;margin-top:0.3mm">${p.id}</div>
-        </div>
-      </div>`;
-      for(let i=0;i<item.qty;i++) etiquetas.push(etq);
-    });
-
-    // Print in batches of 65 (5 cols x 13 rows per A4)
-    const BATCH=65;
-    const totalLotes=Math.ceil(etiquetas.length/BATCH);
-    for(let lote=0;lote<totalLotes;lote++){
-      const slice=etiquetas.slice(lote*BATCH,(lote+1)*BATCH);
-      const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Etiquetas BabyFe ${lote+1}/${totalLotes}</title>
-      <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;background:#fff}.grid{display:grid;grid-template-columns:repeat(5,35mm);gap:1.5mm;padding:5mm}@media print{@page{margin:4mm;size:A4}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style>
-      </head><body><div class="grid">${slice.join('')}</div>
-      <script>window.onload=function(){setTimeout(function(){window.print();},400);}<\/script></body></html>`;
-      const win=window.open('','_blank');
-      if(win){win.document.write(html);win.document.close();}
-      else{alert('Permite las ventanas emergentes. Lote '+(lote+1)+' de '+totalLotes);break;}
-      if(lote<totalLotes-1){
-        await new Promise(r=>setTimeout(r,800));
-      }
-    }
-    if(progreso) progreso.style.display='none';
-    if(btnGen) btnGen.disabled=false;
-    const ids=qrCola.map(x=>x.id).filter(id=>comprasRowMap[id]&&comprasRowMap[id].length);
-    if(ids.length) marcarComoImpreso(ids);
-  }, 500);
+  const ids=qrCola.map(x=>x.id).filter(id=>comprasRowMap[id]&&comprasRowMap[id].length);
+  imprimirEtiquetasRapido([...qrCola]);
+  if(ids.length) marcarComoImpreso(ids);
+  if(progreso) progreso.style.display='none';
+  if(btnGen) btnGen.disabled=false;
 }
 
 
