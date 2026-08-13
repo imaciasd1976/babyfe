@@ -970,7 +970,7 @@ textarea{resize:none;font-family:inherit}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.19.1/umd/index.min.js"></script>
 <script>
 // ═══════════════════════════════════════════════════
 // CONFIGURACIÓN — URL de tu Google Apps Script
@@ -2903,6 +2903,18 @@ async function iniciarScannerVenta(){
     const video = document.getElementById('venta-video');
     video.srcObject = stream;
     await video.play();
+    // Initialize ZXing multi-format reader
+    if(window.ZXing){
+      window._zxingVenta = new ZXing.MultiFormatReader();
+      const hints = new Map();
+      hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS,[
+        ZXing.BarcodeFormat.CODE_128,
+        ZXing.BarcodeFormat.QR_CODE,
+        ZXing.BarcodeFormat.EAN_13,
+        ZXing.BarcodeFormat.CODE_39
+      ]);
+      window._zxingVenta.setHints(hints);
+    }
     document.getElementById('venta-scanner-blq').style.display='flex';
     document.getElementById('venta-qr-btn').style.display='none';
     ventaScannerActive = true;
@@ -2921,17 +2933,16 @@ function escanearFrameVenta(){
     canvas.height = video.videoHeight;
     const ctx = canvas.getContext('2d');
     ctx.drawImage(video,0,0,canvas.width,canvas.height);
-    const imageData = ctx.getImageData(0,0,canvas.width,canvas.height);
     try{
-      if(typeof jsQR !== 'undefined'){
-        const code = jsQR(imageData.data, imageData.width, imageData.height);
-        if(code && code.data){
-          const id = code.data.split('|')[0];
+      if(window._zxingVenta){
+        const result = window._zxingVenta.decodeFromCanvas(canvas);
+        if(result){
+          const txt = result.getText();
+          const id = txt.split('|')[0].trim();
           const idx = inventario.findIndex(x=>x.id===id);
           if(idx>=0){
             detenerScannerVenta();
             agregarAlCarrito(idx);
-            // Flash visual feedback
             const btn = document.getElementById('venta-qr-btn');
             btn.style.background='#DCFCE7';btn.style.color='#166534';btn.style.borderColor='#166534';
             btn.innerHTML='<i class="ti ti-check"></i>¡Agregado!';
@@ -2994,6 +3005,17 @@ async function iniciarScanner(){
     const video = document.getElementById('cnt-video');
     video.srcObject = stream;
     await video.play();
+    if(window.ZXing){
+      window._zxingConteo = new ZXing.MultiFormatReader();
+      const hints = new Map();
+      hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS,[
+        ZXing.BarcodeFormat.CODE_128,
+        ZXing.BarcodeFormat.QR_CODE,
+        ZXing.BarcodeFormat.EAN_13,
+        ZXing.BarcodeFormat.CODE_39
+      ]);
+      window._zxingConteo.setHints(hints);
+    }
     document.getElementById('cnt-scanner-blq').style.display='flex';
     document.getElementById('cnt-scan-btn').style.display='none';
     conteoScannerActive = true;
@@ -3012,12 +3034,12 @@ function escanearFrame(){
     canvas.height = video.videoHeight;
     const ctx = canvas.getContext('2d');
     ctx.drawImage(video,0,0,canvas.width,canvas.height);
-    const imageData = ctx.getImageData(0,0,canvas.width,canvas.height);
     try{
-      if(typeof jsQR !== 'undefined'){
-        const code = jsQR(imageData.data, imageData.width, imageData.height);
-        if(code && code.data){
-          const id = code.data.split('|')[0];
+      if(window._zxingConteo){
+        const result = window._zxingConteo.decodeFromCanvas(canvas);
+        if(result){
+          const txt = result.getText();
+          const id = txt.split('|')[0].trim();
           const p = inventario.find(x=>x.id===id);
           if(p){
             detenerScanner();
