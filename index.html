@@ -3360,58 +3360,49 @@ function imprimirTodasEtiquetas(){
 }
 
 function imprimirEtiquetasRapido(items){
-  // Build all labels instantly using CSS barcode font (no canvas/QR generation)
   const etiquetas=[];
   items.forEach(item=>{
     const p=inventario.find(x=>x.id===item.id);
     if(!p) return;
-    const nombre=p.nombre.length>24?p.nombre.substring(0,23)+'…':p.nombre;
-    const linea2=(p.marca||'')+(p.talla?' · '+p.talla:'')+(p.genero&&p.genero!=='Unisex'?' · '+p.genero:'');
+    const nombre=p.nombre.length>26?p.nombre.substring(0,25)+'…':p.nombre;
+    const talla=p.talla||'';
+    const genero=p.genero&&p.genero!=='Unisex'?p.genero:'';
     const caract=p.caract&&p.caract!=='Sin especificaciones'?p.caract:'';
-    const etq=`<div class="etq">
-      <div class="etq-txt">
-        <div class="etq-nom">${nombre}</div>
-        <div class="etq-sub">${linea2}</div>
-        ${caract?`<div class="etq-car">${caract}</div>`:''}
-        <div class="etq-precio">$${p.precio.toFixed(2)}</div>
-      </div>
-      <div class="etq-bar">
-        <div class="barcode">${p.id}</div>
-        <div class="etq-cod">${p.id}</div>
-      </div>
-    </div>`;
+    const etq=`<div class="etq"><div class="etq-l"><div class="barcode">${p.id}</div><div class="etq-id">${p.id}</div></div><div class="etq-r"><div class="n">${nombre}</div>${talla?`<div class="s">Talla: ${talla}</div>`:''}${genero?`<div class="s">Género: ${genero}</div>`:''}${caract?`<div class="s">${caract}</div>`:''}` +
+    `<div class="p">$${p.precio.toFixed(2)}</div></div></div>`;
     for(let i=0;i<item.qty;i++) etiquetas.push(etq);
   });
 
+  const css=`
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:Arial,sans-serif}
+    .grid{display:grid;grid-template-columns:repeat(5,38mm);grid-auto-rows:22mm;gap:0;padding:3mm}
+    .etq{width:38mm;height:22mm;border:0.4px solid #bbb;display:flex;align-items:center;padding:0.8mm;overflow:hidden;gap:0.8mm}
+    .etq-l{display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0}
+    .barcode{font-family:'Libre Barcode 128',cursive;font-size:24pt;line-height:1;color:#000}
+    .etq-id{font-size:3pt;color:#666;text-align:center;margin-top:0.3mm;letter-spacing:0.5px}
+    .etq-r{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:0.2mm}
+    .n{font-size:5pt;font-weight:700;line-height:1.2;word-break:break-word}
+    .s{font-size:3.8pt;color:#444;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .p{font-size:8pt;font-weight:700;color:#000;margin-top:0.5mm}
+    @media print{
+      @page{margin:3mm;size:A4}
+      body{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+      .grid{gap:0;padding:2mm}
+    }`;
+
+  // One window per batch of 80 — fill pages completely
   const BATCH=80;
   const totalLotes=Math.ceil(etiquetas.length/BATCH);
-
   for(let lote=0;lote<totalLotes;lote++){
     const slice=etiquetas.slice(lote*BATCH,(lote+1)*BATCH);
     const html=`<!DOCTYPE html><html><head><meta charset="UTF-8">
-    <title>Etiquetas BabyFe ${lote+1}/${totalLotes}</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <title>Etiquetas ${lote+1}/${totalLotes}</title>
     <link href="https://fonts.googleapis.com/css2?family=Libre+Barcode+128&display=swap" rel="stylesheet">
-    <style>
-      *{margin:0;padding:0;box-sizing:border-box}
-      body{font-family:Arial,sans-serif;background:#fff}
-      .grid{display:grid;grid-template-columns:repeat(5,38mm);gap:1mm;padding:4mm}
-      .etq{width:38mm;height:22mm;border:0.3px solid #ddd;padding:1mm;display:flex;gap:1mm;overflow:hidden;page-break-inside:avoid}
-      .etq-txt{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center}
-      .etq-nom{font-size:5pt;font-weight:700;line-height:1.2;word-break:break-word}
-      .etq-sub{font-size:4pt;color:#555;margin-top:0.5mm}
-      .etq-car{font-size:3.5pt;color:#777;margin-top:0.3mm;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-      .etq-precio{font-size:8pt;font-weight:700;margin-top:1mm}
-      .etq-bar{display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0}
-      .barcode{font-family:'Libre Barcode 128',cursive;font-size:28pt;line-height:1;color:#000}
-      .etq-cod{font-size:3.5pt;color:#666;text-align:center;margin-top:0.5mm}
-      @media print{@page{margin:3mm;size:A4}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
-    </style></head><body>
+    <style>${css}</style></head><body>
     <div class="grid">${slice.join('')}</div>
-    <script>
-      // Wait for barcode font to load then print
-      document.fonts.ready.then(function(){setTimeout(function(){window.print();},300);});
-    <\/script></body></html>`;
+    <script>document.fonts.ready.then(function(){setTimeout(function(){window.print();},400);});<\/script>
+    </body></html>`;
     const win=window.open('','_blank');
     if(win){win.document.write(html);win.document.close();}
     else{alert('Permite ventanas emergentes. Lote '+(lote+1)+' de '+totalLotes);break;}
