@@ -970,7 +970,7 @@ textarea{resize:none;font-family:inherit}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.19.1/umd/index.min.js"></script>
+<script src="https://unpkg.com/@zxing/browser@0.1.1/umd/index.min.js"></script>
 <script>
 // ═══════════════════════════════════════════════════
 // CONFIGURACIÓN — URL de tu Google Apps Script
@@ -2895,75 +2895,38 @@ let ventaScannerActive = false;
 let ventaScanInterval = null;
 
 async function iniciarScannerVenta(){
-  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
-    alert('Tu navegador no soporta acceso a la cámara.');return;
-  }
   try{
-    const stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
-    const video = document.getElementById('venta-video');
-    video.srcObject = stream;
-    await video.play();
-    // Initialize ZXing multi-format reader
-    if(window.ZXing){
-      window._zxingVenta = new ZXing.MultiFormatReader();
-      const hints = new Map();
-      hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS,[
-        ZXing.BarcodeFormat.CODE_128,
-        ZXing.BarcodeFormat.QR_CODE,
-        ZXing.BarcodeFormat.EAN_13,
-        ZXing.BarcodeFormat.CODE_39
-      ]);
-      window._zxingVenta.setHints(hints);
-    }
     document.getElementById('venta-scanner-blq').style.display='flex';
     document.getElementById('venta-qr-btn').style.display='none';
     ventaScannerActive = true;
-    escanearFrameVenta();
-  } catch(e){
-    alert('No se pudo acceder a la cámara: '+e.message);
-  }
-}
-
-function escanearFrameVenta(){
-  if(!ventaScannerActive) return;
-  const video = document.getElementById('venta-video');
-  const canvas = document.getElementById('venta-canvas');
-  if(video.readyState === video.HAVE_ENOUGH_DATA){
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(video,0,0,canvas.width,canvas.height);
-    try{
-      if(window._zxingVenta){
-        const result = window._zxingVenta.decodeFromCanvas(canvas);
-        if(result){
-          const txt = result.getText();
-          const id = txt.split('|')[0].trim();
-          const idx = inventario.findIndex(x=>x.id===id);
-          if(idx>=0){
-            detenerScannerVenta();
-            agregarAlCarrito(idx);
-            const btn = document.getElementById('venta-qr-btn');
-            btn.style.background='#DCFCE7';btn.style.color='#166534';btn.style.borderColor='#166534';
-            btn.innerHTML='<i class="ti ti-check"></i>¡Agregado!';
-            setTimeout(()=>{
-              btn.style.background='#EEF2FF';btn.style.color='#3730A3';btn.style.borderColor='#C7D2FE';
-              btn.innerHTML='<i class="ti ti-qrcode"></i>Scan';
-            },1500);
-            return;
-          }
+    const hints = new Map();
+    hints.set(0,[2,11,8,4]); // CODE_128, QR_CODE, CODE_39, EAN_13
+    hints.set(3, true); // TRY_HARDER
+    window._scannerVenta = new ZXingBrowser.BrowserMultiFormatReader(hints);
+    window._scannerVenta.decodeFromVideoDevice(null, 'venta-video', (result, err) => {
+      if(!ventaScannerActive) return;
+      if(result){
+        const id = result.getText().split('|')[0].trim();
+        const idx = inventario.findIndex(x=>x.id===id);
+        if(idx>=0){
+          detenerScannerVenta();
+          agregarAlCarrito(idx);
+          const btn = document.getElementById('venta-qr-btn');
+          btn.style.cssText='flex-shrink:0;padding:8px 10px;border-radius:var(--radius-sm);border:1.5px solid #166534;background:#DCFCE7;color:#166534;cursor:pointer;font-size:12px;font-weight:600;display:flex;align-items:center;gap:4px';
+          btn.innerHTML='<i class="ti ti-check"></i>¡Agregado!';
+          setTimeout(()=>{
+            btn.style.cssText='flex-shrink:0;padding:8px 10px;border-radius:var(--radius-sm);border:1.5px solid #C7D2FE;background:#EEF2FF;color:#3730A3;cursor:pointer;font-size:12px;font-weight:600;display:flex;align-items:center;gap:4px';
+            btn.innerHTML='<i class="ti ti-qrcode"></i>Scan';
+          },1500);
         }
       }
-    } catch(e){}
-  }
-  ventaScanInterval = requestAnimationFrame(escanearFrameVenta);
+    });
+  } catch(e){ alert('No se pudo acceder a la cámara: '+e.message); }
 }
 
 function detenerScannerVenta(){
   ventaScannerActive = false;
-  if(ventaScanInterval) cancelAnimationFrame(ventaScanInterval);
-  const video = document.getElementById('venta-video');
-  if(video.srcObject) video.srcObject.getTracks().forEach(t=>t.stop());
+  if(window._scannerVenta){ try{window._scannerVenta.reset();}catch(e){} window._scannerVenta=null; }
   document.getElementById('venta-scanner-blq').style.display='none';
   document.getElementById('venta-qr-btn').style.display='flex';
 }
@@ -2997,67 +2960,28 @@ async function cargarConteoSheets(){
 
 // ── ESCÁNER QR ──
 async function iniciarScanner(){
-  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
-    alert('Tu navegador no soporta acceso a la cámara. Usa la búsqueda manual.');return;
-  }
   try{
-    const stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
-    const video = document.getElementById('cnt-video');
-    video.srcObject = stream;
-    await video.play();
-    if(window.ZXing){
-      window._zxingConteo = new ZXing.MultiFormatReader();
-      const hints = new Map();
-      hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS,[
-        ZXing.BarcodeFormat.CODE_128,
-        ZXing.BarcodeFormat.QR_CODE,
-        ZXing.BarcodeFormat.EAN_13,
-        ZXing.BarcodeFormat.CODE_39
-      ]);
-      window._zxingConteo.setHints(hints);
-    }
     document.getElementById('cnt-scanner-blq').style.display='flex';
     document.getElementById('cnt-scan-btn').style.display='none';
     conteoScannerActive = true;
-    escanearFrame();
-  } catch(e){
-    alert('No se pudo acceder a la cámara: '+e.message);
-  }
-}
-
-function escanearFrame(){
-  if(!conteoScannerActive) return;
-  const video = document.getElementById('cnt-video');
-  const canvas = document.getElementById('cnt-canvas');
-  if(video.readyState === video.HAVE_ENOUGH_DATA){
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(video,0,0,canvas.width,canvas.height);
-    try{
-      if(window._zxingConteo){
-        const result = window._zxingConteo.decodeFromCanvas(canvas);
-        if(result){
-          const txt = result.getText();
-          const id = txt.split('|')[0].trim();
-          const p = inventario.find(x=>x.id===id);
-          if(p){
-            detenerScanner();
-            selConteoProducto(p);
-            return;
-          }
-        }
+    const hints = new Map();
+    hints.set(0,[2,11,8,4]);
+    hints.set(3, true);
+    window._scannerConteo = new ZXingBrowser.BrowserMultiFormatReader(hints);
+    window._scannerConteo.decodeFromVideoDevice(null, 'cnt-video', (result, err) => {
+      if(!conteoScannerActive) return;
+      if(result){
+        const id = result.getText().split('|')[0].trim();
+        const p = inventario.find(x=>x.id===id);
+        if(p){ detenerScanner(); selConteoProducto(p); }
       }
-    } catch(e){}
-  }
-  conteoScanInterval = requestAnimationFrame(escanearFrame);
+    });
+  } catch(e){ alert('No se pudo acceder a la cámara: '+e.message); }
 }
 
 function detenerScanner(){
   conteoScannerActive = false;
-  if(conteoScanInterval) cancelAnimationFrame(conteoScanInterval);
-  const video = document.getElementById('cnt-video');
-  if(video.srcObject) video.srcObject.getTracks().forEach(t=>t.stop());
+  if(window._scannerConteo){ try{window._scannerConteo.reset();}catch(e){} window._scannerConteo=null; }
   document.getElementById('cnt-scanner-blq').style.display='none';
   document.getElementById('cnt-scan-btn').style.display='block';
 }
