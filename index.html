@@ -262,7 +262,7 @@ textarea{resize:none;font-family:inherit}
       <div class="metric"><div class="ml">Productos</div><div class="mv" id="m-pr">0</div></div>
       <div class="metric"><div class="ml">Stock bajo</div><div class="mv pink" id="m-lw">0</div></div>
     </div>
-    <div class="sw"><i class="ti ti-search"></i><input type="text" id="binv" placeholder="Buscar por nombre, código o marca..." oninput="debouncedRenderInv()"></div>
+    <div style="display:flex;gap:6px;align-items:center"><div class="sw" style="flex:1"><i class="ti ti-search"></i><input type="text" id="binv" placeholder="Buscar por nombre, código o marca..." oninput="debouncedRenderInv()"></div><button onclick="iniciarScannerGenerico('binv','debouncedRenderInv')" style="flex-shrink:0;padding:7px 10px;border-radius:var(--radius-sm);border:1.5px solid #C7D2FE;background:#EEF2FF;color:#3730A3;cursor:pointer;font-size:12px"><i class="ti ti-barcode"></i></button></div>
     <div class="card" id="lista-inv"><div class="loading"><div class="spinner"></div>Cargando inventario...</div></div>
     <button class="sec-btn" onclick="expInv()"><i class="ti ti-file-spreadsheet"></i>Exportar inventario a Excel</button>
     <div id="blq-etiquetas-inv" style="display:none;gap:6px;flex-direction:column">
@@ -277,7 +277,7 @@ textarea{resize:none;font-family:inherit}
       </div>
       <div class="fg">
         <div class="fl">Buscar producto</div>
-        <div class="sw"><i class="ti ti-search"></i><input type="text" id="rep-busq" placeholder="Buscar por nombre, código o marca..." oninput="buscarRepos()"></div>
+        <div style="display:flex;gap:6px;align-items:center"><div class="sw" style="flex:1"><i class="ti ti-search"></i><input type="text" id="rep-busq" placeholder="Buscar por nombre, código o marca..." oninput="buscarRepos()"></div><button onclick="iniciarScannerGenerico('rep-busq','buscarRepos')" style="flex-shrink:0;padding:7px 10px;border-radius:var(--radius-sm);border:1.5px solid #C7D2FE;background:#EEF2FF;color:#3730A3;cursor:pointer;font-size:12px"><i class="ti ti-barcode"></i></button></div>
         <div id="rep-res" style="display:none;background:var(--bg-primary);border:1px solid var(--border);border-radius:var(--radius-sm);margin-top:4px;max-height:120px;overflow-y:auto;padding:3px 8px"></div>
       </div>
       <div id="rep-selblq" style="display:none;background:var(--bg-primary);border-radius:var(--radius-sm);padding:8px 10px;font-size:11px;border:1px solid var(--border)">
@@ -310,7 +310,7 @@ textarea{resize:none;font-family:inherit}
       </div>
       <div class="fg">
         <div class="fl">Buscar producto</div>
-        <div class="sw"><i class="ti ti-search"></i><input type="text" id="cnt-busq" placeholder="Buscar por nombre, código o marca..." oninput="buscarConteo()"></div>
+        <div style="display:flex;gap:6px;align-items:center"><div class="sw" style="flex:1"><i class="ti ti-search"></i><input type="text" id="cnt-busq" placeholder="Buscar por nombre, código o marca..." oninput="buscarConteo()"></div><button onclick="iniciarScannerGenerico('cnt-busq','buscarConteo')" style="flex-shrink:0;padding:7px 10px;border-radius:var(--radius-sm);border:1.5px solid #C7D2FE;background:#EEF2FF;color:#3730A3;cursor:pointer;font-size:12px"><i class="ti ti-barcode"></i></button></div>
         <div id="cnt-res" style="display:none;background:var(--bg-primary);border:1px solid var(--border);border-radius:var(--radius-sm);margin-top:4px;max-height:150px;overflow-y:auto;padding:3px 8px"></div>
       </div>
       <div id="cnt-selblq" style="display:none;background:var(--bg-primary);border-radius:var(--radius-sm);padding:10px;font-size:11px;border:1px solid var(--border);flex-direction:column;gap:6px">
@@ -895,6 +895,23 @@ textarea{resize:none;font-family:inherit}
     </div>
 
     <div class="toast terr" id="t-edr-err">Selecciona un rango de fechas válido</div>
+  </div>
+</div>
+
+<!-- MODAL ESCANER GENERICO -->
+<div class="modal-bg" id="m-scanner-gen">
+  <div class="modal">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div class="mt"><i class="ti ti-barcode"></i> Escanear código</div>
+      <button onclick="cerrarScannerGenerico()" style="background:none;border:none;cursor:pointer;font-size:18px"><i class="ti ti-x"></i></button>
+    </div>
+    <div style="background:#1a1a2e;border-radius:var(--radius-sm);overflow:hidden">
+      <div style="text-align:center;color:#fff;font-size:11px;font-weight:600;padding:6px;background:rgba(99,102,241,0.8)">
+        <i class="ti ti-barcode"></i> Apunta el código de barras al recuadro
+      </div>
+      <div id="scanner-gen-video" style="width:100%"></div>
+    </div>
+    <button class="red-btn" style="font-size:13px;padding:10px" onclick="cerrarScannerGenerico()"><i class="ti ti-x"></i> Cerrar cámara</button>
   </div>
 </div>
 
@@ -2942,8 +2959,10 @@ async function iniciarScannerVenta(){
       (txt)=>{
         if(!ventaScannerActive) return;
         const raw=txt.trim();
-        const id=raw.split('|')[0].trim().toUpperCase();
-        const idx=inventario.findIndex(x=>x.id.toUpperCase()===id);
+        // Try exact match first, then partial
+        let idx=inventario.findIndex(x=>x.id===raw);
+        if(idx<0) idx=inventario.findIndex(x=>x.id===raw.toUpperCase());
+        if(idx<0) idx=inventario.findIndex(x=>raw.includes(x.id));
         if(idx>=0){
           ventaScannerActive=false;
           detenerScannerVenta();
@@ -2956,7 +2975,7 @@ async function iniciarScannerVenta(){
             btn.innerHTML='<i class="ti ti-qrcode"></i>Scan';
           },1500);
         } else {
-          showSync('Código '+id+' no encontrado en inventario');
+          showSync('⚠ Leído: "'+raw+'" — no encontrado en inventario');
         }
       },
       ()=>{}
@@ -3022,10 +3041,12 @@ async function iniciarScanner(){
        ]},
       (txt)=>{
         if(!conteoScannerActive) return;
-        const id=txt.trim().split('|')[0].trim().toUpperCase();
-        const p=inventario.find(x=>x.id.toUpperCase()===id);
+        const raw=txt.trim();
+        let p=inventario.find(x=>x.id===raw);
+        if(!p) p=inventario.find(x=>x.id===raw.toUpperCase());
+        if(!p) p=inventario.find(x=>raw.includes(x.id));
         if(p){conteoScannerActive=false;detenerScanner();selConteoProducto(p);}
-        else showSync('Código '+id+' no encontrado en inventario');
+        else showSync('⚠ Leído: "'+raw+'" — no encontrado en inventario');
       },
       ()=>{}
     );
@@ -3354,8 +3375,61 @@ async function marcarComoImpreso(ids){
 
 
 // ═══════════════════════════════════════════════════
-// SELECCIÓN DE ETIQUETAS A IMPRIMIR
+// ESCANER GENERICO (para cualquier campo de busqueda)
 // ═══════════════════════════════════════════════════
+let _scannerGenTargetInput = null;
+let _scannerGenCallback = null;
+
+async function iniciarScannerGenerico(inputId, callbackFn){
+  _scannerGenTargetInput = inputId;
+  _scannerGenCallback = callbackFn;
+  abrirModal('m-scanner-gen');
+  try{
+    if(window._scannerGen){ try{await window._scannerGen.stop();}catch(e){} }
+    document.getElementById('scanner-gen-video').innerHTML='';
+    window._scannerGen = new Html5Qrcode('scanner-gen-video');
+    await window._scannerGen.start(
+      {facingMode:'environment'},
+      {fps:15, qrbox:{width:280,height:120},
+       formatsToSupport:[
+         Html5QrcodeSupportedFormats.CODE_128,
+         Html5QrcodeSupportedFormats.CODE_39,
+         Html5QrcodeSupportedFormats.QR_CODE,
+         Html5QrcodeSupportedFormats.EAN_13
+       ]},
+      (txt)=>{
+        const raw=txt.trim();
+        let id=raw;
+        // Try to find product ID in scanned text
+        let p=inventario.find(x=>x.id===raw);
+        if(!p) p=inventario.find(x=>raw.includes(x.id));
+        if(p) id=p.id;
+        // Set the value in the target input
+        const input=document.getElementById(_scannerGenTargetInput);
+        if(input){
+          input.value=id;
+          input.dispatchEvent(new Event('input'));
+        }
+        // Run callback
+        if(_scannerGenCallback && window[_scannerGenCallback]) window[_scannerGenCallback]();
+        cerrarScannerGenerico();
+      },
+      ()=>{}
+    );
+  }catch(e){ alert('No se pudo acceder a la cámara: '+e.message); cerrarScannerGenerico(); }
+}
+
+function cerrarScannerGenerico(){
+  if(window._scannerGen){
+    window._scannerGen.stop().then(()=>{
+      window._scannerGen.clear();
+      window._scannerGen=null;
+    }).catch(()=>{window._scannerGen=null;});
+  }
+  cerrarModal('m-scanner-gen');
+}
+
+
 let selEtqMap = {};
 
 function abrirSeleccionEtiquetas(){
