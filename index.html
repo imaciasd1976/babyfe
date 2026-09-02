@@ -1921,7 +1921,7 @@ function renderInvChunk(f, start, size, el){
         (p.stock<=3?'<span class="badge badge-low">bajo</span>':'')+
         (rol==='admin'?'<br><div style="display:flex;gap:4px;margin-top:4px;justify-content:flex-end">'+
           '<button onclick="abrirEditProd(\''+p.id+'\')" style="font-size:10px;padding:2px 7px;border-radius:20px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-secondary);cursor:pointer"><i class="ti ti-pencil"></i> Editar</button>'+
-          '<button onclick="abrirColaQR(\''+p.id+'\')" style="font-size:10px;padding:2px 7px;border-radius:20px;border:1px solid #C7D2FE;background:#EEF2FF;color:#3730A3;cursor:pointer"><i class="ti ti-qrcode"></i> QR</button>'+
+          '<button onclick="agregarEtiquetaPendiente(\''+p.id+'\')" style="font-size:10px;padding:2px 7px;border-radius:20px;border:1px solid #C7D2FE;background:#EEF2FF;color:#3730A3;cursor:pointer"><i class="ti ti-tag"></i> Etiqueta</button>'+
         '</div>':'')+
       '</div>';
     frag.appendChild(div);
@@ -3439,51 +3439,48 @@ function imprimirEtiquetasRapido(items){
     const talla=p.talla||'—';
     const precio='$'+p.precio.toFixed(2);
     const caract=p.caract&&p.caract!=='Sin especificaciones'?p.caract:'';
+    const uid='bc_'+p.id+'_'+Math.random().toString(36).slice(2,7);
     const etq=`<div class="etq">
       <div class="r1"><b>${nombre}</b></div>
       <div class="r2">${marca}</div>
       <div class="r3">
         <div class="r3l">${genero}</div>
-        <div class="r3c"><div class="bc">${p.id}</div><div class="cid">${p.id}</div></div>
+        <div class="r3c">
+          <svg id="${uid}" class="bcsvg"></svg>
+          <div class="cid">${p.id}</div>
+        </div>
         <div class="r3r">${talla}</div>
         <div class="r3p">${precio}</div>
       </div>
       ${caract?`<div class="r4">${caract}</div>`:''}
     </div>`;
-    for(let i=0;i<item.qty;i++) etiquetas.push(etq);
+    for(let i=0;i<item.qty;i++) etiquetas.push({html:etq,id:p.id,uid});
   });
 
-  const css=`
-    *{margin:0;padding:0;box-sizing:border-box}
-    body{font-family:Arial,sans-serif}
-    .grid{display:grid;grid-template-columns:repeat(4,47mm);gap:1.5mm;padding:4mm}
-    .etq{width:47mm;border:0.8px solid #000;padding:1.5mm;display:flex;flex-direction:column;gap:0.8mm;page-break-inside:avoid}
-    .r1{font-size:7pt;font-weight:700;line-height:1.2;word-break:break-word}
-    .r2{font-size:5.5pt;color:#222;line-height:1.2}
-    .r3{display:grid;grid-template-columns:auto 1fr auto;grid-template-rows:auto auto;gap:0 2mm;align-items:center}
-    .r3l{font-size:5.5pt;grid-column:1;grid-row:1;white-space:nowrap}
-    .r3c{grid-column:2;grid-row:1/3;text-align:center}
-    .r3r{font-size:5.5pt;grid-column:3;grid-row:1;white-space:nowrap;text-align:right}
-    .r3p{font-size:8pt;font-weight:700;grid-column:3;grid-row:2;text-align:right}
-    .bc{font-family:'Libre Barcode 128',cursive;font-size:30pt;line-height:1;letter-spacing:-1px}
-    .cid{font-size:6.5pt;font-weight:700;color:#000;text-align:center;margin-top:0.3mm;letter-spacing:1px}
-    .r4{font-size:4.5pt;color:#444;border-top:0.4px solid #ccc;padding-top:0.5mm;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-    @media print{
-      @page{margin:5mm;size:A4}
-      body{-webkit-print-color-adjust:exact;print-color-adjust:exact}
-    }`;
+  const css=`*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif}.grid{display:grid;grid-template-columns:repeat(4,47mm);gap:1.5mm;padding:4mm}.etq{width:47mm;border:0.8px solid #000;padding:1.5mm;display:flex;flex-direction:column;gap:0.8mm;page-break-inside:avoid}.r1{font-size:7pt;font-weight:700;line-height:1.2;word-break:break-word}.r2{font-size:5.5pt;color:#222}.r3{display:grid;grid-template-columns:auto 1fr auto;grid-template-rows:auto auto;gap:0 1.5mm;align-items:center}.r3l{font-size:5.5pt;grid-column:1;grid-row:1;white-space:nowrap}.r3c{grid-column:2;grid-row:1/3;text-align:center}.r3r{font-size:5.5pt;grid-column:3;grid-row:1;white-space:nowrap;text-align:right}.r3p{font-size:8pt;font-weight:700;grid-column:3;grid-row:2;text-align:right}.bcsvg{width:100%;height:18mm}.cid{font-size:6.5pt;font-weight:700;color:#000;text-align:center;margin-top:0.3mm;letter-spacing:1px}.r4{font-size:4.5pt;color:#444;border-top:0.4px solid #ccc;padding-top:0.5mm;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}@media print{@page{margin:4mm;size:A4}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}`;
 
   const BATCH=40;
   const totalLotes=Math.ceil(etiquetas.length/BATCH);
   for(let lote=0;lote<totalLotes;lote++){
     const slice=etiquetas.slice(lote*BATCH,(lote+1)*BATCH);
-    const html=`<!DOCTYPE html><html><head><meta charset="UTF-8">
-    <title>Etiquetas ${lote+1}/${totalLotes}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Libre+Barcode+128&display=swap" rel="stylesheet">
+    // Pad last batch to fill complete A4 page
+    while(slice.length<BATCH) slice.push({html:'<div class="etq" style="border:0.4px solid #eee;background:#fafafa"></div>',id:null,uid:null});
+    const gridHtml=slice.map(e=>e.html).join('');
+    const barcodeData=JSON.stringify(slice.filter(e=>e.id).map(e=>({uid:e.uid,id:e.id})));
+    const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Etiquetas ${lote+1}/${totalLotes}</title>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"><\/script>
     <style>${css}</style></head><body>
-    <div class="grid">${slice.join('')}</div>
-    <script>document.fonts.ready.then(function(){setTimeout(function(){window.print();},500);});<\/script>
-    </body></html>`;
+    <div class="grid">${gridHtml}</div>
+    <script>
+      var data=${barcodeData};
+      window.onload=function(){
+        data.forEach(function(item){
+          var el=document.getElementById(item.uid);
+          if(el){try{JsBarcode(el,item.id,{format:'CODE128',width:1.8,height:50,displayValue:false,margin:2,background:'#ffffff',lineColor:'#000000'});}catch(e){}}
+        });
+        setTimeout(function(){window.print();},700);
+      };
+    <\/script></body></html>`;
     const win=window.open('','_blank');
     if(win){win.document.write(html);win.document.close();}
     else{alert('Permite ventanas emergentes. Lote '+(lote+1)+' de '+totalLotes);break;}
@@ -3568,8 +3565,23 @@ function imprimirReimp(){
 
 let qrCola = []; // [{id, qty}]
 
+function agregarEtiquetaPendiente(id){
+  const p=inventario.find(x=>x.id===id);
+  if(!p) return;
+  const existe=qrCola.find(x=>x.id===id);
+  if(existe){
+    existe.qty++;
+    showSync('🏷 '+p.nombre+': '+ existe.qty+' etiquetas en cola');
+  } else {
+    qrCola.push({id,qty:1});
+    showSync('🏷 '+p.nombre+' agregado a cola de etiquetas');
+  }
+  const badge=document.getElementById('badge-pendientes');
+  if(badge) badge.textContent=qrCola.reduce((s,x)=>s+x.qty,0);
+}
+
+
 function abrirColaQR(id){
-  // Si viene desde un producto específico, lo pre-agrega
   if(id){
     const p=inventario.find(x=>x.id===id);
     if(p) agregarAColaQR(p.id);
