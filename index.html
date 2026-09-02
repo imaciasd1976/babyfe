@@ -2946,6 +2946,7 @@ async function iniciarScannerVenta(){
   ventaScannerActive=true;
   try{
     if(window._scannerVenta){try{await window._scannerVenta.stop();}catch(e){}}
+    document.getElementById('venta-video').innerHTML='';
     window._scannerVenta = new Html5Qrcode('venta-video');
     await window._scannerVenta.start(
       {facingMode:'environment'},
@@ -2959,23 +2960,18 @@ async function iniciarScannerVenta(){
       (txt)=>{
         if(!ventaScannerActive) return;
         const raw=txt.trim();
-        // Try exact match first, then partial
+        // Try multiple matching strategies
         let idx=inventario.findIndex(x=>x.id===raw);
         if(idx<0) idx=inventario.findIndex(x=>x.id===raw.toUpperCase());
+        if(idx<0) idx=inventario.findIndex(x=>raw.endsWith(x.id));
         if(idx<0) idx=inventario.findIndex(x=>raw.includes(x.id));
         if(idx>=0){
           ventaScannerActive=false;
           detenerScannerVenta();
           agregarAlCarrito(idx);
-          const btn=document.getElementById('venta-qr-btn');
-          btn.style.background='#DCFCE7';btn.style.color='#166534';btn.style.borderColor='#166534';
-          btn.innerHTML='<i class="ti ti-check"></i> ¡Escaneado!';
-          setTimeout(()=>{
-            btn.style.background='#EEF2FF';btn.style.color='#3730A3';btn.style.borderColor='#C7D2FE';
-            btn.innerHTML='<i class="ti ti-qrcode"></i>Scan';
-          },1500);
+          showSync('✓ '+inventario[idx].nombre+' agregado al carrito');
         } else {
-          showSync('⚠ Leído: "'+raw+'" — no encontrado en inventario');
+          showSync('⚠ Leído: "'+raw+'" — no encontrado');
         }
       },
       ()=>{}
