@@ -2925,40 +2925,41 @@ let ventaScannerActive = false;
 let ventaScanInterval = null;
 
 async function iniciarScannerVenta(){
+  document.getElementById('venta-scanner-blq').style.display='flex';
+  document.getElementById('venta-qr-btn').style.display='none';
+  ventaScannerActive = true;
   try{
-    document.getElementById('venta-scanner-blq').style.display='flex';
-    document.getElementById('venta-qr-btn').style.display='none';
-    ventaScannerActive = true;
-    if(!window._scannerVenta){
-      window._scannerVenta = new Html5Qrcode('venta-video');
-    }
-    await window._scannerVenta.start(
-      {facingMode:'environment'},
-      {fps:10, qrbox:{width:250,height:150}, supportedScanTypes:[Html5QrcodeScanType.SCAN_TYPE_CAMERA]},
-      (txt)=>{
-        const id = txt.split('|')[0].trim();
-        const idx = inventario.findIndex(x=>x.id===id);
-        if(idx>=0){
-          detenerScannerVenta();
-          agregarAlCarrito(idx);
-          const btn = document.getElementById('venta-qr-btn');
-          btn.style.background='#DCFCE7';btn.style.color='#166534';btn.style.borderColor='#166534';
-          btn.innerHTML='<i class="ti ti-check"></i>¡Agregado!';
-          setTimeout(()=>{
-            btn.style.background='#EEF2FF';btn.style.color='#3730A3';btn.style.borderColor='#C7D2FE';
-            btn.innerHTML='<i class="ti ti-qrcode"></i>Scan';
-          },1500);
-        }
-      },
-      ()=>{}
-    );
-  } catch(e){ alert('No se pudo acceder a la cámara: '+e.message); detenerScannerVenta(); }
+    if(window._scannerVenta){ try{await window._scannerVenta.stop();}catch(e){} window._scannerVenta=null; }
+    document.getElementById('venta-video').innerHTML='';
+    window._scannerVenta = new Html5QrcodeScanner('venta-video',
+      {fps:15, qrbox:{width:220,height:100}, rememberLastUsedCamera:true,
+       supportedScanTypes:[Html5QrcodeScanType.SCAN_TYPE_CAMERA],
+       formatsToSupport:[Html5QrcodeSupportedFormats.CODE_128, Html5QrcodeSupportedFormats.QR_CODE,
+         Html5QrcodeSupportedFormats.CODE_39, Html5QrcodeSupportedFormats.EAN_13]},
+      false);
+    window._scannerVenta.render((txt)=>{
+      const id=txt.split('|')[0].trim();
+      const idx=inventario.findIndex(x=>x.id===id);
+      if(idx>=0){
+        detenerScannerVenta();
+        agregarAlCarrito(idx);
+        const btn=document.getElementById('venta-qr-btn');
+        btn.style.background='#DCFCE7';btn.style.color='#166534';btn.style.borderColor='#166534';
+        btn.innerHTML='<i class="ti ti-check"></i>¡Agregado!';
+        setTimeout(()=>{
+          btn.style.background='#EEF2FF';btn.style.color='#3730A3';btn.style.borderColor='#C7D2FE';
+          btn.innerHTML='<i class="ti ti-qrcode"></i>Scan';
+        },1500);
+      }
+    }, ()=>{});
+  }catch(e){alert('Error al iniciar cámara: '+e.message);detenerScannerVenta();}
 }
 
 function detenerScannerVenta(){
-  ventaScannerActive = false;
+  ventaScannerActive=false;
   if(window._scannerVenta){
-    window._scannerVenta.stop().catch(()=>{});
+    try{window._scannerVenta.clear();}catch(e){}
+    window._scannerVenta=null;
   }
   document.getElementById('venta-scanner-blq').style.display='none';
   document.getElementById('venta-qr-btn').style.display='flex';
@@ -2993,30 +2994,31 @@ async function cargarConteoSheets(){
 
 // ── ESCÁNER QR ──
 async function iniciarScanner(){
+  document.getElementById('cnt-scanner-blq').style.display='flex';
+  document.getElementById('cnt-scan-btn').style.display='none';
+  conteoScannerActive=true;
   try{
-    document.getElementById('cnt-scanner-blq').style.display='flex';
-    document.getElementById('cnt-scan-btn').style.display='none';
-    conteoScannerActive = true;
-    if(!window._scannerConteo){
-      window._scannerConteo = new Html5Qrcode('cnt-video');
-    }
-    await window._scannerConteo.start(
-      {facingMode:'environment'},
-      {fps:10, qrbox:{width:250,height:150}},
-      (txt)=>{
-        const id = txt.split('|')[0].trim();
-        const p = inventario.find(x=>x.id===id);
-        if(p){ detenerScanner(); selConteoProducto(p); }
-      },
-      ()=>{}
-    );
-  } catch(e){ alert('No se pudo acceder a la cámara: '+e.message); detenerScanner(); }
+    if(window._scannerConteo){ try{await window._scannerConteo.stop();}catch(e){} window._scannerConteo=null; }
+    document.getElementById('cnt-video').innerHTML='';
+    window._scannerConteo = new Html5QrcodeScanner('cnt-video',
+      {fps:15, qrbox:{width:220,height:100}, rememberLastUsedCamera:true,
+       supportedScanTypes:[Html5QrcodeScanType.SCAN_TYPE_CAMERA],
+       formatsToSupport:[Html5QrcodeSupportedFormats.CODE_128, Html5QrcodeSupportedFormats.QR_CODE,
+         Html5QrcodeSupportedFormats.CODE_39, Html5QrcodeSupportedFormats.EAN_13]},
+      false);
+    window._scannerConteo.render((txt)=>{
+      const id=txt.split('|')[0].trim();
+      const p=inventario.find(x=>x.id===id);
+      if(p){ detenerScanner(); selConteoProducto(p); }
+    }, ()=>{});
+  }catch(e){alert('Error al iniciar cámara: '+e.message);detenerScanner();}
 }
 
 function detenerScanner(){
-  conteoScannerActive = false;
+  conteoScannerActive=false;
   if(window._scannerConteo){
-    window._scannerConteo.stop().catch(()=>{});
+    try{window._scannerConteo.clear();}catch(e){}
+    window._scannerConteo=null;
   }
   document.getElementById('cnt-scanner-blq').style.display='none';
   document.getElementById('cnt-scan-btn').style.display='block';
