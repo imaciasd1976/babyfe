@@ -2955,20 +2955,24 @@ async function iniciarScannerVenta(){
        formatsToSupport:[Html5QrcodeSupportedFormats.CODE_128,Html5QrcodeSupportedFormats.CODE_39,Html5QrcodeSupportedFormats.QR_CODE,Html5QrcodeSupportedFormats.EAN_13]},
       (txt)=>{
         if(procesado||!ventaScannerActive) return;
+        procesado=true;
+        ventaScannerActive=false;
         const raw=txt.trim();
-        let idx=inventario.findIndex(x=>x.id===raw);
-        if(idx<0) idx=inventario.findIndex(x=>x.id===raw.toUpperCase());
-        if(idx<0) idx=inventario.findIndex(x=>raw.endsWith(x.id));
-        if(idx<0) idx=inventario.findIndex(x=>raw.includes(x.id));
-        if(idx>=0){
-          procesado=true;
-          ventaScannerActive=false;
-          detenerScannerVenta();
-          agregarAlCarrito(idx);
-          showSync('✓ '+inventario[idx].nombre+' agregado al carrito');
-        } else {
-          showSync('⚠ Leído: "'+raw+'" — no encontrado');
-        }
+        detenerScannerVenta();
+        // Show what was read
+        setTimeout(()=>{
+          let idx=inventario.findIndex(x=>x.id===raw);
+          if(idx<0) idx=inventario.findIndex(x=>x.id===raw.toUpperCase());
+          if(idx<0) idx=inventario.findIndex(x=>raw.endsWith(x.id));
+          if(idx<0) idx=inventario.findIndex(x=>raw.includes(x.id));
+          alert('Leído: ['+raw+'] | match: '+idx+(idx>=0?' = '+inventario[idx].id:''));
+          if(idx>=0){
+            agregarAlCarrito(idx);
+            showSync('✓ '+inventario[idx].nombre+' agregado al carrito');
+          } else {
+            showSync('⚠ No encontrado: "'+raw+'"');
+          }
+        },300);
       },
       ()=>{}
     );
