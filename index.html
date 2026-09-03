@@ -2959,18 +2959,13 @@ async function iniciarScannerVenta(){
         ventaScannerActive=false;
         const raw=txt.trim();
         detenerScannerVenta();
-        // Show what was read
+        // Put scanned code in search field and trigger search — same as typing
         setTimeout(()=>{
-          let idx=inventario.findIndex(x=>x.id===raw);
-          if(idx<0) idx=inventario.findIndex(x=>x.id===raw.toUpperCase());
-          if(idx<0) idx=inventario.findIndex(x=>raw.endsWith(x.id));
-          if(idx<0) idx=inventario.findIndex(x=>raw.includes(x.id));
-          alert('Leído: ['+raw+'] | match: '+idx+(idx>=0?' = '+inventario[idx].id:''));
-          if(idx>=0){
-            agregarAlCarrito(idx);
-            showSync('✓ '+inventario[idx].nombre+' agregado al carrito');
-          } else {
-            showSync('⚠ No encontrado: "'+raw+'"');
+          const input=document.getElementById('bprod');
+          if(input){
+            input.value=raw;
+            input.dispatchEvent(new Event('input'));
+            debouncedBuscar();
           }
         },300);
       },
