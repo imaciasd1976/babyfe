@@ -137,7 +137,7 @@ textarea{resize:none;font-family:inherit}
     </div>
     <div class="fg" style="width:100%">
       <div class="fl">PIN de acceso</div>
-      <input type="password" id="lpin" class="pin-in" placeholder="••••" maxlength="6" oninput="updDots()" onkeydown="if(event.key==='Enter')login()">
+      <input type="password" id="lpin" class="pin-in" placeholder="----" maxlength="6" oninput="updDots()" onkeydown="if(event.key==='Enter')login()">
       <div style="display:flex;gap:5px;justify-content:center;margin-top:5px">
         <div class="pdot" id="ld0"></div><div class="pdot" id="ld1"></div>
         <div class="pdot" id="ld2"></div><div class="pdot" id="ld3"></div>
@@ -146,7 +146,7 @@ textarea{resize:none;font-family:inherit}
     </div>
     <button class="add-btn" style="width:100%" onclick="login()"><i class="ti ti-login"></i>Entrar</button>
     <div class="toast terr" id="t-login" style="width:100%">PIN incorrecto</div>
-    <div style="font-size:10px;color:var(--text-tertiary);text-align:center">Admin PIN: 1234 &nbsp;·&nbsp; Operador PIN: 0000</div>
+    <div style="font-size:10px;color:var(--text-tertiary);text-align:center">Admin PIN: 1234 &nbsp;.&nbsp; Operador PIN: 0000</div>
   </div>
 </div>
 
@@ -251,7 +251,7 @@ textarea{resize:none;font-family:inherit}
       <div class="tl" style="font-size:15px;font-weight:700"><span>TOTAL</span><span style="color:var(--pink)" id="v-tot">$0.00</span></div>
       <button class="add-btn" onclick="registrarVenta()"><i class="ti ti-check"></i>Registrar venta</button>
     </div>
-    <div class="toast tok" id="t-v">✓ Venta guardada en la nube</div>
+    <div class="toast tok" id="t-v">OK Venta guardada en la nube</div>
     <div class="toast terr" id="t-verr">Agrega al menos un producto</div>
     <div class="toast twarn" id="t-vwarn">Guardando en la nube...</div>
   </div>
@@ -296,7 +296,7 @@ textarea{resize:none;font-family:inherit}
         Total compra: <strong style="color:var(--orange)" id="rep-total">$0.00</strong>
       </div>
       <button class="add-btn" style="background:var(--orange)" onclick="registrarRepos()"><i class="ti ti-plus"></i>Registrar reposición</button>
-      <div class="toast tok" id="t-repos">✓ Reposición registrada correctamente</div>
+      <div class="toast tok" id="t-repos">OK Reposición registrada correctamente</div>
       <div class="toast terr" id="t-repos-err">Selecciona un producto y cantidad válida</div>
     </div>
 
@@ -328,9 +328,9 @@ textarea{resize:none;font-family:inherit}
         <button class="add-btn" style="background:#3730A3;flex:1" onclick="ajustarConteo()"><i class="ti ti-adjustments"></i>Ajustar stock</button>
         <button class="sec-btn" style="flex:1" onclick="limpiarConteo()"><i class="ti ti-refresh"></i>Limpiar</button>
       </div>
-      <div class="toast tok" id="t-conteo">✓ Stock ajustado correctamente</div>
+      <div class="toast tok" id="t-conteo">OK Stock ajustado correctamente</div>
       <div class="toast terr" id="t-conteo-err">Selecciona un producto e ingresa la cantidad</div>
-      <div class="toast tok" id="t-conteo-ok">✓ Stock ya está correcto, no hay diferencia</div>
+      <div class="toast tok" id="t-conteo-ok">OK Stock ya está correcto, no hay diferencia</div>
     </div>
 
     <div style="background:var(--green-light);border-radius:var(--radius);padding:11px;display:flex;flex-direction:column;gap:8px">
@@ -350,7 +350,7 @@ textarea{resize:none;font-family:inherit}
       </div>
       <input type="file" id="imp-file" accept=".xlsx,.xls" style="display:none" onchange="importarInventario(event)">
     </div>
-    <div class="toast tok" id="t-imp">✓ Inventario importado correctamente</div>
+    <div class="toast tok" id="t-imp">OK Inventario importado correctamente</div>
     <div class="toast terr" id="t-imp-err">Error al importar. Verifica el formato del archivo</div>
   </div>
 
@@ -394,7 +394,7 @@ textarea{resize:none;font-family:inherit}
           <div class="fg"><div class="fl">Monto $</div><input type="number" id="mov-monto" placeholder="0.00" min="0"></div>
         </div>
         <button class="add-btn" style="background:var(--red)" id="mov-btn" onclick="registrarMovimiento()"><i class="ti ti-plus"></i>Registrar gasto</button>
-        <div class="toast tok" id="t-mov">✓ Movimiento registrado correctamente</div>
+        <div class="toast tok" id="t-mov">OK Movimiento registrado correctamente</div>
         <div class="toast terr" id="t-mov-err">Ingresa concepto y monto válido</div>
       </div>
 
@@ -430,7 +430,7 @@ textarea{resize:none;font-family:inherit}
           <span style="color:#166534">Total retirado hoy</span>
           <span style="color:#166534" id="retiro-total">$0.00</span>
         </div>
-        <div class="toast tok" id="t-retiro">✓ Retiro registrado correctamente</div>
+        <div class="toast tok" id="t-retiro">OK Retiro registrado correctamente</div>
         <div class="toast terr" id="t-retiro-err">Ingresa un monto válido</div>
       </div>
     </div>
@@ -457,7 +457,7 @@ textarea{resize:none;font-family:inherit}
         </div>
         <div class="fg"><div class="fl">Observaciones</div><input type="text" id="cierre-obs" placeholder="Ej: Cierre tardío del 8/7"></div>
         <button class="add-btn" style="background:#D97706" onclick="cerrarCajaFecha()"><i class="ti ti-lock"></i>Registrar cierre por fecha</button>
-        <div class="toast tok" id="t-cierre-fecha">✓ Cierre registrado correctamente</div>
+        <div class="toast tok" id="t-cierre-fecha">OK Cierre registrado correctamente</div>
         <div class="toast terr" id="t-cierre-fecha-err">Ingresa fecha y monto válidos</div>
       </div>
     </div>
@@ -478,14 +478,19 @@ textarea{resize:none;font-family:inherit}
         <i class="ti ti-qrcode" style="font-size:15px;color:#3730A3"></i>Escanear código QR
       </div>
       <div id="cnt-scanner-blq" style="display:none;flex-direction:column;gap:8px">
-        <div id="cnt-video-wrap" style="border-radius:var(--radius-sm);overflow:hidden;background:#000;position:relative">
-          <div id="cnt-video" style="width:100%;"></div>
-          <canvas id="cnt-canvas" style="display:none"></canvas>
-          <div style="position:absolute;inset:0;border:2px solid #6366F1;border-radius:var(--radius-sm);pointer-events:none">
-            <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:60%;height:60%;border:2px solid #fff;border-radius:4px;opacity:0.7"></div>
+        <div style="background:#1a1a2e;border-radius:var(--radius-sm);overflow:hidden">
+          <div style="text-align:center;color:#fff;font-size:11px;font-weight:600;padding:6px;background:rgba(99,102,241,0.8)">
+            <i class="ti ti-barcode"></i> Apunta el código — se registra automáticamente
           </div>
+          <div id="cnt-video" style="width:100%;"></div>
         </div>
-        <button class="sec-btn" onclick="detenerScanner()"><i class="ti ti-x"></i>Detener cámara</button>
+        <div id="cnt-scan-log" style="max-height:120px;overflow-y:auto;background:var(--bg-secondary);border-radius:var(--radius-sm);padding:6px;font-size:10px;display:flex;flex-direction:column;gap:3px">
+          <div style="color:var(--text-secondary);text-align:center">Los productos escaneados aparecerán aquí...</div>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button id="cnt-btn-pausa" class="sec-btn" style="flex:1;background:#FEF3C7;border-color:#F59E0B;color:#D97706" onclick="pausarScannerConteo()"><i class="ti ti-player-pause"></i> Pausar y guardar</button>
+          <button class="red-btn" style="flex:1" onclick="detenerScanner()"><i class="ti ti-x"></i> Finalizar</button>
+        </div>
       </div>
       <button id="cnt-scan-btn" class="add-btn" style="background:#3730A3" onclick="iniciarScanner()"><i class="ti ti-camera"></i>Abrir cámara para escanear</button>
     </div>
@@ -514,7 +519,7 @@ textarea{resize:none;font-family:inherit}
         <input type="number" id="cnt-s-qty" placeholder="0" min="0" style="font-size:18px;font-weight:700;text-align:center">
       </div>
       <button class="add-btn" onclick="registrarConteoItem()"><i class="ti ti-check"></i>Registrar conteo</button>
-      <div class="toast tok" id="t-cnt-ok">✓ Conteo registrado correctamente</div>
+      <div class="toast tok" id="t-cnt-ok">OK Conteo registrado correctamente</div>
       <div class="toast terr" id="t-cnt-err">Ingresa una cantidad válida</div>
     </div>
 
@@ -533,7 +538,7 @@ textarea{resize:none;font-family:inherit}
           <button class="sec-btn" style="flex:1" onclick="limpiarConteoSheet()"><i class="ti ti-trash"></i>Reiniciar conteo</button>
         </div>
         <button class="sec-btn" onclick="imprimirHojaConteo()"><i class="ti ti-printer"></i>Imprimir hoja de conteo</button>
-        <div class="toast tok" id="t-cnt-ajuste">✓ Inventario actualizado correctamente</div>
+        <div class="toast tok" id="t-cnt-ajuste">OK Inventario actualizado correctamente</div>
         <div class="toast terr" id="t-cnt-ajuste-err">Error al aplicar ajustes</div>
       </div>
     </div>
@@ -549,31 +554,31 @@ textarea{resize:none;font-family:inherit}
     <div style="background:var(--bg-secondary);border-radius:var(--radius);padding:11px;display:flex;flex-direction:column;gap:8px">
       <div style="display:flex;align-items:center;gap:8px">
         <div class="pimg" style="background:var(--pink-light);color:var(--pink)"><i class="ti ti-shield"></i></div>
-        <div style="flex:1"><div style="font-size:12px;font-weight:700">Administrador</div><div style="font-size:10px;color:var(--text-secondary)" id="disp-admin">PIN: ••••</div></div>
+        <div style="flex:1"><div style="font-size:12px;font-weight:700">Administrador</div><div style="font-size:10px;color:var(--text-secondary)" id="disp-admin">PIN: ----</div></div>
         <span class="badge badge-admin">Admin</span>
       </div>
       <div class="fr">
-        <div class="fg"><div class="fl">Nuevo PIN</div><input type="password" id="na-pin" class="pin-in" placeholder="••••" maxlength="6" oninput="chkStr('na-pin','str-a')"></div>
-        <div class="fg"><div class="fl">Confirmar PIN</div><input type="password" id="ca-pin" class="pin-in" placeholder="••••" maxlength="6"></div>
+        <div class="fg"><div class="fl">Nuevo PIN</div><input type="password" id="na-pin" class="pin-in" placeholder="----" maxlength="6" oninput="chkStr('na-pin','str-a')"></div>
+        <div class="fg"><div class="fl">Confirmar PIN</div><input type="password" id="ca-pin" class="pin-in" placeholder="----" maxlength="6"></div>
       </div>
       <div class="str" id="str-a"></div>
       <button class="sec-btn" onclick="cambiarPin('admin')"><i class="ti ti-key"></i>Actualizar PIN admin</button>
-      <div class="toast tok" id="t-ap">✓ PIN admin actualizado</div>
+      <div class="toast tok" id="t-ap">OK PIN admin actualizado</div>
       <div class="toast terr" id="t-ae">PINs no coinciden (mín. 4)</div>
     </div>
     <div style="background:var(--bg-secondary);border-radius:var(--radius);padding:11px;display:flex;flex-direction:column;gap:8px">
       <div style="display:flex;align-items:center;gap:8px">
         <div class="pimg" style="background:var(--blue-light);color:var(--blue)"><i class="ti ti-user"></i></div>
-        <div style="flex:1"><div style="font-size:12px;font-weight:700">Operador</div><div style="font-size:10px;color:var(--text-secondary)" id="disp-oper">PIN: ••••</div></div>
+        <div style="flex:1"><div style="font-size:12px;font-weight:700">Operador</div><div style="font-size:10px;color:var(--text-secondary)" id="disp-oper">PIN: ----</div></div>
         <span class="badge badge-oper">Operador</span>
       </div>
       <div class="fr">
-        <div class="fg"><div class="fl">Nuevo PIN</div><input type="password" id="no-pin" class="pin-in" placeholder="••••" maxlength="6" oninput="chkStr('no-pin','str-o')"></div>
-        <div class="fg"><div class="fl">Confirmar PIN</div><input type="password" id="co-pin" class="pin-in" placeholder="••••" maxlength="6"></div>
+        <div class="fg"><div class="fl">Nuevo PIN</div><input type="password" id="no-pin" class="pin-in" placeholder="----" maxlength="6" oninput="chkStr('no-pin','str-o')"></div>
+        <div class="fg"><div class="fl">Confirmar PIN</div><input type="password" id="co-pin" class="pin-in" placeholder="----" maxlength="6"></div>
       </div>
       <div class="str" id="str-o"></div>
       <button class="sec-btn" onclick="cambiarPin('operador')"><i class="ti ti-key"></i>Actualizar PIN operador</button>
-      <div class="toast tok" id="t-op">✓ PIN operador actualizado</div>
+      <div class="toast tok" id="t-op">OK PIN operador actualizado</div>
       <div class="toast terr" id="t-oe">PINs no coinciden (mín. 4)</div>
     </div>
     <div class="slabel">Agregar producto</div>
@@ -623,9 +628,9 @@ textarea{resize:none;font-family:inherit}
         <div class="fg"><div class="fl">Proveedor</div><input type="text" id="np-prov" placeholder="Nombre del proveedor"></div>
       </div>
       <button class="add-btn" onclick="agregarProd()"><i class="ti ti-plus"></i>Agregar producto</button>
-      <div class="toast tok" id="t-prod">✓ Producto guardado correctamente en la nube</div>
+      <div class="toast tok" id="t-prod">OK Producto guardado correctamente en la nube</div>
       <div class="toast terr" id="t-prod-err">Error al guardar producto</div>
-      <div class="toast terr" id="t-prod-dup">⚠ Ya existe un producto con ese nombre</div>
+      <div class="toast terr" id="t-prod-dup">! Ya existe un producto con ese nombre</div>
     </div>
 
     <div class="slabel">Zona de peligro</div>
@@ -645,7 +650,7 @@ textarea{resize:none;font-family:inherit}
         <label style="display:flex;align-items:center;gap:8px;font-size:11px;cursor:pointer"><input type="checkbox" id="rst-productos" style="width:auto;accent-color:var(--red)"> Productos</label>
       </div>
       <button class="red-btn" onclick="confirmarReset()"><i class="ti ti-alert-triangle"></i>Resetear selección</button>
-      <div class="toast tok" id="t-rst">✓ Datos eliminados correctamente</div>
+      <div class="toast tok" id="t-rst">OK Datos eliminados correctamente</div>
       <div class="toast terr" id="t-rst-err">Error al eliminar datos</div>
       <div class="toast twarn" id="t-rst-none">Selecciona al menos una opción</div>
     </div>
@@ -660,7 +665,7 @@ textarea{resize:none;font-family:inherit}
       <button onclick="cerrarModal('m-reset')" style="background:none;border:none;cursor:pointer;color:var(--text-secondary);font-size:18px"><i class="ti ti-x"></i></button>
     </div>
     <div style="background:var(--red-light);border-radius:var(--radius-sm);padding:10px;font-size:12px;color:var(--red);line-height:1.6">
-      ⚠️ Estás a punto de borrar permanentemente los datos seleccionados de Google Sheets. Esta acción <strong>no se puede deshacer</strong>.
+      !️ Estás a punto de borrar permanentemente los datos seleccionados de Google Sheets. Esta acción <strong>no se puede deshacer</strong>.
     </div>
     <div style="font-size:11px;color:var(--text-secondary)">Se eliminarán los datos de:</div>
     <div id="rst-lista" style="font-size:12px;font-weight:700;color:var(--red);padding:4px 0;line-height:1.8"></div>
@@ -688,7 +693,7 @@ textarea{resize:none;font-family:inherit}
     <div class="fg"><div class="fl">Dirección</div><input type="text" id="cl-d" placeholder="Ej: Av. Principal 123"></div>
     <div class="fg"><div class="fl">Correo electrónico</div><input type="email" id="cl-e" placeholder="maria@email.com"></div>
     <button class="add-btn" onclick="guardarCli()"><i class="ti ti-check"></i>Guardar cliente</button>
-    <div class="toast tok" id="t-cli">✓ Cliente guardado en la nube</div>
+    <div class="toast tok" id="t-cli">OK Cliente guardado en la nube</div>
     <div class="toast terr" id="t-cli-err">Error al guardar cliente</div>
   </div>
 </div>
@@ -737,7 +742,7 @@ textarea{resize:none;font-family:inherit}
     </div>
 
     <button class="add-btn" onclick="guardarEditVenta()"><i class="ti ti-check"></i>Guardar cambios</button>
-    <div class="toast tok" id="t-ev-ok">✓ Venta actualizada correctamente</div>
+    <div class="toast tok" id="t-ev-ok">OK Venta actualizada correctamente</div>
     <div class="toast terr" id="t-ev-err">Error al actualizar venta</div>
   </div>
 </div>
@@ -774,9 +779,9 @@ textarea{resize:none;font-family:inherit}
       Margen: <strong style="color:var(--green)" id="ep-margen">0%</strong>
     </div>
     <button class="add-btn" onclick="guardarEditProd()"><i class="ti ti-check"></i>Guardar cambios</button>
-    <div class="toast tok" id="t-eprod">✓ Producto actualizado correctamente</div>
+    <div class="toast tok" id="t-eprod">OK Producto actualizado correctamente</div>
     <div class="toast terr" id="t-eprod-err">Error al actualizar producto</div>
-    <div class="toast terr" id="t-eprod-dup">⚠ Ya existe otro producto con esa combinación</div>
+    <div class="toast terr" id="t-eprod-dup">! Ya existe otro producto con esa combinación</div>
   </div>
 </div>
 
@@ -868,15 +873,15 @@ textarea{resize:none;font-family:inherit}
         <div style="font-size:11px;font-weight:700;color:var(--text-primary);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Desglose de cobros</div>
         <div class="cj" style="font-size:11px"><span style="color:var(--text-secondary)">Efectivo</span><span id="edr-ef">$0.00</span></div>
         <div class="cj" style="font-size:11px"><span style="color:var(--text-secondary)">Transferencia</span><span id="edr-tr">$0.00</span></div>
-        <div class="cj" style="font-size:11px"><span style="color:var(--text-secondary)">N° transacciones</span><span id="edr-txn">0</span></div>
+        <div class="cj" style="font-size:11px"><span style="color:var(--text-secondary)">N grados transacciones</span><span id="edr-txn">0</span></div>
       </div>
 
       <button class="sec-btn" style="margin-top:8px" onclick="exportarEDR()"><i class="ti ti-file-spreadsheet"></i>Exportar a Excel</button>
-      <div class="toast tok" id="t-edr">✓ Exportado correctamente</div>
+      <div class="toast tok" id="t-edr">OK Exportado correctamente</div>
 
       <!-- ANÁLISIS POR PRODUCTO -->
       <div style="font-size:11px;font-weight:700;color:var(--text-primary);margin-top:8px;text-transform:uppercase;letter-spacing:.5px">Análisis por producto vendido</div>
-      <div style="font-size:10px;color:var(--text-secondary);margin-bottom:4px">Costo de compra vs precio de venta · ordenado por utilidad</div>
+      <div style="font-size:10px;color:var(--text-secondary);margin-bottom:4px">Costo de compra vs precio de venta . ordenado por utilidad</div>
       <div id="edr-prod-tabla" style="max-height:280px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-sm)">
         <table style="width:100%;border-collapse:collapse;font-size:10px">
           <thead style="position:sticky;top:0;background:var(--bg-secondary)">
@@ -996,7 +1001,7 @@ textarea{resize:none;font-family:inherit}
       </label>
     </div>
     <button class="add-btn" onclick="expRango()"><i class="ti ti-file-spreadsheet"></i>Generar y descargar Excel</button>
-    <div class="toast tok" id="t-rep">✓ Reporte generado</div>
+    <div class="toast tok" id="t-rep">OK Reporte generado</div>
     <div class="toast terr" id="t-rep-err">Selecciona al menos un reporte y un rango válido</div>
   </div>
 </div>
@@ -1018,14 +1023,14 @@ textarea{resize:none;font-family:inherit}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script>
-// ═══════════════════════════════════════════════════
+// ===================================================
 // CONFIGURACIÓN — URL de tu Google Apps Script
-// ═══════════════════════════════════════════════════
+// ===================================================
 const API = 'https://script.google.com/macros/s/AKfycbzmM8otLJ-rB9WDqmvC1ws_YQcZ-OHEMhCMdO6o-5htPLeOp7Aa-Zs3hLt7ri7UNI7A/exec';
 
-// ═══════════════════════════════════════════════════
+// ===================================================
 // ESTADO LOCAL
-// ═══════════════════════════════════════════════════
+// ===================================================
 const PINS = {admin:'1234', operador:'0000'};
 
 async function loadConfig(){
@@ -1063,7 +1068,7 @@ const NAV_OPER = [
   {id:'conteo',icon:'ti-clipboard-list',lbl:'conteo'},
 ];
 
-// ── Helper: normaliza texto eliminando tildes y convirtiendo a minúsculas ──
+// -- Helper: normaliza texto eliminando tildes y convirtiendo a minúsculas --
 function norm(str){
   return String(str||'').toLowerCase()
     .normalize('NFD').replace(/[\u0300-\u036f]/g,'');
@@ -1075,7 +1080,7 @@ function toNum(v){
   if(s.includes(',')&&!s.includes('.')){
     return parseFloat(s.replace(',','.'))||0;
   }
-  // Si tiene ambos (ej: 1.234,56) → formato europeo
+  // Si tiene ambos (ej: 1.234,56) - formato europeo
   if(s.includes(',')&&s.includes('.')){
     return parseFloat(s.replace(/\./g,'').replace(',','.'))||0;
   }
@@ -1109,9 +1114,9 @@ async function sheetAppend(sheet, row) {
   return await apiCall({action:'append', sheet, row: JSON.stringify(row)});
 }
 
-// ═══════════════════════════════════════════════════
+// ===================================================
 // SINCRONIZACIÓN
-// ═══════════════════════════════════════════════════
+// ===================================================
 function showSync(msg, err=false) {
   const bar = document.getElementById('sync-bar');
   bar.textContent = msg;
@@ -1123,13 +1128,13 @@ function showSync(msg, err=false) {
 async function syncAll() {
   const icon = document.getElementById('sync-icon');
   icon.style.animation = 'spin .7s linear infinite';
-  showSync('⟳ Sincronizando...');
+  showSync(' Sincronizando...');
   try {
     await Promise.all([loadInventario(), loadVentas(), loadClientes(), loadCaja(), loadColaPendiente()]);
     lastSyncTime = new Date();
-    showSync('✓ Sincronizado — '+lastSyncTime.toLocaleTimeString('es-EC',{hour:'2-digit',minute:'2-digit'}));
+    showSync('OK Sincronizado — '+lastSyncTime.toLocaleTimeString('es-EC',{hour:'2-digit',minute:'2-digit'}));
   } catch(e) {
-    showSync('⚠ Error de conexión', true);
+    showSync('! Error de conexión', true);
   }
   icon.style.animation = '';
   updMetrics();
@@ -1302,9 +1307,9 @@ async function loadClientes() {
   updDl();
 }
 
-// ═══════════════════════════════════════════════════
+// ===================================================
 // LOGIN
-// ═══════════════════════════════════════════════════
+// ===================================================
 function selRol(r){rolSel=r;document.getElementById('rc-admin').classList.toggle('sel',r==='admin');document.getElementById('rc-oper').classList.toggle('sel',r==='operador');}
 
 // Load PINs from Sheets before login
@@ -1413,9 +1418,9 @@ function showScreen(id){
   if(id==='conteo') renderConteoScreen();
 }
 
-// ═══════════════════════════════════════════════════
+// ===================================================
 // DEBOUNCE UTILITY (prevents search firing on every keystroke)
-// ═══════════════════════════════════════════════════
+// ===================================================
 function debounce(fn, ms){
   let timer;
   return function(...args){
@@ -1426,9 +1431,9 @@ function debounce(fn, ms){
 const debouncedBuscar=debounce(buscar, 200);
 const debouncedRenderInv=debounce(renderInv, 250);
 
-// ═══════════════════════════════════════════════════
+// ===================================================
 // BÚSQUEDA Y CARRITO
-// ═══════════════════════════════════════════════════
+// ===================================================
 function buscar(){
   const q=norm(document.getElementById('bprod').value.trim());
   const el=document.getElementById('res-b');
@@ -1448,13 +1453,13 @@ function buscar(){
         '<div style="font-size:11px;font-weight:600;color:var(--text-primary)">'+p.nombre+'</div>'+
         '<div style="font-size:10px;color:var(--text-secondary);margin-top:1px">'+
           p.marca+
-          (p.talla?' · <span class="badge badge-talla">'+p.talla+'</span>':'')+
-          (p.genero?' · <span style="color:var(--blue)">'+p.genero+'</span>':'')+
+          (p.talla?' . <span class="badge badge-talla">'+p.talla+'</span>':'')+
+          (p.genero?' . <span style="color:var(--blue)">'+p.genero+'</span>':'')+
         '</div>'+
         '<div style="font-size:9px;color:var(--text-secondary);margin-top:1px">'+
-          (p.caract&&p.caract!=='Sin especificaciones'?p.caract+' · ':'')+
+          (p.caract&&p.caract!=='Sin especificaciones'?p.caract+' . ':'')+
           '<span style="font-family:monospace">'+p.id+'</span>'+
-          ' · '+p.stock+' uds.'+
+          ' . '+p.stock+' uds.'+
         '</div>'+
       '</div>'+
       '<span style="color:var(--pink);font-weight:700;font-size:13px;white-space:nowrap;flex-shrink:0">$'+p.precio.toFixed(2)+'</span>';
@@ -1494,9 +1499,9 @@ function renderCarrito(){
     item.innerHTML=
       '<div style="flex:1">'+
         '<div class="cart-name">'+c.nombre+(c.talla?' <span class="badge badge-talla">'+c.talla+'</span>':'')+(c.genero&&c.genero!=='Unisex'?' <span class="badge" style="background:#F0FDF4;color:#166534">'+c.genero+'</span>':'')+'</div>'+
-        '<div class="cart-meta">'+c.marca+' · <span class="badge badge-cod">'+c.id+'</span> · $'+c.precio.toFixed(2)+'/u</div>'+
+        '<div class="cart-meta">'+c.marca+' . <span class="badge badge-cod">'+c.id+'</span> . $'+c.precio.toFixed(2)+'/u</div>'+
         '<div style="display:flex;align-items:center;gap:6px;margin-top:5px">'+
-          '<button class="qty-btn" id="qm-'+i+'">−</button>'+
+          '<button class="qty-btn" id="qm-'+i+'">-</button>'+
           '<span style="font-size:12px;font-weight:700;min-width:18px;text-align:center">'+c.qty+'</span>'+
           '<button class="qty-btn" id="qp-'+i+'">+</button>'+
           '<span style="font-size:10px;color:var(--text-secondary);margin-left:4px">Desc $</span>'+
@@ -1561,7 +1566,7 @@ function calcMixto(){
   const est=document.getElementById('mixto-estado');
   const diff=Math.abs(suma-tot);
   if(suma===0){est.textContent='Ingresa los montos';est.style.color='var(--text-secondary)';}
-  else if(diff<0.01){est.textContent='✓ Montos correctos';est.style.color='var(--green)';}
+  else if(diff<0.01){est.textContent='OK Montos correctos';est.style.color='var(--green)';}
   else if(suma<tot){est.textContent='Faltan $'+( tot-suma).toFixed(2);est.style.color='var(--red)';}
   else{est.textContent='Excede por $'+(suma-tot).toFixed(2);est.style.color='var(--orange)';}
 }
@@ -1606,7 +1611,9 @@ async function registrarVenta(){
   const n2s = v => parseFloat(v.toFixed(2)).toString().replace('.',',');
   const allRows = carrito.map((c,i)=>{
     const itemDesc=c.desc||0;
-    const itemTot=c.total-itemDesc;
+    // itemTot = item total after per-item discount, proportionally reduced by global discount
+    const itemSubtotal=c.total-itemDesc;
+    const itemTot=sub>0?(itemSubtotal/sub)*tot:0;
     const itemEf=tot>0?(itemTot/tot)*pagoEf:0;
     const itemTr=tot>0?(itemTot/tot)*pagoTr:0;
     return [
@@ -1668,9 +1675,9 @@ async function registrarVenta(){
   renderCarrito();calcCarrito();showT('t-v');updMetrics();renderVentas();
 }
 
-// ═══════════════════════════════════════════════════
+// ===================================================
 // MÉTRICAS
-// ═══════════════════════════════════════════════════
+// ===================================================
 function updMetrics(){
   const tot=ventas.reduce((s,v)=>s+v.tot,0);
   const ef=ventas.reduce((s,v)=>s+(v.pagoEf!==undefined?v.pagoEf:(v.pago==='Efectivo'?v.tot:0)),0);
@@ -1695,7 +1702,7 @@ function renderVentas(){
       <div style="display:flex;align-items:flex-start;gap:8px">
         <div style="flex:1;min-width:0">
           <div style="font-size:11px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${v.productosStr}</div>
-          <div style="font-size:10px;color:var(--text-secondary)">${v.cli} · ${v.hora}${v.dval>0?' · <span style="color:var(--red)">-$'+v.dval.toFixed(2)+'</span>':''}</div>
+          <div style="font-size:10px;color:var(--text-secondary)">${v.cli} . ${v.hora}${v.dval>0?' . <span style="color:var(--red)">-$'+v.dval.toFixed(2)+'</span>':''}</div>
         </div>
         <div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex-shrink:0">
           <div style="font-size:12px;font-weight:700;color:var(--green)">$${v.tot.toFixed(2)}</div>
@@ -1709,10 +1716,10 @@ function renderVentas(){
     </div>`).join('');
 }
 
-// ═══════════════════════════════════════════════════
-// ═══════════════════════════════════════════════════
+// ===================================================
+// ===================================================
 // EDITAR / ANULAR VENTA (solo admin)
-// ═══════════════════════════════════════════════════
+// ===================================================
 let editVentaId = null;
 let editVentaItems = [];
 
@@ -1721,7 +1728,7 @@ async function abrirEditVenta(ventaId){
   if(!v) return;
   editVentaId = ventaId;
   editVentaItems = v.items.map(i=>({...i}));
-  document.getElementById('ev-id-label').textContent = 'ID: '+ventaId+' · '+v.fecha+' '+v.hora;
+  document.getElementById('ev-id-label').textContent = 'ID: '+ventaId+' . '+v.fecha+' '+v.hora;
   document.getElementById('ev-cli').value = v.cli||'';
   selPagoEdit(v.pago||'Efectivo');
   if(v.pagoEf>0&&v.pagoTr>0){
@@ -1741,7 +1748,7 @@ function renderEditItems(){
         <div style="color:var(--text-secondary);font-size:10px">$${item.precio.toFixed(2)}/u</div>
       </div>
       <div style="display:flex;align-items:center;gap:4px">
-        <button onclick="cambiarQtyEdit(${i},-1)" style="width:22px;height:22px;border-radius:50%;border:1px solid var(--border);background:var(--bg-primary);cursor:pointer;font-size:13px">−</button>
+        <button onclick="cambiarQtyEdit(${i},-1)" style="width:22px;height:22px;border-radius:50%;border:1px solid var(--border);background:var(--bg-primary);cursor:pointer;font-size:13px">-</button>
         <span style="font-weight:700;min-width:20px;text-align:center">${item.qty}</span>
         <button onclick="cambiarQtyEdit(${i},1)" style="width:22px;height:22px;border-radius:50%;border:1px solid var(--border);background:var(--bg-primary);cursor:pointer;font-size:13px">+</button>
       </div>
@@ -1876,11 +1883,11 @@ async function anularVenta(ventaId){
   const idx=ventas.findIndex(x=>x.ventaId===ventaId);
   if(idx>=0) ventas.splice(idx,1);
   updMetrics();renderVentas();
-  showSync('✓ Venta anulada correctamente');
+  showSync('OK Venta anulada correctamente');
 }
 
 // INVENTARIO
-// ═══════════════════════════════════════════════════
+// ===================================================
 function renderInv(){
   const q=norm(document.getElementById('binv').value);
   const el=document.getElementById('lista-inv');
@@ -1930,7 +1937,7 @@ function renderInvChunk(f, start, size, el){
         '<div style="font-size:10px;color:var(--text-secondary);margin-top:1px;font-weight:600">'+p.marca+'</div>'+
         '<div style="font-size:10px;color:var(--text-tertiary);margin-top:2px;line-height:1.4">'+p.caract+'</div>'+
         '<div style="font-size:10px;color:var(--text-secondary);margin-top:3px">Venta: <strong>$'+p.precio.toFixed(2)+'</strong>'+
-          (rol==='admin'?' &nbsp;·&nbsp; Costo: $'+p.costo.toFixed(2)+' &nbsp;·&nbsp; Margen: <strong style="color:var(--green)">'+
+          (rol==='admin'?' &nbsp;.&nbsp; Costo: $'+p.costo.toFixed(2)+' &nbsp;.&nbsp; Margen: <strong style="color:var(--green)">'+
             (p.precio>0?Math.round((p.precio-p.costo)/p.precio*100):0)+'%</strong>':'')+'</div>'+
       '</div>'+
       '<div style="text-align:right;flex-shrink:0">'+
@@ -1956,7 +1963,7 @@ function renderCli(){
       <div style="flex:1">
         <div style="font-size:11px;font-weight:700;color:var(--text-primary)">${c.nombre}</div>
         ${c.idNum?`<div style="font-size:10px;color:var(--text-secondary)"><span style="font-family:monospace;background:var(--bg-secondary);padding:1px 5px;border-radius:4px">${c.idNum}</span></div>`:''}
-        <div style="font-size:10px;color:var(--text-secondary);margin-top:1px">${c.tel||'Sin teléfono'} · ${c.email||'Sin correo'}</div>
+        <div style="font-size:10px;color:var(--text-secondary);margin-top:1px">${c.tel||'Sin teléfono'} . ${c.email||'Sin correo'}</div>
         ${c.dir?`<div style="font-size:10px;color:var(--text-secondary)">${c.dir}</div>`:''}
       </div>
       <div style="text-align:right">
@@ -1988,9 +1995,9 @@ async function guardarCli(){
   }
 }
 
-// ═══════════════════════════════════════════════════
+// ===================================================
 // CAJA
-// ═══════════════════════════════════════════════════
+// ===================================================
 async function renderCaja(){
   await cargarMovimientos();
   const ef=ventas.reduce((s,v)=>s+(v.pagoEf!==undefined?v.pagoEf:(v.pago==='Efectivo'?v.tot:0)),0);
@@ -2023,14 +2030,14 @@ async function renderCaja(){
     eb.innerHTML=`<div class="caja-estado ${esDeHoy?'ca-abierta':'ca-abierta'}" style="${esDeHoy?'':'background:#FEF3C7;border-color:#F59E0B'}">
       <i class="ti ti-lock-open" style="font-size:22px;color:${esDeHoy?'var(--green)':'#D97706'}"></i>
       <div>
-        <div style="font-size:12px;font-weight:700">${esDeHoy?'Caja abierta':'⚠ Caja del día anterior sin cerrar'}</div>
-        <div style="font-size:10px;color:${esDeHoy?'var(--green)':'#D97706'}">Inicio: ${cajaInicio.hora}${cajaFechaStr?' · '+cajaFechaStr:''} · Fondo: $${cajaInicio.monto.toFixed(2)} · ${cajaInicio.operador}</div>
+        <div style="font-size:12px;font-weight:700">${esDeHoy?'Caja abierta':'! Caja del día anterior sin cerrar'}</div>
+        <div style="font-size:10px;color:${esDeHoy?'var(--green)':'#D97706'}">Inicio: ${cajaInicio.hora}${cajaFechaStr?' . '+cajaFechaStr:''} . Fondo: $${cajaInicio.monto.toFixed(2)} . ${cajaInicio.operador}</div>
       </div>
     </div>`;
     cb.innerHTML=`<button class="red-btn" onclick="abrirCaja('fin')"><i class="ti ti-lock"></i>Cerrar caja</button>`;
   }else{
     const gastos=parseFloat(document.getElementById('gastos').value)||0;
-    eb.innerHTML=`<div class="caja-estado ca-cerrada"><i class="ti ti-lock" style="font-size:22px;color:var(--red)"></i><div><div style="font-size:12px;font-weight:700">Caja cerrada</div><div style="font-size:10px;color:var(--red)">Cierre: ${cajaFin.hora} · ${cajaFin.operador}</div></div></div>
+    eb.innerHTML=`<div class="caja-estado ca-cerrada"><i class="ti ti-lock" style="font-size:22px;color:var(--red)"></i><div><div style="font-size:12px;font-weight:700">Caja cerrada</div><div style="font-size:10px;color:var(--red)">Cierre: ${cajaFin.hora} . ${cajaFin.operador}</div></div></div>
     <div class="card" style="display:flex;flex-direction:column;gap:4px">
       <div class="cj"><span style="color:var(--text-secondary)">Fondo inicial</span><span>$${cajaInicio.monto.toFixed(2)}</span></div>
       <div class="cj"><span style="color:var(--text-secondary)">Ventas efectivo</span><span>$${ef.toFixed(2)}</span></div>
@@ -2195,7 +2202,7 @@ async function previewCierreFecha(){
   document.getElementById('cp-ing').textContent='+$'+ingresosFecha.toFixed(2);
   document.getElementById('cp-esp').textContent='$'+esperado.toFixed(2);
   document.getElementById('cierre-preview').style.display='flex';
-  showSync('✓ Resumen listo');
+  showSync('OK Resumen listo');
 }
 
 async function cerrarCajaFecha(){
@@ -2283,9 +2290,9 @@ async function cerrarCajaFecha(){
   }
 }
 
-// ═══════════════════════════════════════════════════
+// ===================================================
 // ESTADO DE RESULTADOS
-// ═══════════════════════════════════════════════════
+// ===================================================
 let edrData = null;
 
 function abrirEstadoResultados(){
@@ -2306,7 +2313,7 @@ async function generarEDR(){
 
   showSync('Calculando estado de resultados...');
 
-  // ── Leer Ventas ──
+  // -- Leer Ventas --
   const ventasData = await sheetRead('Ventas');
   let ventasR=[], totVtaBrut=0, totDesc=0, totCostoV=0, totEf=0, totTr=0;
   let ventaIds = {};
@@ -2343,7 +2350,7 @@ async function generarEDR(){
     },0);
   }
 
-  // ── Leer Gastos ──
+  // -- Leer Gastos --
   const gastosData = await sheetRead('Gastos');
   let totGastos=0, totIngExtra=0;
   if(Array.isArray(gastosData)&&gastosData.length>1){
@@ -2357,7 +2364,7 @@ async function generarEDR(){
     });
   }
 
-  // ── Leer Compras ──
+  // -- Leer Compras --
   const comprasData = await sheetRead('Compras');
   let totCompras=0;
   if(Array.isArray(comprasData)&&comprasData.length>1){
@@ -2368,7 +2375,7 @@ async function generarEDR(){
     });
   }
 
-  // ── Calcular resultados ──
+  // -- Calcular resultados --
   const vtasNetas  = totVtaBrut - totDesc;
   const totIngresos = vtasNetas + totIngExtra;
   const utBruta    = vtasNetas - totCostoV;
@@ -2376,12 +2383,12 @@ async function generarEDR(){
   const neto       = totIngresos - totCostos;
   const margen     = totIngresos>0 ? (neto/totIngresos*100).toFixed(1) : 0;
 
-  // ── Guardar para exportar ──
+  // -- Guardar para exportar --
   edrData = {fi,ff,totVtaBrut,totDesc,vtasNetas,totIngExtra,totIngresos,
              totCostoV,utBruta,totGastos,totCompras,totCostos,neto,margen,
              totEf,totTr,txn:Object.keys(ventaIds||{}).length||ventasR.length};
 
-  // ── Mostrar en modal ──
+  // -- Mostrar en modal --
   const fmt = v=>'$'+Math.abs(v).toFixed(2);
   const fmtFecha = s=>{ const p=s.split('-'); return p[2]+'/'+p[1]+'/'+p[0]; };
   document.getElementById('edr-periodo').textContent = fmtFecha(fi)+' al '+fmtFecha(ff);
@@ -2409,7 +2416,7 @@ async function generarEDR(){
   document.getElementById('edr-ef').textContent = fmt(totEf);
   document.getElementById('edr-tr').textContent = fmt(totTr);
   document.getElementById('edr-txn').textContent = ventasR.length;
-  // ── Analisis por producto ──
+  // -- Analisis por producto --
   const prodMap = {};
   ventasR.forEach(r=>{
     const id = r[3]||'';
@@ -2479,7 +2486,7 @@ function exportarEDR(){
     ['DESGLOSE DE COBROS',''],
     ['Efectivo', d.totEf],
     ['Transferencia', d.totTr],
-    ['N° transacciones', d.txn],
+    ['N grados transacciones', d.txn],
   ];
   const ws = XLSX.utils.aoa_to_sheet(rows);
   ws['!cols']=[{wch:30},{wch:15}];
@@ -2521,9 +2528,9 @@ async function cargarMovimientos(){
   }
 }
 
-// ═══════════════════════════════════════════════════
+// ===================================================
 // RETIRO DE CAJA
-// ═══════════════════════════════════════════════════
+// ===================================================
 let retiros = [];
 
 async function cargarRetiros(){
@@ -2553,7 +2560,7 @@ function renderRetiros(){
   if(!retiros.length){lista.innerHTML='';return;}
   lista.innerHTML=retiros.map(r=>
     `<div style="display:flex;justify-content:space-between;font-size:11px;padding:4px 0;border-bottom:1px solid #86EFAC">
-      <span style="color:#166534">${r.hora} · ${r.desc||'Retiro'}</span>
+      <span style="color:#166534">${r.hora} . ${r.desc||'Retiro'}</span>
       <strong style="color:#166534">$${r.monto.toFixed(2)}</strong>
     </div>`
   ).join('');
@@ -2652,9 +2659,9 @@ function calcCaja(){
   document.getElementById('c-esp').textContent='$'+(fondoI+ef+ingresosExtra-gastos-retiros).toFixed(2);
 }
 
-// ═══════════════════════════════════════════════════
+// ===================================================
 // AGREGAR PRODUCTO
-// ═══════════════════════════════════════════════════
+// ===================================================
 async function agregarProd(){
   const n=document.getElementById('np-n').value.trim();
   const m=document.getElementById('np-m').value.trim()||'Sin marca';
@@ -2669,7 +2676,7 @@ async function agregarProd(){
   const ref=document.getElementById('np-ref').value.trim();
   const prov=document.getElementById('np-prov').value.trim();
   if(!n||!pv){alert('Nombre y precio de venta son obligatorios');return;}
-  // ── Validación duplicado: Nombre + Marca + Talla + Género ──
+  // -- Validación duplicado: Nombre + Marca + Talla + Género --
   const duplicado=inventario.find(p=>
     p.nombre.toLowerCase()===n.toLowerCase() &&
     p.marca.toLowerCase()===m.toLowerCase() &&
@@ -2677,7 +2684,7 @@ async function agregarProd(){
     (p.genero||'').toLowerCase()===(g||'').toLowerCase()
   );
   if(duplicado){
-    const msg='⚠ Ya existe: '+duplicado.nombre+' · '+duplicado.marca+(duplicado.talla?' · '+duplicado.talla:'')+(duplicado.genero?' · '+duplicado.genero:'');
+    const msg='! Ya existe: '+duplicado.nombre+' . '+duplicado.marca+(duplicado.talla?' . '+duplicado.talla:'')+(duplicado.genero?' . '+duplicado.genero:'');
     document.getElementById('t-prod-dup').textContent=msg;
     showT('t-prod-dup');
     ['np-n','np-m','np-t','np-g'].forEach(id=>{
@@ -2711,9 +2718,9 @@ async function agregarProd(){
   }
 }
 
-// ═══════════════════════════════════════════════════
+// ===================================================
 // REPOSICIÓN DE STOCK (solo admin)
-// ═══════════════════════════════════════════════════
+// ===================================================
 let reposProdIdx = null;
 
 function buscarRepos(){
@@ -2820,9 +2827,9 @@ async function registrarRepos(){
   updMetrics();renderInv();
 }
 
-// ═══════════════════════════════════════════════════
+// ===================================================
 // ADMIN — PINs
-// ═══════════════════════════════════════════════════
+// ===================================================
 function chkStr(inp,lbl){
   const v=document.getElementById(inp).value,el=document.getElementById(lbl);
   if(!v){el.textContent='';return;}
@@ -2830,7 +2837,7 @@ function chkStr(inp,lbl){
   const all=v.split('').every(c=>c===v[0]);
   const seqs='012345678909876543210';
   if(all||seqs.includes(v)){el.textContent='PIN débil';el.style.color='var(--orange)';return;}
-  el.textContent=v.length>=6?'✓ PIN fuerte':'PIN aceptable';
+  el.textContent=v.length>=6?'OK PIN fuerte':'PIN aceptable';
   el.style.color=v.length>=6?'var(--green)':'var(--blue)';
 }
 
@@ -2858,14 +2865,14 @@ async function cambiarPin(r){
   } else {
     await sheetAppend('Config',[clave,nv]);
   }
-  if(r==='admin'){document.getElementById('na-pin').value='';document.getElementById('ca-pin').value='';document.getElementById('str-a').textContent='';document.getElementById('disp-admin').textContent='PIN: '+'•'.repeat(nv.length);}
-  else{document.getElementById('no-pin').value='';document.getElementById('co-pin').value='';document.getElementById('str-o').textContent='';document.getElementById('disp-oper').textContent='PIN: '+'•'.repeat(nv.length);}
+  if(r==='admin'){document.getElementById('na-pin').value='';document.getElementById('ca-pin').value='';document.getElementById('str-a').textContent='';document.getElementById('disp-admin').textContent='PIN: '+'-'.repeat(nv.length);}
+  else{document.getElementById('no-pin').value='';document.getElementById('co-pin').value='';document.getElementById('str-o').textContent='';document.getElementById('disp-oper').textContent='PIN: '+'-'.repeat(nv.length);}
   showT(ok);
 }
 
-// ═══════════════════════════════════════════════════
+// ===================================================
 // EDITAR PRODUCTO (solo admin)
-// ═══════════════════════════════════════════════════
+// ===================================================
 function abrirEditProd(id){
   const p=inventario.find(x=>x.id===id);
   if(!p) return;
@@ -2934,9 +2941,9 @@ async function guardarEditProd(){
 }
 
 
-// ═══════════════════════════════════════════════════
+// ===================================================
 // ESCÁNER QR EN VENTA
-// ═══════════════════════════════════════════════════
+// ===================================================
 let ventaScannerActive = false;
 let ventaScanInterval = null;
 
@@ -3013,50 +3020,154 @@ async function cargarConteoSheets(){
   if(rol==='admin') renderTablaComparacion();
 }
 
-// ── ESCÁNER QR ──
+// -- ESCÁNER QR --
+let conteoScanLog = {}; // {id: qty} accumulated during scan session
+
 async function iniciarScanner(){
   document.getElementById('cnt-scanner-blq').style.display='flex';
   document.getElementById('cnt-scan-btn').style.display='none';
   conteoScannerActive=true;
+  const log=document.getElementById('cnt-scan-log');
+  log.innerHTML='<div style="color:var(--text-secondary);text-align:center">Escaneando...</div>';
   try{
-    if(window._scannerConteo){try{await window._scannerConteo.stop();}catch(e){}}
+    if(window._scannerConteo){try{await window._scannerConteo.stop();window._scannerConteo.clear();}catch(e){} window._scannerConteo=null;}
+    document.getElementById('cnt-video').innerHTML='';
     window._scannerConteo = new Html5Qrcode('cnt-video');
+    let lastScanned='';
+    let lastTime=0;
     await window._scannerConteo.start(
       {facingMode:'environment'},
-      {fps:15, qrbox:{width:280,height:120},
-       formatsToSupport:[
-         Html5QrcodeSupportedFormats.CODE_128,
-         Html5QrcodeSupportedFormats.CODE_39,
-         Html5QrcodeSupportedFormats.QR_CODE,
-         Html5QrcodeSupportedFormats.EAN_13
-       ]},
+      {fps:10, qrbox:{width:280,height:120},
+       formatsToSupport:[Html5QrcodeSupportedFormats.CODE_128,Html5QrcodeSupportedFormats.CODE_39,Html5QrcodeSupportedFormats.QR_CODE,Html5QrcodeSupportedFormats.EAN_13]},
       (txt)=>{
         if(!conteoScannerActive) return;
         const raw=txt.trim();
-        let p=inventario.find(x=>x.id===raw);
-        if(!p) p=inventario.find(x=>x.id===raw.toUpperCase());
-        if(!p) p=inventario.find(x=>raw.includes(x.id));
-        if(p){conteoScannerActive=false;detenerScanner();selConteoProducto(p);}
-        else showSync('⚠ Leído: "'+raw+'" — no encontrado en inventario');
+        const now=Date.now();
+        // Debounce: ignore same code within 2 seconds
+        if(raw===lastScanned&&now-lastTime<2000) return;
+        lastScanned=raw; lastTime=now;
+        const p=inventario.find(x=>x.id===raw||x.id===raw.toUpperCase());
+        if(p){
+          conteoScanLog[p.id]=(conteoScanLog[p.id]||0)+1;
+          // Update log display
+          const existing=[...log.querySelectorAll('[data-id]')].find(el=>el.dataset.id===p.id);
+          if(existing){
+            existing.querySelector('.scan-qty').textContent='x'+conteoScanLog[p.id];
+          } else {
+            const entry=document.createElement('div');
+            entry.dataset.id=p.id;
+            entry.style.cssText='display:flex;align-items:center;gap:6px;background:var(--bg-primary);padding:4px 6px;border-radius:4px;border-left:3px solid var(--green)';
+            entry.innerHTML='<span style="flex:1;font-weight:600;font-size:10px">'+p.nombre+'</span>'+
+              '<button onclick="editarScanQty(\''+p.id+'\'',this)" style="width:18px;height:18px;border-radius:50%;border:1px solid var(--border);background:var(--bg-secondary);cursor:pointer;font-size:10px;line-height:1">-</button>'+
+              '<span class="scan-qty" style="color:var(--green);font-weight:700;min-width:24px;text-align:center">x'+conteoScanLog[p.id]+'</span>'+
+              '<button onclick="editarScanQty(\''+p.id+'\'',this,1)" style="width:18px;height:18px;border-radius:50%;border:1px solid var(--border);background:var(--bg-secondary);cursor:pointer;font-size:10px;line-height:1">+</button>'+
+              '<button onclick="eliminarScanItem(\''+p.id+'\'',this)" style="width:18px;height:18px;border-radius:50%;border:1px solid var(--red);background:#FEE2E2;color:var(--red);cursor:pointer;font-size:9px;line-height:1"><i class="ti ti-x"></i></button>';
+            log.insertBefore(entry,log.firstChild);
+          }
+          // Haptic feedback if available
+          if(navigator.vibrate) navigator.vibrate(50);
+        } else {
+          showSync('! No encontrado: "'+raw+'"');
+        }
       },
       ()=>{}
     );
   }catch(e){alert('No se pudo acceder a la cámara: '+e.message);detenerScanner();}
 }
 
+function editarScanQty(id, btn, delta=-1){
+  conteoScanLog[id]=Math.max(0,(conteoScanLog[id]||0)+delta);
+  const entry=btn.closest('[data-id]');
+  if(entry){
+    if(conteoScanLog[id]===0){ entry.remove(); delete conteoScanLog[id]; }
+    else entry.querySelector('.scan-qty').textContent='x'+conteoScanLog[id];
+  }
+}
+
+function eliminarScanItem(id, btn){
+  delete conteoScanLog[id];
+  const entry=btn.closest('[data-id]');
+  if(entry) entry.remove();
+}
+
+
+  conteoScannerActive=false;
+  if(window._scannerConteo){
+    try{await window._scannerConteo.stop();window._scannerConteo.clear();}catch(e){}
+    window._scannerConteo=null;
+  }
+  // Save to Sheets
+  showSync('Guardando conteo...');
+  const ahora=new Date();
+  const fecha=ahora.getDate()+'/'+(ahora.getMonth()+1)+'/'+ahora.getFullYear();
+  const hora=ahora.getHours().toString().padStart(2,'0')+':'+ahora.getMinutes().toString().padStart(2,'0');
+  for(const [id,qty] of Object.entries(conteoScanLog)){
+    const p=inventario.find(x=>x.id===id);
+    if(p) await sheetAppend('Conteo',[fecha,hora,p.id,p.nombre,p.stock,qty]);
+  }
+  showSync('OK Conteo guardado. Puedes continuar cuando quieras.');
+  // Show continue button
+  const btn=document.getElementById('cnt-btn-pausa');
+  if(btn){btn.innerHTML='<i class="ti ti-player-play"></i> Continuar';btn.onclick=reanudarScannerConteo;}
+}
+
+async function reanudarScannerConteo(){
+  const btn=document.getElementById('cnt-btn-pausa');
+  if(btn){btn.innerHTML='<i class="ti ti-player-pause"></i> Pausar y guardar';btn.onclick=pausarScannerConteo;}
+  conteoScannerActive=true;
+  try{
+    if(window._scannerConteo){try{await window._scannerConteo.stop();window._scannerConteo.clear();}catch(e){} window._scannerConteo=null;}
+    document.getElementById('cnt-video').innerHTML='';
+    window._scannerConteo = new Html5Qrcode('cnt-video');
+    let lastScanned=''; let lastTime=0;
+    await window._scannerConteo.start(
+      {facingMode:'environment'},
+      {fps:10, qrbox:{width:280,height:120},
+       formatsToSupport:[Html5QrcodeSupportedFormats.CODE_128,Html5QrcodeSupportedFormats.CODE_39,Html5QrcodeSupportedFormats.QR_CODE,Html5QrcodeSupportedFormats.EAN_13]},
+      (txt)=>{
+        if(!conteoScannerActive) return;
+        const raw=txt.trim(); const now=Date.now();
+        if(raw===lastScanned&&now-lastTime<2000) return;
+        lastScanned=raw; lastTime=now;
+        const p=inventario.find(x=>x.id===raw||x.id===raw.toUpperCase());
+        if(p){
+          conteoScanLog[p.id]=(conteoScanLog[p.id]||0)+1;
+          const log=document.getElementById('cnt-scan-log');
+          const existing=[...log.querySelectorAll('[data-id]')].find(el=>el.dataset.id===p.id);
+          if(existing){
+            existing.querySelector('.scan-qty').textContent='x'+conteoScanLog[p.id];
+          } else {
+            const entry=document.createElement('div');
+            entry.dataset.id=p.id;
+            entry.style.cssText='display:flex;align-items:center;gap:6px;background:var(--bg-primary);padding:4px 6px;border-radius:4px;border-left:3px solid var(--green)';
+            entry.innerHTML='<span style="flex:1;font-weight:600;font-size:10px">'+p.nombre+'</span>'+
+              '<button onclick="editarScanQty(\''+p.id+'\'',this)" style="width:18px;height:18px;border-radius:50%;border:1px solid var(--border);background:var(--bg-secondary);cursor:pointer;font-size:10px;line-height:1">-</button>'+
+              '<span class="scan-qty" style="color:var(--green);font-weight:700;min-width:24px;text-align:center">x'+conteoScanLog[p.id]+'</span>'+
+              '<button onclick="editarScanQty(\''+p.id+'\'',this,1)" style="width:18px;height:18px;border-radius:50%;border:1px solid var(--border);background:var(--bg-secondary);cursor:pointer;font-size:10px;line-height:1">+</button>'+
+              '<button onclick="eliminarScanItem(\''+p.id+'\'',this)" style="width:18px;height:18px;border-radius:50%;border:1px solid var(--red);background:#FEE2E2;color:var(--red);cursor:pointer;font-size:9px;line-height:1"><i class="ti ti-x"></i></button>';
+            log.insertBefore(entry,log.firstChild);
+          }
+          if(navigator.vibrate) navigator.vibrate(50);
+        }
+      },
+      ()=>{}
+    );
+  }catch(e){alert('Error al reanudar: '+e.message);}
+}
+
 function detenerScanner(){
   conteoScannerActive=false;
   if(window._scannerConteo){
-    window._scannerConteo.stop().then(()=>{
-      window._scannerConteo.clear();
-      window._scannerConteo=null;
-    }).catch(()=>{window._scannerConteo=null;});
+    window._scannerConteo.stop().then(()=>{window._scannerConteo.clear();window._scannerConteo=null;}).catch(()=>{window._scannerConteo=null;});
   }
+  conteoScanLog={};
   document.getElementById('cnt-scanner-blq').style.display='none';
   document.getElementById('cnt-scan-btn').style.display='block';
+  const btn=document.getElementById('cnt-btn-pausa');
+  if(btn){btn.innerHTML='<i class="ti ti-player-pause"></i> Pausar y guardar';btn.onclick=pausarScannerConteo;}
 }
 
-// ── BÚSQUEDA MANUAL ──
+// -- BÚSQUEDA MANUAL --
 function buscarConteoScreen(){
   const q=norm(document.getElementById('cnt-srch').value.trim());
   const res=document.getElementById('cnt-srch-res');
@@ -3154,7 +3265,7 @@ async function registrarConteoItem(){
   },1200);
 }
 
-// ── TABLA COMPARACIÓN (admin) ──
+// -- TABLA COMPARACIÓN (admin) --
 function renderTablaComparacion(){
   const ids = Object.keys(conteoData);
   const total = ids.length;
@@ -3168,11 +3279,11 @@ function renderTablaComparacion(){
     if(dif>0) sobr++;
     const color = dif===0?'#166534':dif>0?'#166534':'var(--red)';
     const bg = dif===0?'#DCFCE7':dif>0?'#DCFCE7':'#FEE2E2';
-    const difTxt = dif===0?'✓ OK':dif>0?'▲ +'+dif:'▼ '+dif;
+    const difTxt = dif===0?'OK OK':dif>0?'^ +'+dif:'v '+dif;
     return `<div style="display:flex;align-items:center;gap:6px;padding:6px 4px;border-bottom:1px solid var(--border-light)">
       <div style="flex:1;min-width:0">
         <div style="font-weight:700;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.nombre}</div>
-        <div style="font-size:10px;color:var(--text-secondary)">${p.marca}${p.talla?' · '+p.talla:''} <span class="badge badge-cod">${p.id}</span></div>
+        <div style="font-size:10px;color:var(--text-secondary)">${p.marca}${p.talla?' . '+p.talla:''} <span class="badge badge-cod">${p.id}</span></div>
       </div>
       <div style="text-align:center;font-size:11px;min-width:32px"><div style="color:var(--text-secondary)">App</div><strong>${p.stock}</strong></div>
       <div style="text-align:center;font-size:11px;min-width:32px"><div style="color:var(--text-secondary)">Cont.</div><strong>${contado}</strong></div>
@@ -3275,9 +3386,9 @@ function imprimirHojaConteo(){
 }
 
 
-// ═══════════════════════════════════════════════════
+// ===================================================
 // COLA PENDIENTE DE IMPRESIÓN (desde Compras)
-// ═══════════════════════════════════════════════════
+// ===================================================
 let comprasRowMap = {}; // {rowKey: rowIndex} para marcar como impreso
 
 async function loadColaPendiente(){
@@ -3307,7 +3418,7 @@ async function loadColaPendiente(){
   // Show badge if there are pending labels
   const total=qrCola.reduce((s,x)=>s+x.qty,0);
   if(total>0){
-    showSync('🏷 '+total+' etiquetas pendientes de imprimir');
+    showSync(' '+total+' etiquetas pendientes de imprimir');
     const aviso=document.getElementById('qr-pendientes-aviso');
     if(aviso) aviso.style.display='block';
   }
@@ -3365,9 +3476,9 @@ async function marcarComoImpreso(ids){
 }
 
 
-// ═══════════════════════════════════════════════════
+// ===================================================
 // ESCANER GENERICO (para cualquier campo de busqueda)
-// ═══════════════════════════════════════════════════
+// ===================================================
 let _scannerGenTargetInput = null;
 let _scannerGenCallback = null;
 
@@ -3449,10 +3560,10 @@ function renderSelEtq(){
       <input type="checkbox" ${qty>0?'checked':''} onchange="toggleSelEtq('${p.id}',this.checked)" style="width:auto;accent-color:#3730A3">
       <div style="flex:1;min-width:0">
         <div style="font-weight:600">${p.nombre}</div>
-        <div style="font-size:10px;color:var(--text-secondary)">${p.marca}${p.talla?' · '+p.talla:''}${p.genero&&p.genero!=='Unisex'?' · '+p.genero:''} <span class="badge badge-cod">${p.id}</span></div>
+        <div style="font-size:10px;color:var(--text-secondary)">${p.marca}${p.talla?' . '+p.talla:''}${p.genero&&p.genero!=='Unisex'?' . '+p.genero:''} <span class="badge badge-cod">${p.id}</span></div>
       </div>
       <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
-        <button onclick="cambiarSelEtq('${p.id}',-1)" style="width:20px;height:20px;border-radius:50%;border:1px solid var(--border);background:var(--bg-secondary);cursor:pointer;font-size:12px">−</button>
+        <button onclick="cambiarSelEtq('${p.id}',-1)" style="width:20px;height:20px;border-radius:50%;border:1px solid var(--border);background:var(--bg-secondary);cursor:pointer;font-size:12px">-</button>
         <input type="number" value="${qty}" min="0" max="${p.stock}" style="width:36px;text-align:center;font-size:11px;padding:1px;border:1px solid var(--border);border-radius:4px" onchange="setSelEtq('${p.id}',this.value,${p.stock})">
         <button onclick="cambiarSelEtq('${p.id}',1,${p.stock})" style="width:20px;height:20px;border-radius:50%;border:1px solid var(--border);background:var(--bg-secondary);cursor:pointer;font-size:12px">+</button>
       </div>
@@ -3487,9 +3598,9 @@ function imprimirSeleccionadas(){
   imprimirEtiquetasRapido(items);
 }
 
-// ═══════════════════════════════════════════════════
+// ===================================================
 // IMPRIMIR TODAS LAS ETIQUETAS DEL INVENTARIO
-// ═══════════════════════════════════════════════════
+// ===================================================
 function imprimirTodasEtiquetas(){
   if(!inventario.length){alert('No hay productos en el inventario.');return;}
   const conStock=inventario.filter(p=>p.stock>0);
@@ -3506,7 +3617,7 @@ function imprimirEtiquetasRapido(items){
   items.forEach(item=>{
     const p=inventario.find(x=>x.id===item.id);
     if(!p) return;
-    const nombre=p.nombre.length>32?p.nombre.substring(0,31)+'…':p.nombre;
+    const nombre=p.nombre.length>32?p.nombre.substring(0,31)+'...':p.nombre;
     const marca=p.marca||'';
     const genero=p.genero||'Unisex';
     const talla=p.talla||'—';
@@ -3560,9 +3671,9 @@ function imprimirEtiquetasRapido(items){
   }
 }
 
-// ═══════════════════════════════════════════════════
+// ===================================================
 // REIMPRESIÓN DE ETIQUETAS POR PRECIO
-// ═══════════════════════════════════════════════════
+// ===================================================
 let reimpCola = [];
 
 function abrirReimpresion(){
@@ -3582,7 +3693,7 @@ function buscarReimp(){
   res.innerHTML=f.map(p=>
     `<div onclick="agregarReimp('${p.id}')" style="padding:7px 4px;cursor:pointer;border-bottom:1px solid var(--border-light);font-size:11px;display:flex;justify-content:space-between;align-items:center" onmouseover="this.style.background='var(--bg-primary)'" onmouseout="this.style.background=''">
       <div>
-        <strong>${p.nombre}</strong> <span style="color:var(--text-secondary)">${p.marca}${p.talla?' · '+p.talla:''}</span>
+        <strong>${p.nombre}</strong> <span style="color:var(--text-secondary)">${p.marca}${p.talla?' . '+p.talla:''}</span>
         ${p.genero&&p.genero!=='Unisex'?'<span class="badge" style="background:#EFF6FF;color:#1D4ED8;font-size:9px">'+p.genero+'</span>':''}
       </div>
       <span style="color:var(--pink);font-weight:700">$${p.precio.toFixed(2)}</span>
@@ -3613,11 +3724,11 @@ function renderReimpCola(){
     if(!p) return '';
     return `<div style="display:flex;align-items:center;gap:6px;background:var(--bg-secondary);border-radius:var(--radius-sm);padding:6px 8px;font-size:11px">
       <div style="flex:1;min-width:0">
-        <strong>${p.nombre}</strong> · ${p.marca}${p.talla?' · '+p.talla:''}
+        <strong>${p.nombre}</strong> . ${p.marca}${p.talla?' . '+p.talla:''}
         <div style="color:var(--pink);font-size:10px;font-weight:700">$${p.precio.toFixed(2)}</div>
       </div>
       <div style="display:flex;align-items:center;gap:4px">
-        <button onclick="cambiarQtyReimp(${i},-1)" style="width:22px;height:22px;border-radius:50%;border:1px solid var(--border);background:var(--bg-primary);cursor:pointer;font-size:13px">−</button>
+        <button onclick="cambiarQtyReimp(${i},-1)" style="width:22px;height:22px;border-radius:50%;border:1px solid var(--border);background:var(--bg-primary);cursor:pointer;font-size:13px">-</button>
         <span style="font-weight:700;min-width:18px;text-align:center">${item.qty}</span>
         <button onclick="cambiarQtyReimp(${i},1)" style="width:22px;height:22px;border-radius:50%;border:1px solid var(--border);background:var(--bg-primary);cursor:pointer;font-size:13px">+</button>
         <button onclick="quitarReimp(${i})" style="width:22px;height:22px;border-radius:50%;border:1px solid var(--red);background:#FEE2E2;color:var(--red);cursor:pointer;font-size:11px"><i class="ti ti-x"></i></button>
@@ -3644,10 +3755,10 @@ function agregarEtiquetaPendiente(id){
   const existe=qrCola.find(x=>x.id===id);
   if(existe){
     existe.qty++;
-    showSync('🏷 '+p.nombre+': '+ existe.qty+' etiquetas en cola');
+    showSync(' '+p.nombre+': '+ existe.qty+' etiquetas en cola');
   } else {
     qrCola.push({id,qty:1});
-    showSync('🏷 '+p.nombre+' agregado a cola de etiquetas');
+    showSync(' '+p.nombre+' agregado a cola de etiquetas');
   }
   const badge=document.getElementById('badge-pendientes');
   if(badge) badge.textContent=qrCola.reduce((s,x)=>s+x.qty,0);
@@ -3677,7 +3788,7 @@ function buscarQR(){
   res.innerHTML=f.map(p=>
     `<div onclick="agregarAColaQR('${p.id}')" style="padding:7px 4px;cursor:pointer;border-bottom:1px solid var(--border-light);font-size:11px" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background=''">
       <i class="ti ti-plus" style="color:#3730A3"></i>
-      <strong>${p.nombre}</strong> <span style="color:var(--text-secondary)">${p.marca}${p.talla?' · '+p.talla:''}</span>
+      <strong>${p.nombre}</strong> <span style="color:var(--text-secondary)">${p.marca}${p.talla?' . '+p.talla:''}</span>
       <span class="badge badge-cod">${p.id}</span>
     </div>`
   ).join('');
@@ -3709,12 +3820,12 @@ function renderColaQR(){
     if(!p) return '';
     return `<div style="display:flex;align-items:center;gap:6px;background:var(--bg-secondary);border-radius:var(--radius-sm);padding:6px 8px;font-size:11px">
       <div style="flex:1">
-        <strong>${p.nombre}</strong> · ${p.marca}${p.talla?' · '+p.talla:''}
+        <strong>${p.nombre}</strong> . ${p.marca}${p.talla?' . '+p.talla:''}
         <span class="badge badge-cod">${p.id}</span>
         <div style="color:var(--text-secondary);font-size:10px;margin-top:1px">$${p.precio.toFixed(2)}</div>
       </div>
       <div style="display:flex;align-items:center;gap:4px">
-        <button onclick="cambiarQtyQR(${i},-1)" style="width:22px;height:22px;border-radius:50%;border:1px solid var(--border);background:var(--bg-primary);cursor:pointer;font-size:13px;line-height:1">−</button>
+        <button onclick="cambiarQtyQR(${i},-1)" style="width:22px;height:22px;border-radius:50%;border:1px solid var(--border);background:var(--bg-primary);cursor:pointer;font-size:13px;line-height:1">-</button>
         <span style="font-weight:700;min-width:18px;text-align:center">${item.qty}</span>
         <button onclick="cambiarQtyQR(${i},1)" style="width:22px;height:22px;border-radius:50%;border:1px solid var(--border);background:var(--bg-primary);cursor:pointer;font-size:13px;line-height:1">+</button>
         <button onclick="quitarDeColaQR(${i})" style="width:22px;height:22px;border-radius:50%;border:1px solid var(--red);background:#FEE2E2;color:var(--red);cursor:pointer;font-size:11px;line-height:1"><i class="ti ti-x"></i></button>
@@ -3811,7 +3922,7 @@ function selConteo(idx){
       (p.genero&&p.genero!=='Unisex'?'<span class="badge" style="background:#EFF6FF;color:#1D4ED8">'+p.genero+'</span>':'<span class="badge" style="background:#F5F3FF;color:#6D28D9">Unisex</span>')+
     '</div>'+
     (p.caract&&p.caract!=='Sin especificaciones'?'<div style="font-size:9px;color:var(--text-secondary);margin-top:2px">'+p.caract+'</div>':'')+
-    '<div style="font-size:10px;margin-top:3px">Precio: <strong style="color:var(--pink)">$'+p.precio.toFixed(2)+'</strong>'+(p.costo?' · Costo: <strong>$'+p.costo.toFixed(2)+'</strong>':'')+'</div>';
+    '<div style="font-size:10px;margin-top:3px">Precio: <strong style="color:var(--pink)">$'+p.precio.toFixed(2)+'</strong>'+(p.costo?' . Costo: <strong>$'+p.costo.toFixed(2)+'</strong>':'')+'</div>';
   document.getElementById('cnt-stock-app').textContent=p.stock;
   document.getElementById('cnt-stock-real').textContent='—';
   document.getElementById('cnt-dif-blq').style.display='none';
@@ -3837,13 +3948,13 @@ function calcConteo(){
   blq.style.display='block';
   if(dif===0){
     blq.style.background='#DCFCE7';blq.style.color='#166534';
-    blq.textContent='✓ Sin diferencia — stock correcto';
+    blq.textContent='OK Sin diferencia — stock correcto';
   } else if(dif>0){
     blq.style.background='#DCFCE7';blq.style.color='#166534';
-    blq.textContent='▲ Sobran '+dif+' unidades en físico';
+    blq.textContent='^ Sobran '+dif+' unidades en físico';
   } else {
     blq.style.background='#FEE2E2';blq.style.color='var(--red)';
-    blq.textContent='▼ Faltan '+Math.abs(dif)+' unidades en físico';
+    blq.textContent='v Faltan '+Math.abs(dif)+' unidades en físico';
   }
 }
 
@@ -3865,7 +3976,7 @@ async function ajustarConteo(){
     document.getElementById('cnt-stock-real').textContent=contado;
     const blq=document.getElementById('cnt-dif-blq');
     blq.style.background='#DCFCE7';blq.style.color='#166534';
-    blq.textContent='✓ Stock ajustado (diferencia: '+(dif>0?'+':'')+dif+' uds.)';
+    blq.textContent='OK Stock ajustado (diferencia: '+(dif>0?'+':'')+dif+' uds.)';
     blq.style.display='block';
     showT('t-conteo');
     updMetrics();renderInv();
@@ -3883,7 +3994,7 @@ function limpiarConteo(){
   document.getElementById('cnt-dif-blq').style.display='none';
 }
 
-// ═══════════════════════════════════════════════════
+// ===================================================
 function confirmarReset(){
   const opciones=[];
   if(document.getElementById('rst-ventas').checked) opciones.push('Ventas');
@@ -3892,7 +4003,7 @@ function confirmarReset(){
   if(document.getElementById('rst-compras').checked) opciones.push('Compras');
   if(document.getElementById('rst-productos').checked) opciones.push('Productos');
   if(!opciones.length){showT('t-rst-none');return;}
-  document.getElementById('rst-lista').innerHTML=opciones.map(o=>'• '+o).join('<br>');
+  document.getElementById('rst-lista').innerHTML=opciones.map(o=>'- '+o).join('<br>');
   document.getElementById('rst-confirm').value='';
   abrirModal('m-reset');
 }
@@ -3921,10 +4032,10 @@ async function ejecutarReset(){
       document.getElementById(id).checked=false;
     });
     showT('t-rst');
-    showSync('✓ Datos eliminados correctamente');
+    showSync('OK Datos eliminados correctamente');
   } catch(e){
     showT('t-rst-err');
-    showSync('⚠ Error al eliminar datos', true);
+    showSync('! Error al eliminar datos', true);
   }
 }
 
@@ -3937,9 +4048,9 @@ function cerrarModal(id){
   if(id==='m-edprod')['ep-id','ep-n','ep-m','ep-t','ep-c','ep-pc','ep-pv'].forEach(f=>{const el=document.getElementById(f);if(el)el.value='';});
 }
 
-// ═══════════════════════════════════════════════════
+// ===================================================
 // EXPORTAR EXCEL
-// ═══════════════════════════════════════════════════
+// ===================================================
 function expInv(){
   const esAdmin=rol==='admin';
   const wb=XLSX.utils.book_new();
@@ -3961,9 +4072,9 @@ function expInv(){
   XLSX.writeFile(wb,'BabyFe_Inventario_'+((d=new Date()),d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear()).replace(/[/]/g,'-')+'.xlsx');
 }
 
-// ═══════════════════════════════════════════════════
+// ===================================================
 // PLANTILLA Y IMPORTAR INVENTARIO DESDE EXCEL
-// ═══════════════════════════════════════════════════
+// ===================================================
 function descargarPlantilla() {
   const wb = XLSX.utils.book_new();
   const headers = ['ID','Nombre','Marca','Género','Talla','Características','Stock','P.Compra','P.Venta'];
@@ -4069,9 +4180,9 @@ async function importarInventario(event) {
   }
 }
 
-// ═══════════════════════════════════════════════════
+// ===================================================
 // EXPORTAR POR RANGO DE FECHAS
-// ═══════════════════════════════════════════════════
+// ===================================================
 async function expRango() {
   const fi = document.getElementById('rep-fi').value;
   const ff = document.getElementById('rep-ff').value;
@@ -4091,7 +4202,7 @@ async function expRango() {
   const wb = XLSX.utils.book_new();
   const rango = fi+' al '+ff;
 
-  // ── VENTAS ──
+  // -- VENTAS --
   if (incV) {
     const data = await sheetRead('Ventas');
     let ventasRango = [];
@@ -4134,7 +4245,7 @@ async function expRango() {
     XLSX.utils.book_append_sheet(wb,ws,'Ventas');
   }
 
-  // ── INVENTARIO ──
+  // -- INVENTARIO --
   if (incI) {
     const esAdmin = rol==='admin';
     const hdrs = esAdmin
@@ -4154,7 +4265,7 @@ async function expRango() {
     XLSX.utils.book_append_sheet(wb,ws,'Inventario');
   }
 
-  // ── CAJA ──
+  // -- CAJA --
   if (incC) {
     const data = await sheetRead('Caja');
     let cajaRango = [];
@@ -4179,7 +4290,7 @@ async function expRango() {
     XLSX.utils.book_append_sheet(wb,ws,'Caja');
   }
 
-  // ── COMPRAS / REPOSICIÓN ──
+  // -- COMPRAS / REPOSICIÓN --
   if (incCo) {
     const data = await sheetRead('Compras');
     let comprasRango = [];
@@ -4210,7 +4321,7 @@ async function expRango() {
     XLSX.utils.book_append_sheet(wb,ws,'Compras');
   }
 
-  // ── GASTOS E INGRESOS EXTRA ──
+  // -- GASTOS E INGRESOS EXTRA --
   if (incG) {
     const data = await sheetRead('Gastos');
     let movRango = [];
@@ -4249,9 +4360,9 @@ async function expRango() {
   cerrarModal('m-reporte');
 }
 
-// ═══════════════════════════════════════════════════
+// ===================================================
 // UTILS
-// ═══════════════════════════════════════════════════
+// ===================================================
 function showT(id,msg){
   const el=document.getElementById(id);
   if(msg) el.textContent=msg;
