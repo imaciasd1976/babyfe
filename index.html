@@ -1611,9 +1611,7 @@ async function registrarVenta(){
   const n2s = v => parseFloat(v.toFixed(2)).toString().replace('.',',');
   const allRows = carrito.map((c,i)=>{
     const itemDesc=c.desc||0;
-    // itemTot = item total after per-item discount, proportionally reduced by global discount
-    const itemSubtotal=c.total-itemDesc;
-    const itemTot=sub>0?(itemSubtotal/sub)*tot:0;
+    const itemTot=c.total-itemDesc;
     const itemEf=tot>0?(itemTot/tot)*pagoEf:0;
     const itemTr=tot>0?(itemTot/tot)*pagoTr:0;
     return [
