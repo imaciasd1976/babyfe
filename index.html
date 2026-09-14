@@ -3646,34 +3646,56 @@ function imprimirEtiquetasRapido(items){
     }
   });
 
-  const css=`*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif}.grid{display:grid;grid-template-columns:repeat(4,47mm);gap:1.5mm;padding:4mm}.etq{width:47mm;border:0.8px solid #000;padding:1.5mm;display:flex;flex-direction:column;gap:0.8mm;page-break-inside:avoid}.r1{font-size:7pt;font-weight:700;line-height:1.2;word-break:break-word}.r2{font-size:5.5pt;color:#222}.r3{display:grid;grid-template-columns:auto 1fr auto;grid-template-rows:auto auto;gap:0 1.5mm;align-items:center}.r3l{font-size:5.5pt;grid-column:1;grid-row:1;white-space:nowrap}.r3c{grid-column:2;grid-row:1/3;text-align:center}.r3r{font-size:5.5pt;grid-column:3;grid-row:1;white-space:nowrap;text-align:right}.r3p{font-size:8pt;font-weight:700;grid-column:3;grid-row:2;text-align:right}.bcsvg{width:100%;height:18mm}.cid{font-size:6.5pt;font-weight:700;color:#000;text-align:center;margin-top:0.3mm;letter-spacing:1px}.r4{font-size:4.5pt;color:#444;border-top:0.4px solid #ccc;padding-top:0.5mm;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}@media print{@page{margin:4mm;size:A4}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}`;
+  const css=`*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif}.grid{display:grid;grid-template-columns:repeat(4,47mm);grid-template-rows:repeat(10,27mm);gap:1mm;padding:4mm;width:196mm;height:281mm}.etq{width:47mm;height:27mm;border:0.8px solid #000;padding:1.5mm;display:flex;flex-direction:column;gap:0.5mm;overflow:hidden}.etq-empty{width:47mm;height:27mm;border:0.3px solid #eee}.r1{font-size:7pt;font-weight:700;line-height:1.2;word-break:break-word}.r2{font-size:5.5pt;color:#222}.r3{display:grid;grid-template-columns:auto 1fr auto;grid-template-rows:auto auto;gap:0 1.5mm;align-items:center;flex:1}.r3l{font-size:5.5pt;grid-column:1;grid-row:1;white-space:nowrap}.r3c{grid-column:2;grid-row:1/3;text-align:center}.r3r{font-size:5.5pt;grid-column:3;grid-row:1;white-space:nowrap;text-align:right}.r3p{font-size:8pt;font-weight:700;grid-column:3;grid-row:2;text-align:right}.bcsvg{width:100%;height:16mm}.cid{font-size:6.5pt;font-weight:700;color:#000;text-align:center;margin-top:0.3mm;letter-spacing:1px}.r4{font-size:4.5pt;color:#444;border-top:0.4px solid #ccc;padding-top:0.5mm;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}@media print{@page{margin:4mm;size:A4 portrait}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.grid{page-break-after:always}}`;
 
   const BATCH=40;
   const totalLotes=Math.ceil(etiquetas.length/BATCH);
+  
+  // Build ALL pages in ONE window to avoid multiple popups
+  let allPages='';
   for(let lote=0;lote<totalLotes;lote++){
     let slice=etiquetas.slice(lote*BATCH,(lote+1)*BATCH);
-    const filler=[];
-    while((slice.length+filler.length)<BATCH) filler.push({html:'<div class="etq" style="border:0.4px solid #eee"></div>',id:null,uid:null});
-    const gridHtml=[...slice,...filler].map(e=>e.html).join('');
-    const barcodeData=JSON.stringify(slice.filter(e=>e.id).map(e=>({uid:e.uid,id:e.id})));
-    const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Etiquetas ${lote+1}/${totalLotes}</title>
-    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"><\/script>
-    <style>${css}</style></head><body>
-    <div class="grid">${gridHtml}</div>
-    <script>
-      var data=${barcodeData};
-      window.onload=function(){
-        data.forEach(function(item){
-          var el=document.getElementById(item.uid);
-          if(el){try{JsBarcode(el,item.id,{format:'CODE128',width:1.8,height:50,displayValue:false,margin:2,background:'#ffffff',lineColor:'#000000'});}catch(e){console.log(e);}}
-        });
-        setTimeout(function(){window.print();},800);
-      };
-    <\/script></body></html>`;
-    const win=window.open('','_blank');
-    if(win){win.document.write(html);win.document.close();}
-    else{alert('Permite ventanas emergentes. Lote '+(lote+1)+' de '+totalLotes);break;}
+    while(slice.length<BATCH) slice.push({html:'<div class="etq-empty"></div>',id:null,uid:null});
+    allPages+=`<div class="page">${slice.map(e=>e.html).join('')}</div>`;
   }
+  
+  const allBarcodeData=JSON.stringify(etiquetas.filter(e=>e.id).map(e=>({uid:e.uid,id:e.id})));
+  
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Etiquetas BabyFe</title>
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"><\/script>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:Arial,sans-serif;background:#fff}
+    .page{display:grid;grid-template-columns:repeat(4,47mm);grid-template-rows:repeat(10,27mm);gap:1mm;padding:5mm;width:198mm;height:285mm;page-break-after:always;page-break-inside:avoid}
+    .etq{width:47mm;height:27mm;border:0.8px solid #000;padding:1.5mm;display:flex;flex-direction:column;gap:0.5mm;overflow:hidden}
+    .etq-empty{width:47mm;height:27mm}
+    .r1{font-size:7pt;font-weight:700;line-height:1.2;word-break:break-word}
+    .r2{font-size:5.5pt;color:#222}
+    .r3{display:grid;grid-template-columns:auto 1fr auto;grid-template-rows:auto auto;gap:0 1.5mm;align-items:center;flex:1}
+    .r3l{font-size:5.5pt;grid-column:1;grid-row:1;white-space:nowrap}
+    .r3c{grid-column:2;grid-row:1/3;text-align:center}
+    .r3r{font-size:5.5pt;grid-column:3;grid-row:1;white-space:nowrap;text-align:right}
+    .r3p{font-size:8pt;font-weight:700;grid-column:3;grid-row:2;text-align:right}
+    .bcsvg{width:100%;height:16mm}
+    .cid{font-size:6.5pt;font-weight:700;color:#000;text-align:center;margin-top:0.3mm;letter-spacing:1px}
+    .r4{font-size:4.5pt;color:#444;border-top:0.4px solid #ccc;padding-top:0.5mm;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    @media print{@page{margin:0;size:A4 portrait}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.page{page-break-after:always}}
+  </style></head><body>
+  ${allPages}
+  <script>
+    var data=${allBarcodeData};
+    window.onload=function(){
+      data.forEach(function(item){
+        var el=document.getElementById(item.uid);
+        if(el){try{JsBarcode(el,item.id,{format:'CODE128',width:1.8,height:50,displayValue:false,margin:2,background:'#ffffff',lineColor:'#000000'});}catch(e){}}
+      });
+      setTimeout(function(){window.print();},1000);
+    };
+  <\/script></body></html>`;
+  
+  const win=window.open('','_blank');
+  if(win){win.document.write(html);win.document.close();}
+  else alert('Permite las ventanas emergentes en tu navegador para imprimir.');
 }
 
 // ===================================================
