@@ -146,7 +146,7 @@ textarea{resize:none;font-family:inherit}
     </div>
     <button class="add-btn" style="width:100%" onclick="login()"><i class="ti ti-login"></i>Entrar</button>
     <div class="toast terr" id="t-login" style="width:100%">PIN incorrecto</div>
-    <div style="font-size:10px;color:var(--text-tertiary);text-align:center">Admin PIN: 1234 &nbsp;.&nbsp; Operador PIN: 0000</div>
+    
   </div>
 </div>
 
@@ -1032,17 +1032,22 @@ const API = 'https://script.google.com/macros/s/AKfycbzmM8otLJ-rB9WDqmvC1ws_YQcZ
 // ESTADO LOCAL
 // ===================================================
 const PINS = {admin:'1234', operador:'0000'};
+let pinsLoaded = false;
 
 async function loadConfig(){
-  const data = await sheetRead('Config');
-  if(!Array.isArray(data)||data.length<2) return;
-  data.slice(1).forEach(r=>{
-    const clave=String(r[0]||'').trim();
-    const valor=String(r[1]||'').trim();
-    if(!valor) return;
-    if(clave==='PIN_ADMIN') PINS.admin=valor;
-    if(clave==='PIN_OPER') PINS.operador=valor;
-  });
+  try{
+    const data = await sheetRead('Config');
+    if(Array.isArray(data)&&data.length>1){
+      data.slice(1).forEach(r=>{
+        const clave=String(r[0]||'').trim();
+        const valor=String(r[1]||'').trim();
+        if(!valor) return;
+        if(clave==='PIN_ADMIN') PINS.admin=valor;
+        if(clave==='PIN_OPER') PINS.operador=valor;
+      });
+    }
+  }catch(e){}
+  pinsLoaded=true;
 }
 let rol = null, rolSel = null, carrito = [], operadorActual = 'Administrador';
 let cajaInicio = null, cajaFin = null;
@@ -1317,6 +1322,10 @@ loadConfig().catch(()=>{});
 function updDots(){const l=document.getElementById('lpin').value.length;for(let i=0;i<6;i++)document.getElementById('ld'+i).classList.toggle('on',i<l);}
 
 async function login() {
+  if(!pinsLoaded){
+    showT('t-login','Cargando configuración, espera...');
+    await loadConfig();
+  }
   const pin = document.getElementById('lpin').value;
   if (!rolSel){showT('t-login','Selecciona un rol');return;}
   if (pin !== PINS[rolSel]){showT('t-login','PIN incorrecto');return;}
@@ -3599,8 +3608,9 @@ function selEtqTodos(sel){
 function imprimirSeleccionadas(){
   const items=Object.entries(selEtqMap).filter(([id,qty])=>qty>0).map(([id,qty])=>({id,qty:parseInt(qty)}));
   if(!items.length){alert('Selecciona al menos un producto.');return;}
-  cerrarModal('m-sel-etq');
   imprimirEtiquetasRapido(items);
+  // Do NOT close modal or clear selection so user can adjust and reprint
+  showSync('OK Etiquetas enviadas a imprimir. Puedes ajustar y reimprimir.');
 }
 
 // ===================================================
