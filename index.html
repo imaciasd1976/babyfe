@@ -1983,7 +1983,7 @@ async function confirmarInicio(){
   const fecha=ahora.getDate()+'/'+(ahora.getMonth()+1)+'/'+ahora.getFullYear();
   const hora=ahora.getHours().toString().padStart(2,'0')+':'+ahora.getMinutes().toString().padStart(2,'0');
   cajaInicio={hora,monto,operador:oper,fecha};cajaFin=null;
-  await sheetAppend('Caja',[fecha,'INICIO',hora,oper,monto,'','',obs]);
+  await sheetAppend('Caja',[fecha,'INICIO',"'"+hora,oper,monto,'','',obs]);
   cerrarModal('m-caja');renderCaja();
 }
 
@@ -1999,7 +1999,7 @@ async function confirmarFin(esperado){
   const hora=ahora.getHours().toString().padStart(2,'0')+':'+ahora.getMinutes().toString().padStart(2,'0');
   const dif=monto-esperado;
   cajaFin={hora,monto,operador:oper,esperado,dif};
-  await sheetAppend('Caja',[fecha,'CIERRE',hora,oper,monto,esperado,dif,obs]);
+  await sheetAppend('Caja',[fecha,'CIERRE',"'"+hora,oper,monto,esperado,dif,obs]);
   cerrarModal('m-caja');renderCaja();
 }
 
@@ -2441,7 +2441,7 @@ async function registrarRetiro(){
   const fecha=ahora.getDate()+'/'+(ahora.getMonth()+1)+'/'+ahora.getFullYear();
   const hora=ahora.getHours().toString().padStart(2,'0')+':'+ahora.getMinutes().toString().padStart(2,'0');
   showSync('Registrando retiro...');
-  const res=await sheetAppend('Gastos',[fecha,hora,'Retiro',desc,monto.toFixed(2).replace('.',',')]);
+  const res=await sheetAppend('Gastos',[fecha, "'"+hora,'Retiro',desc,monto.toFixed(2).replace('.',',')]);
   if(res&&res.status==='ok'){
     retiros.push({hora,desc,monto});
     document.getElementById('retiro-monto').value='';
@@ -2478,7 +2478,7 @@ async function registrarMovimiento(){
   const fecha=ahora.getDate()+'/'+(ahora.getMonth()+1)+'/'+ahora.getFullYear();
   const hora=ahora.getHours().toString().padStart(2,'0')+':'+ahora.getMinutes().toString().padStart(2,'0');
   showSync('Guardando movimiento...');
-  const res=await sheetAppend('Gastos',[fecha,hora,tipo,concepto,monto.toFixed(2).replace('.',',')]);
+  const res=await sheetAppend('Gastos',[fecha,"'"+hora,tipo,concepto,monto.toFixed(2).replace('.',',')]);
   if(res&&res.status==='ok'){
     movimientos.push({fecha,hora,tipo,concepto,monto});
     document.getElementById('mov-concepto').value='';
@@ -2574,7 +2574,7 @@ async function agregarProd(){
       const fecha=ahora.getDate()+'/'+(ahora.getMonth()+1)+'/'+ahora.getFullYear();
       const hora=ahora.getHours().toString().padStart(2,'0')+':'+ahora.getMinutes().toString().padStart(2,'0');
       const totComp=s*pc;
-      await sheetAppend('Compras',[fecha,hora,id,n,ref||'',prov||'',s,pc.toFixed(2).replace('.',','),totComp.toFixed(2).replace('.',','),'Pendiente']);
+      await sheetAppend('Compras',[fecha,"'"+hora,id,n,ref||'',prov||'',s,pc.toFixed(2).replace('.',','),totComp.toFixed(2).replace('.',','),'Pendiente']);
     }
     ['np-n','np-m','np-tc','np-c','np-s','np-pc','np-pv','np-ref','np-prov'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
     document.getElementById('np-t').value='';
@@ -2680,7 +2680,7 @@ async function registrarRepos(){
   const fecha=ahora.getDate()+'/'+(ahora.getMonth()+1)+'/'+ahora.getFullYear();
   const hora=ahora.getHours().toString().padStart(2,'0')+':'+ahora.getMinutes().toString().padStart(2,'0');
   const totComp=qty*costoFinal;
-  await sheetAppend('Compras',[fecha,hora,p.id,p.nombre,refFinal,prov,qty,costoFinal.toFixed(2).replace('.',','),totComp.toFixed(2).replace('.',','),'Pendiente']);
+  await sheetAppend('Compras',[fecha,"'"+hora,p.id,p.nombre,refFinal,prov,qty,costoFinal.toFixed(2).replace('.',','),totComp.toFixed(2).replace('.',','),'Pendiente']);
   // Update local state
   p.stock=nuevoStock;
   if(costo>0) p.costo=costoFinal;
@@ -2973,7 +2973,7 @@ async function pausarScannerConteo(){
   const hora=ahora.getHours().toString().padStart(2,'0')+':'+ahora.getMinutes().toString().padStart(2,'0');
   for(const [id,qty] of Object.entries(conteoScanLog)){
     const p=inventario.find(x=>x.id===id);
-    if(p) await sheetAppend('Conteo',[fecha,hora,p.id,p.nombre,p.stock,qty]);
+    if(p) await sheetAppend('Conteo',[fecha,"'"+hora,p.id,p.nombre,p.stock,qty]);
   }
   showSync('OK Conteo guardado. Puedes continuar cuando quieras.');
   // Show continue button
@@ -3120,11 +3120,11 @@ async function registrarConteoItem(){
         await apiCall({action:'update',sheet:'Conteo',rowIndex:rowIdx+1,
           row:JSON.stringify([fecha,hora,p.id,p.nombre,p.stock,qty])});
       } else {
-        await sheetAppend('Conteo',[fecha,hora,p.id,p.nombre,p.stock,qty]);
+        await sheetAppend('Conteo',[fecha,"'"+hora,p.id,p.nombre,p.stock,qty]);
       }
     }
   } else {
-    await sheetAppend('Conteo',[fecha,hora,p.id,p.nombre,p.stock,qty]);
+    await sheetAppend('Conteo',[fecha,"'"+hora,p.id,p.nombre,p.stock,qty]);
   }
   conteoData[p.id] = qty;
   document.getElementById('cnt-s-prev').textContent = qty;
