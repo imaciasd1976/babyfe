@@ -987,7 +987,7 @@ function toNum(v){
 
 async function apiCall(params) {
   try {
-    if(params.action==='appendBatch'){
+    if(params.action==='appendBatch'||params.action==='appendMulti'){
       // Use POST to avoid URL length limits with many products
       const formData = new FormData();
       Object.entries(params).forEach(([k,v])=>formData.append(k,v));
@@ -2557,8 +2557,7 @@ async function agregarProd(){
       const hora=ahora.getHours().toString().padStart(2,'0')+':'+ahora.getMinutes().toString().padStart(2,'0');
       const totComp=s*pc;
       const idc='K'+Date.now().toString().slice(-7);
-      await sheetAppend('Compras',[fecha,hora,id,n,ref||'',prov||'',s,pc.toFixed(2).replace('.',','),totComp.toFixed(2).replace('.',','),'Pendiente',cp.forma,cp.cta,idc]);
-      await compraPago(cp,totComp,prov,idc,fecha,hora,n);
+      await escribeCompra([fecha,hora,id,n,ref||'',prov||'',s,pc.toFixed(2).replace('.',','),totComp.toFixed(2).replace('.',','),'Pendiente',cp.forma,cp.cta,idc],cp,totComp,prov,idc,fecha,hora,n);
     }
     ['np-n','np-m','np-tc','np-c','np-s','np-pc','np-pv','np-ref','np-prov','np-forma','np-cta'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
     compraForma('np');
@@ -2667,8 +2666,7 @@ async function registrarRepos(){
   const hora=ahora.getHours().toString().padStart(2,'0')+':'+ahora.getMinutes().toString().padStart(2,'0');
   const totComp=qty*costoFinal;
   const idc='K'+Date.now().toString().slice(-7);
-  await sheetAppend('Compras',[fecha,hora,p.id,p.nombre,refFinal,prov,qty,costoFinal.toFixed(2).replace('.',','),totComp.toFixed(2).replace('.',','),'Pendiente',cp.forma,cp.cta,idc]);
-  await compraPago(cp,totComp,prov,idc,fecha,hora,p.nombre);
+  await escribeCompra([fecha,hora,p.id,p.nombre,refFinal,prov,qty,costoFinal.toFixed(2).replace('.',','),totComp.toFixed(2).replace('.',','),'Pendiente',cp.forma,cp.cta,idc],cp,totComp,prov,idc,fecha,hora,p.nombre);
   // Update local state
   p.stock=nuevoStock;
   if(costo>0) p.costo=costoFinal;
@@ -4150,7 +4148,7 @@ function h(t,c,x,st){const e=document.createElement(t);if(c)e.className=c;if(x!=
 
 const FIN_DESDE=20261001;
 let finCtas=[],finMov=[],finPre=[],finPag=[],finVtas=[],finListo=false;
-function finLiberar(){try{finCtas=[];finMov=[];finPre=[];finPag=[];finVtas=[];finCred=[];finPagP=[];finListo=false;}catch(e){}}
+function finLiberar(){try{finCtas=[];finMov=[];finPre=[];finPag=[];finVtas=[];finCred=[];finPagP=[];finListo=false;finTok++;finProm=null;finRaw={};}catch(e){}}
 function finVaciar(){
   finLiberar();
   ['f-tb','f-cxc','f-cxp','f-net'].forEach(i=>{document.getElementById(i).textContent='--';});
@@ -4158,6 +4156,7 @@ function finVaciar(){
   const c=document.getElementById('f-ctas'); c.innerHTML='';
   c.appendChild(h('div','','Elige la fecha y presiona Consultar para cargar los saldos','font-size:11px;color:var(--text-secondary);padding:6px'));
   document.getElementById('f-corte').value=fHoyIn();
+  finProm=finLoad(0,true).catch(function(){});
 }
 async function leeDesde(hoja,desde){
   const d=await apiCall({action:'readSince',sheet:hoja,col:1,since:desde});
@@ -4183,19 +4182,75 @@ function agVentas(data){
 }
 
 async function finLoad(extra,liviano){
-  const b=await sheetRead('Bancos');
+  const tok=finTok;
   let desde=FIN_DESDE; if(extra&&extra<desde) desde=extra;
-  if(Array.isArray(b)) b.slice(1).forEach(r=>{const k=fk(r[5]);if(r[0]&&k&&k<desde)desde=k;});
-  const [m,p,g,v,cm,pp]=await Promise.all([sheetRead('Mov_Banco'),sheetRead('Prestamos'),sheetRead('Pagos_Prestamo'),liviano?Promise.resolve([]):leeDesde('Ventas',desde),leeDesde('Compras',desde),sheetRead('Pagos_Proveedor')]);
+  const lista=[['Bancos'],['Mov_Banco'],['Prestamos'],['Pagos_Prestamo'],['Compras',desde],['Pagos_Proveedor']];
+  if(!liviano) lista.push(['Ventas',desde]);
+  if(extra) lista.push(['Gastos',desde],['Caja']);
+  const o=await leeVarias(lista);
+  if(tok!==finTok) return;
+  const rows=d=>Array.isArray(d)?d.map((r,i)=>({r,ri:i+1})).slice(1).filter(x=>x.r[0]!==''&&x.r[0]!==undefined):[];
+  finCtas=rows(o.Bancos).map(x=>({id:String(x.r[0]),nombre:String(x.r[1]),banco:String(x.r[2]||''),num:String(x.r[3]||''),ini:toNum(x.r[4]),fk:fk(x.r[5]),def:String(x.r[6]).toUpperCase()==='SI',ri:x.ri}));
+  finMov=rows(o.Mov_Banco).map(x=>({id:String(x.r[0]),f:fk(x.r[1]),cta:String(x.r[3]),tipo:String(x.r[4]),conc:String(x.r[5]||''),monto:toNum(x.r[6]),ref:String(x.r[7]||''),ri:x.ri}));
+  finPre=rows(o.Prestamos).map(x=>({id:String(x.r[0]),f:fk(x.r[1]),dir:String(x.r[2]),persona:String(x.r[3]),monto:toNum(x.r[4]),cuotas:parseInt(x.r[5])||1,notas:String(x.r[7]||''),ri:x.ri}));
+  finPag=rows(o.Pagos_Prestamo).map(x=>({f:fk(x.r[0]),pid:String(x.r[2]),cuota:x.r[3],monto:toNum(x.r[4]),forma:String(x.r[5]||''),ref:String(x.r[6]||''),ri:x.ri}));
+  finCred=Array.isArray(o.Compras)?o.Compras.slice(1).filter(r=>r[0]&&String(r[10])==='Credito').map(r=>({prov:String(r[5]||'Sin proveedor').trim(),f:fk(r[0]),total:toNum(r[8])})):[];
+  finPagP=rows(o.Pagos_Proveedor).map(x=>({f:fk(x.r[0]),prov:String(x.r[2]).trim(),monto:toNum(x.r[3]),forma:String(x.r[4]||''),ref:String(x.r[5]||''),ri:x.ri}));
+  if(!liviano){
+    let v=o.Ventas; const mn=finCtas.reduce((m,c)=>c.fk&&c.fk<m?c.fk:m,99999999);
+    if(mn<desde) v=await leeDesde('Ventas',mn);
+    finVtas=agVentas(v);
+  }
+  if(extra) finRaw={comp:o.Compras,gas:o.Gastos,caj:o.Caja};
   finListo=true;
-  const rows=d=>Array.isArray(d)?d.map((r,i)=>({r,ri:i+1})).slice(1).filter(o=>o.r[0]!==''&&o.r[0]!==undefined):[];
-  finCtas=rows(b).map(o=>({id:String(o.r[0]),nombre:String(o.r[1]),banco:String(o.r[2]||''),num:String(o.r[3]||''),ini:toNum(o.r[4]),fk:fk(o.r[5]),def:String(o.r[6]).toUpperCase()==='SI',ri:o.ri,row:o.r}));
-  finMov=rows(m).map(o=>({id:String(o.r[0]),f:fk(o.r[1]),cta:String(o.r[3]),tipo:String(o.r[4]),conc:String(o.r[5]||''),monto:toNum(o.r[6]),ref:String(o.r[7]||''),ri:o.ri}));
-  finPre=rows(p).map(o=>({id:String(o.r[0]),f:fk(o.r[1]),dir:String(o.r[2]),persona:String(o.r[3]),monto:toNum(o.r[4]),cuotas:parseInt(o.r[5])||1,notas:String(o.r[7]||''),ri:o.ri}));
-  finPag=rows(g).map(o=>({f:fk(o.r[0]),pid:String(o.r[2]),cuota:o.r[3],monto:toNum(o.r[4]),forma:String(o.r[5]||''),ref:String(o.r[6]||''),ri:o.ri}));
-  finVtas=agVentas(v);
-  finCred=Array.isArray(cm)?cm.slice(1).filter(r=>r[0]&&String(r[10])==='Credito').map(r=>({prov:String(r[5]||'Sin proveedor').trim(),f:fk(r[0]),total:toNum(r[8])})):[];
-  finPagP=rows(pp).map(o=>({f:fk(o.r[0]),prov:String(o.r[2]).trim(),monto:toNum(o.r[3]),forma:String(o.r[4]||''),ref:String(o.r[5]||''),ri:o.ri}));
+}
+async function finDel(ref,hoja,ri){
+  if(!confirm('Anular este registro y los movimientos enlazados?')) return;
+  if(ref){
+    const r=await Promise.all([apiCall({action:'deleteWhere',sheet:'Mov_Banco',col:8,eq:ref}),apiCall({action:'deleteWhere',sheet:'Gastos',col:4,contains:'['+ref+']'})]);
+    if(r.some(x=>!x||x.error)) return finDelLento(ref,hoja,ri);
+  }
+  if(hoja!=='Mov_Banco'||!ref) await apiCall({action:'delete',sheet:hoja,rowIndex:ri});
+  await finRender(true);
+}
+async function cargarCtasVenta(){
+  const sel=document.getElementById('v-banco'); if(!sel) return;
+  if(ctasT&&Date.now()-ctasT<300000) return;
+  const b=await sheetRead('Bancos');
+  ctasVenta=[]; sel.innerHTML='';
+  if(Array.isArray(b)) b.slice(1).forEach(r=>{if(r[0]){const def=String(r[6]).toUpperCase()==='SI';ctasVenta.push({id:String(r[0]),nombre:String(r[1]),def});const o=document.createElement('option');o.value=String(r[0]);o.textContent=String(r[1]);if(def)o.selected=true;sel.appendChild(o);}});
+  ctasT=Date.now();
+  selPago(document.getElementById('v-pago').value);
+}
+async function finCtasCaja(){
+  const sel=document.getElementById('retiro-cta'); if(!sel) return;
+  await cargarCtasVenta();
+  const v=sel.value; sel.innerHTML='<option value="">Ninguna (otro destino)</option>';
+  ctasVenta.forEach(c=>{const o=document.createElement('option');o.value=c.id;o.textContent=c.nombre;sel.appendChild(o);});
+  sel.value=v;
+}
+function pintaProvs(sel){
+  ['rep-prov','np-prov'].forEach(id=>{
+    const s=document.getElementById(id); if(!s) return;
+    const v=sel||s.value; s.innerHTML='';
+    const o0=document.createElement('option');o0.value='';o0.textContent='Selecciona proveedor';s.appendChild(o0);
+    provs.forEach(n=>{const o=document.createElement('option');o.value=n;o.textContent=n;s.appendChild(o);});
+    s.value=provs.includes(v)?v:'';
+  });
+}
+async function cargarProveedores(sel){
+  if(!sel&&provT&&Date.now()-provT<300000) return;
+  const d=await sheetRead('Proveedores');
+  provs=Array.isArray(d)?d.slice(1).filter(r=>r[0]).map(r=>String(r[1]||'').trim()).filter(x=>x).sort((a,b)=>a.localeCompare(b)):[];
+  provT=Date.now(); pintaProvs(sel);
+}
+
+async function finDelLento(ref,hoja,ri){
+  const del=async(sh,l)=>{for(const i of l.sort((a,b)=>b-a)) await apiCall({action:'delete',sheet:sh,rowIndex:i});};
+  await del('Mov_Banco',finMov.filter(x=>(ref&&x.ref===ref)||(hoja==='Mov_Banco'&&x.ri===ri)).map(x=>x.ri));
+  if(ref){const g=await sheetRead('Gastos');if(Array.isArray(g)){const gi=[];g.forEach((r,i)=>{if(i>0&&String(r[3]||'').includes('['+ref+']'))gi.push(i+1);});await del('Gastos',gi);}}
+  if(hoja!=='Mov_Banco') await del(hoja,[ri]);
+  await finRender(true);
 }
 const vtaEnCta=(v,c)=>v.f>=c.fk&&(v.banco?v.banco===c.id:c.def);
 function finSaldo(c,hasta){
@@ -4207,19 +4262,8 @@ function finSaldo(c,hasta){
 function finSaldoPre(p,hasta){return p.monto-finPag.filter(x=>x.pid===p.id&&x.f<=hasta).reduce((s,x)=>s+x.monto,0);}
 
 let ctasVenta=[];
-async function cargarCtasVenta(){
-  const b=await sheetRead('Bancos'); const sel=document.getElementById('v-banco'); if(!sel) return;
-  ctasVenta=[]; sel.innerHTML='';
-  if(Array.isArray(b)) b.slice(1).forEach(r=>{if(r[0]){const def=String(r[6]).toUpperCase()==='SI';ctasVenta.push({id:String(r[0]),nombre:String(r[1]),def});const o=document.createElement('option');o.value=String(r[0]);o.textContent=String(r[1]);if(def)o.selected=true;sel.appendChild(o);}});
-  selPago(document.getElementById('v-pago').value);
-}
-async function finCtasCaja(){
-  const sel=document.getElementById('retiro-cta'); if(!sel) return;
-  const b=await sheetRead('Bancos'); const v=sel.value;
-  sel.innerHTML='<option value="">Ninguna (otro destino)</option>';
-  if(Array.isArray(b)) b.slice(1).forEach(r=>{if(r[0]){const o=document.createElement('option');o.value=String(r[0]);o.textContent=String(r[1]);sel.appendChild(o);}});
-  sel.value=v;
-}
+
+
 
 function fila(a,b,der,btn,fn){
   const d=h('div','cj');
@@ -4230,10 +4274,10 @@ function fila(a,b,der,btn,fn){
   d.appendChild(i);d.appendChild(r);return d;
 }
 
-async function finRender(){
+async function finRender(rapido){
   if(rol!=='admin') return;
   const cv=document.getElementById('f-corte').value,hoy=cv?fkIn(cv):99999999;
-  await finLoad();
+  await finLoad(0,!!rapido&&finVtas.length>0);
   const ctas=document.getElementById('f-ctas'),mv=document.getElementById('f-movs'),pr=document.getElementById('f-pres'),pg=document.getElementById('f-pags');
   [ctas,mv,pr,pg].forEach(x=>x.innerHTML='');
   let tb=0;
@@ -4259,7 +4303,6 @@ async function finRender(){
   document.getElementById('f-cxc').textContent=m$(cxc);
   document.getElementById('f-cxp').textContent=m$(cxp);
   document.getElementById('f-net').textContent=m$(tb+cxc-cxp);
-  finVtas=[];
 }
 
 const FF={
@@ -4275,7 +4318,7 @@ const FF={
 function ctaOpts(){return finCtas.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.nombre)+'</option>').join('');}
 function formaOpts(){return '<option value="EF">Efectivo (caja)</option>'+finCtas.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.nombre)+'</option>').join('');}
 async function finForm(k,pre){
-  if(!finListo) await finLoad(0,true);
+  if(k!=='prov'&&!finListo) await (finProm||finLoad(0,true));
   if(k==='pagoprov'&&!finProvSaldos().length){alert('No hay deudas con proveedores');return;}
   if(k!=='cuenta'&&!finCtas.length&&k!=='pres'&&k!=='pago'&&k!=='prov'&&k!=='pagoprov'){alert('Primero agrega una cuenta bancaria');return;}
   if(k==='pago'&&!finPre.some(p=>finSaldoPre(p,99999999)>0.009)){alert('No hay prestamos con saldo');return;}
@@ -4300,53 +4343,52 @@ async function finGuardar(k,btn){
     if(k==='cuenta'){
       const nom=gv('ff-nombre'); if(!nom||isNaN(monto)||!fi) return bad();
       const def=document.getElementById('ff-def').checked||!finCtas.length;
-      if(def) for(const c of finCtas.filter(x=>x.def)){const r=c.row.slice(0,7);r[6]='NO';await apiCall({action:'update',sheet:'Bancos',rowIndex:c.ri,row:JSON.stringify(r)});}
-      await sheetAppend('Bancos',['C'+id,nom,gv('ff-banco'),gv('ff-num'),n2(monto),fecha,def?'SI':'NO']);
+      const t=[];
+      if(def) finCtas.filter(x=>x.def).forEach(c=>t.push(apiCall({action:'update',sheet:'Bancos',rowIndex:c.ri,row:JSON.stringify([c.id,c.nombre,c.banco,c.num,n2(c.ini),c.fk?fFmt(c.fk):'','NO'])})));
+      t.push(sheetAppend('Bancos',['C'+id,nom,gv('ff-banco'),gv('ff-num'),n2(monto),fecha,def?'SI':'NO']));
+      await Promise.all(t); ctasT=0;
     }else if(k==='mov'){
       const tipo=gv('ff-tipo'); if(!(monto>0)||!fi) return bad();
-      await apiCall({action:'appendBatch',sheet:'Mov_Banco',rows:JSON.stringify([['M'+id,fecha,hora,gv('ff-cta'),tipo,gv('ff-conc'),n2(tipo==='Ingreso'?monto:-monto),'']])});
+      await escribeVarias({Mov_Banco:[['M'+id,fecha,hora,gv('ff-cta'),tipo,gv('ff-conc'),n2(tipo==='Ingreso'?monto:-monto),'']]});
     }else if(k==='transf'){
       const o=gv('ff-o'),d=gv('ff-d'); if(!(monto>0)||!fi||o===d) return bad();
       const ref='T'+id,c=gv('ff-conc')||'Transferencia entre cuentas';
-      await apiCall({action:'appendBatch',sheet:'Mov_Banco',rows:JSON.stringify([[ref+'a',fecha,hora,o,'Transf salida',c,n2(-monto),ref],[ref+'b',fecha,hora,d,'Transf entrada',c,n2(monto),ref]])});
+      await escribeVarias({Mov_Banco:[[ref+'a',fecha,hora,o,'Transf salida',c,n2(-monto),ref],[ref+'b',fecha,hora,d,'Transf entrada',c,n2(monto),ref]]});
     }else if(k==='dep'){
       if(!(monto>0)||!fi) return bad();
       const ref='D'+id,cta=gv('ff-cta'),c=gv('ff-conc')||'Deposito de caja';
-      await sheetAppend('Gastos',[fecha,hora,'Retiro',c+' ['+ref+']',n2(monto)]);
-      await apiCall({action:'appendBatch',sheet:'Mov_Banco',rows:JSON.stringify([[ref+'m',fecha,hora,cta,'Deposito caja',c,n2(monto),ref]])});
+      await escribeVarias({Gastos:[[fecha,hora,'Retiro',c+' ['+ref+']',n2(monto)]],Mov_Banco:[[ref+'m',fecha,hora,cta,'Deposito caja',c,n2(monto),ref]]});
     }else if(k==='pres'){
       const per=gv('ff-pers'),cu=parseInt(gv('ff-cuotas'))||0,dir=gv('ff-dir'); if(!per||!(monto>0)||cu<1||!fi) return bad();
-      const pid='L'+id;
-      await sheetAppend('Prestamos',[pid,fecha,dir,per,n2(monto),cu,'Activo',gv('ff-notas')]);
-      await finMueve(gv('ff-forma'),dir==='Otorgado'?-1:1,monto,'Prestamo '+dir+' '+per,pid,fecha);
+      const pid='L'+id,mf=finMovFila(gv('ff-forma'),dir==='Otorgado'?-1:1,monto,'Prestamo '+dir+' '+per,pid,fecha);
+      const o={Prestamos:[[pid,fecha,dir,per,n2(monto),cu,'Activo',gv('ff-notas')]]};
+      if(mf) o[mf[0]]=[mf[1]];
+      await escribeVarias(o);
     }else if(k==='pago'){
       const p=finPre.find(x=>x.id===gv('ff-pid')); if(!p||!(monto>0)||!fi||monto>finSaldoPre(p,99999999)+0.01) return bad();
       const ref='P'+id,forma=gv('ff-forma'),fn=forma==='EF'?'Efectivo':(finCtas.find(c=>c.id===forma)||{nombre:forma}).nombre;
-      await sheetAppend('Pagos_Prestamo',[fecha,hora,p.id,finPag.filter(x=>x.pid===p.id).length+1,n2(monto),fn,ref]);
-      await finMueve(forma,p.dir==='Otorgado'?1:-1,monto,'Pago prestamo '+p.persona,ref,fecha);
+      const mf=finMovFila(forma,p.dir==='Otorgado'?1:-1,monto,'Pago prestamo '+p.persona,ref,fecha);
+      const o={Pagos_Prestamo:[[fecha,hora,p.id,finPag.filter(x=>x.pid===p.id).length+1,n2(monto),fn,ref]]};
+      if(mf) o[mf[0]]=[mf[1]];
+      await escribeVarias(o);
     }else if(k==='prov'){
       const nom=gv('ff-nombre'); if(!nom) return bad();
       if(provs.some(x=>x.toLowerCase()===nom.toLowerCase())){alert('Ese proveedor ya existe');return bad();}
       await sheetAppend('Proveedores',['V'+id,nom,gv('ff-conc'),'']);
-      await cargarProveedores(nom);
+      provs.push(nom); provs.sort((a,b)=>a.localeCompare(b)); provT=Date.now(); pintaProvs(nom);
+      cerrarModal('m-fin'); return;
     }else if(k==='pagoprov'){
       const pv=gv('ff-pid'),s=finProvSaldos().find(x=>x.prov===pv); if(!s||!(monto>0)||!fi||monto>s.saldo+0.01) return bad();
       const ref='Q'+id,forma=gv('ff-forma'),fn=forma==='EF'?'Efectivo':(finCtas.find(c=>c.id===forma)||{nombre:forma}).nombre;
-      await sheetAppend('Pagos_Proveedor',[fecha,hora,pv,n2(monto),fn,ref]);
-      await finMueve(forma,-1,monto,'Pago proveedor '+pv,ref,fecha,'Pago a proveedor');
+      const mf=finMovFila(forma,-1,monto,'Pago proveedor '+pv,ref,fecha,'Pago a proveedor');
+      const o={Pagos_Proveedor:[[fecha,hora,pv,n2(monto),fn,ref]]};
+      if(mf) o[mf[0]]=[mf[1]];
+      await escribeVarias(o);
     }
-    cerrarModal('m-fin'); await finRender();
+    cerrarModal('m-fin'); await finRender(true);
   }catch(e){console.error(e);bad();}
 }
-async function finDel(ref,hoja,ri){
-  if(!finListo) await finLoad(0,true);
-  if(!confirm('Anular este registro y los movimientos enlazados?')) return;
-  const del=async(sh,l)=>{for(const i of l.sort((a,b)=>b-a)) await apiCall({action:'delete',sheet:sh,rowIndex:i});};
-  await del('Mov_Banco',finMov.filter(x=>(ref&&x.ref===ref)||(hoja==='Mov_Banco'&&x.ri===ri)).map(x=>x.ri));
-  if(ref){const g=await sheetRead('Gastos');if(Array.isArray(g)){const gi=[];g.forEach((r,i)=>{if(i>0&&String(r[3]||'').includes('['+ref+']'))gi.push(i+1);});await del('Gastos',gi);}}
-  if(hoja!=='Mov_Banco') await del(hoja,[ri]);
-  await finRender();
-}
+
 
 // ===================================================
 // REPORTE ADMINISTRATIVO UNICO (Excel) - por rango de fechas
@@ -4369,7 +4411,7 @@ async function expRango(){
   const a=fkIn(fi),b=fkIn(ff),en=f=>f>=a&&f<=b,sum=(l,f)=>l.reduce((s,x)=>s+f(x),0);
   showSync('Generando reporte...');
   await finLoad(a);
-  const [comp,gas,caj]=await Promise.all([leeDesde('Compras',a),leeDesde('Gastos',a),sheetRead('Caja')]);
+  const comp=finRaw.comp,gas=finRaw.gas,caj=finRaw.caj;
   const dt=d=>Array.isArray(d)?d.slice(1).filter(r=>r[0]):[];
   const vts=finVtas.filter(v=>en(v.f)).sort((x,y)=>x.f-y.f);
   const cps=dt(comp).filter(r=>en(fk(r[0]))),gs=dt(gas).filter(r=>en(fk(r[0])));
@@ -4427,17 +4469,7 @@ function showT(id,msg){
 // PROVEEDORES Y FORMA DE PAGO EN COMPRAS
 // ===================================================
 let provs=[],finCred=[],finPagP=[];
-async function cargarProveedores(sel){
-  const d=await sheetRead('Proveedores');
-  provs=Array.isArray(d)?d.slice(1).filter(r=>r[0]).map(r=>String(r[1]||'').trim()).filter(x=>x).sort((a,b)=>a.localeCompare(b)):[];
-  ['rep-prov','np-prov'].forEach(id=>{
-    const s=document.getElementById(id); if(!s) return;
-    const v=sel||s.value; s.innerHTML='';
-    const o0=document.createElement('option');o0.value='';o0.textContent='Selecciona proveedor';s.appendChild(o0);
-    provs.forEach(n=>{const o=document.createElement('option');o.value=n;o.textContent=n;s.appendChild(o);});
-    s.value=provs.includes(v)?v:'';
-  });
-}
+
 async function cargarMaestros(){
   await Promise.all([cargarProveedores(),cargarCtasVenta()]);
   ['rep','np'].forEach(p=>{
@@ -4466,6 +4498,36 @@ function finProvSaldos(hasta){
   finCred.forEach(c=>{if(c.f<=t){m[c.prov]=m[c.prov]||{prov:c.prov,deb:0,pag:0};m[c.prov].deb+=c.total;}});
   finPagP.forEach(p=>{if(p.f<=t){m[p.prov]=m[p.prov]||{prov:p.prov,deb:0,pag:0};m[p.prov].pag+=p.monto;}});
   return Object.keys(m).map(k=>{const x=m[k];x.saldo=x.deb-x.pag;return x;}).filter(x=>x.saldo>0.009);
+}
+
+// ===================================================
+// OPTIMIZACION: pocas llamadas a Google (lecturas y escrituras agrupadas) y cache
+// ===================================================
+let provT=0,ctasT=0,finTok=0,finProm=null,finRaw={};
+async function leeVarias(list){
+  const d=await apiCall({action:'readMulti',list:JSON.stringify(list.map(x=>({n:x[0],since:x[1]||0})))});
+  if(d&&!d.error&&!Array.isArray(d)) return d;
+  const o={};
+  await Promise.all(list.map(async x=>{o[x[0]]=x[1]?await leeDesde(x[0],x[1]):await sheetRead(x[0]);}));
+  return o;
+}
+async function escribeVarias(o){
+  const r=await apiCall({action:'appendMulti',data:JSON.stringify(o)});
+  if(r&&r.status==='ok') return r;
+  const res=await Promise.all(Object.keys(o).map(h=>apiCall({action:'appendBatch',sheet:h,rows:JSON.stringify(o[h])})));
+  if(!res.every(x=>x&&x.status==='ok')) throw new Error('No se pudo guardar');
+  return {status:'ok'};
+}
+function finMovFila(forma,signo,monto,conc,ref,fecha,tipo){
+  if(forma==='NA') return null;
+  if(forma==='EF') return ['Gastos',[fecha,fHora(),'Retiro',conc+' ['+ref+']',n2(-signo*monto)]];
+  return ['Mov_Banco',[ref+'m',fecha,fHora(),forma,tipo||'Prestamo',conc,n2(signo*monto),ref]];
+}
+async function escribeCompra(row,cp,total,prov,idc,fecha,hora,desc){
+  const c='Compra '+desc+(prov?' - '+prov:''),o={Compras:[row]};
+  if(cp.forma==='Efectivo') o.Gastos=[[fecha,hora,'Retiro',c+' ['+idc+']',n2(total)]];
+  if(cp.forma==='Banco') o.Mov_Banco=[[idc+'m',fecha,hora,cp.cta,'Pago a proveedor',c,n2(-total),idc]];
+  return escribeVarias(o);
 }
 
 // ===================================================
