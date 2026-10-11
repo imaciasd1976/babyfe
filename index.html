@@ -292,7 +292,7 @@ textarea{resize:none;font-family:inherit}
       <div class="fr">
         <div class="fg"><div class="fl">Ref. compra (proveedor)</div><input type="text" id="rep-ref" placeholder="Ej: REF-450, código proveedor..."></div>
         <div class="fg"><div class="fl">Proveedor</div><div style="display:flex;gap:6px"><select id="rep-prov" style="flex:1"></select><button type="button" class="sec-btn" style="width:auto;padding:0 14px" onclick="finForm('prov')">+</button></div></div>
-        <div class="fr"><div class="fg"><div class="fl">Forma de pago</div><select id="rep-forma" onchange="compraForma('rep')"><option value="">Selecciona...</option><option value="Efectivo">Efectivo (caja)</option><option value="Banco">Banco</option><option value="Credito">A credito (por pagar)</option></select></div><div class="fg" id="rep-ctaw" style="display:none"><div class="fl">Cuenta</div><select id="rep-cta"></select></div></div>
+        <div class="fr"><div class="fg"><div class="fl">Forma de pago</div><select id="rep-forma" onchange="compraForma('rep')"><option value="">Selecciona...</option><option value="Mano">Efectivo en mano</option><option value="Efectivo">Efectivo (caja)</option><option value="Banco">Banco</option><option value="Credito">A credito (por pagar)</option></select></div><div class="fg" id="rep-ctaw" style="display:none"><div class="fl">Cuenta</div><select id="rep-cta"></select></div></div>
       </div>
       <div id="rep-total-blq" style="display:none;background:var(--bg-primary);border-radius:var(--radius-sm);padding:7px 10px;font-size:11px">
         Total compra: <strong style="color:var(--orange)" id="rep-total">$0.00</strong>
@@ -426,7 +426,7 @@ textarea{resize:none;font-family:inherit}
           <div class="fg"><div class="fl">Monto a retirar $</div><input type="number" id="retiro-monto" placeholder="0.00" min="0"></div>
           <div class="fg"><div class="fl">Destino</div><input type="text" id="retiro-desc" placeholder="Ej: Depósito banco, Caja fuerte..."></div>
         </div>
-        <div class="fg"><div class="fl">Depositar en cuenta (opcional)</div><select id="retiro-cta"><option value="">Ninguna (otro destino)</option></select></div>
+        <div class="fg"><div class="fl">Destino del retiro (opcional)</div><select id="retiro-cta"><option value="">Ninguna (otro destino)</option><option value="EM">Efectivo en mano (queda en mi poder)</option></select></div>
         <button class="add-btn" style="background:#166534" onclick="registrarRetiro()"><i class="ti ti-building-bank"></i>Registrar retiro</button>
         <div id="retiro-lista" style="max-height:120px;overflow-y:auto"></div>
         <div class="cj" style="font-size:12px;font-weight:700;border-top:1px solid #86EFAC;padding-top:6px">
@@ -561,7 +561,8 @@ textarea{resize:none;font-family:inherit}
       <div class="metric"><div class="ml">Total bancos</div><div class="mv green" id="f-tb">$0.00</div></div>
       <div class="metric"><div class="ml">Por cobrar</div><div class="mv" id="f-cxc">$0.00</div></div>
       <div class="metric"><div class="ml">Por pagar</div><div class="mv pink" id="f-cxp">$0.00</div></div>
-      <div class="metric"><div class="ml">Bancos + CxC - CxP</div><div class="mv" id="f-net">$0.00</div></div>
+      <div class="metric"><div class="ml">Efectivo en mano</div><div class="mv" id="f-em">$0.00</div></div>
+      <div class="metric" style="grid-column:1/-1"><div class="ml">Bancos + mano + CxC - CxP</div><div class="mv" id="f-net">$0.00</div></div>
     </div>
     <div class="slabel">Cuentas bancarias</div>
     <div class="card" id="f-ctas"></div>
@@ -569,7 +570,8 @@ textarea{resize:none;font-family:inherit}
       <button class="sec-btn" onclick="finForm('cuenta')"><i class="ti ti-plus"></i>Nueva cuenta</button>
       <button class="sec-btn" onclick="finForm('mov')"><i class="ti ti-arrows-exchange"></i>Movimiento</button>
       <button class="sec-btn" onclick="finForm('transf')"><i class="ti ti-transfer"></i>Entre cuentas</button>
-      <button class="sec-btn" onclick="finForm('dep')"><i class="ti ti-building-bank"></i>Deposito de caja</button>
+      <button class="sec-btn" onclick="finForm('dep')"><i class="ti ti-building-bank"></i>Deposito al banco</button>
+      <button class="sec-btn" onclick="finForm('emini')"><i class="ti ti-wallet"></i>Saldo inicial en mano</button>
     </div>
     <div class="slabel">Ultimos movimientos bancarios</div>
     <div class="card" id="f-movs"></div>
@@ -669,7 +671,7 @@ textarea{resize:none;font-family:inherit}
       <div class="fr">
         <div class="fg"><div class="fl">Ref. compra (proveedor)</div><input type="text" id="np-ref" placeholder="Ej: REF-450, código proveedor..."></div>
         <div class="fg"><div class="fl">Proveedor</div><div style="display:flex;gap:6px"><select id="np-prov" style="flex:1"></select><button type="button" class="sec-btn" style="width:auto;padding:0 14px" onclick="finForm('prov')">+</button></div></div>
-        <div class="fr"><div class="fg"><div class="fl">Forma de pago</div><select id="np-forma" onchange="compraForma('np')"><option value="">Selecciona...</option><option value="Efectivo">Efectivo (caja)</option><option value="Banco">Banco</option><option value="Credito">A credito (por pagar)</option></select></div><div class="fg" id="np-ctaw" style="display:none"><div class="fl">Cuenta</div><select id="np-cta"></select></div></div>
+        <div class="fr"><div class="fg"><div class="fl">Forma de pago</div><select id="np-forma" onchange="compraForma('np')"><option value="">Selecciona...</option><option value="Mano">Efectivo en mano</option><option value="Efectivo">Efectivo (caja)</option><option value="Banco">Banco</option><option value="Credito">A credito (por pagar)</option></select></div><div class="fg" id="np-ctaw" style="display:none"><div class="fl">Cuenta</div><select id="np-cta"></select></div></div>
       </div>
       <button class="add-btn" onclick="agregarProd()"><i class="ti ti-plus"></i>Agregar producto</button>
       <div class="toast tok" id="t-prod">OK Producto guardado correctamente en la nube</div>
@@ -2422,7 +2424,7 @@ async function registrarRetiro(){
   const cta=document.getElementById('retiro-cta')?document.getElementById('retiro-cta').value:'';
   const ref=cta?'D'+Date.now().toString().slice(-7):'';
   const res=await sheetAppend('Gastos',[fecha, hora,'Retiro',cta?(desc+' ['+ref+']'):desc,monto.toFixed(2).replace('.',',')]);
-  if(res&&res.status==='ok'&&cta){await apiCall({action:'appendBatch',sheet:'Mov_Banco',rows:JSON.stringify([[ref+'m',fecha,hora,cta,'Deposito caja',desc,n2(monto),ref]])});}
+  if(res&&res.status==='ok'&&cta){await apiCall({action:'appendBatch',sheet:'Mov_Banco',rows:JSON.stringify([[ref+'m',fecha,hora,cta,(cta==='EM'?'Retiro a mano':'Deposito caja'),desc,n2(monto),ref]])});}
   if(res&&res.status==='ok'){
     retiros.push({hora,desc,monto});
     document.getElementById('retiro-monto').value='';
@@ -4151,7 +4153,7 @@ let finCtas=[],finMov=[],finPre=[],finPag=[],finVtas=[],finListo=false;
 function finLiberar(){try{finCtas=[];finMov=[];finPre=[];finPag=[];finVtas=[];finCred=[];finPagP=[];finListo=false;finTok++;finProm=null;finRaw={};}catch(e){}}
 function finVaciar(){
   finLiberar();
-  ['f-tb','f-cxc','f-cxp','f-net'].forEach(i=>{document.getElementById(i).textContent='--';});
+  ['f-tb','f-cxc','f-cxp','f-em','f-net'].forEach(i=>{document.getElementById(i).textContent='--';});
   ['f-movs','f-pres','f-pags','f-prov','f-pagp'].forEach(i=>{document.getElementById(i).innerHTML='';});
   const c=document.getElementById('f-ctas'); c.innerHTML='';
   c.appendChild(h('div','','Elige la fecha y presiona Consultar para cargar los saldos','font-size:11px;color:var(--text-secondary);padding:6px'));
@@ -4225,7 +4227,7 @@ async function cargarCtasVenta(){
 async function finCtasCaja(){
   const sel=document.getElementById('retiro-cta'); if(!sel) return;
   await cargarCtasVenta();
-  const v=sel.value; sel.innerHTML='<option value="">Ninguna (otro destino)</option>';
+  const v=sel.value; sel.innerHTML='<option value="">Ninguna (otro destino)</option><option value="EM">Efectivo en mano (queda en mi poder)</option>';
   ctasVenta.forEach(c=>{const o=document.createElement('option');o.value=c.id;o.textContent=c.nombre;sel.appendChild(o);});
   sel.value=v;
 }
@@ -4259,6 +4261,7 @@ function finSaldo(c,hasta){
   finVtas.forEach(v=>{if(vtaEnCta(v,c)&&v.f<=hasta)s+=v.tr;});
   return s;
 }
+function finSaldoEM(hasta){let s=0;finMov.forEach(m=>{if(m.cta==='EM'&&m.f<=hasta)s+=m.monto;});return s;}
 function finSaldoPre(p,hasta){return p.monto-finPag.filter(x=>x.pid===p.id&&x.f<=hasta).reduce((s,x)=>s+x.monto,0);}
 
 let ctasVenta=[];
@@ -4283,7 +4286,7 @@ async function finRender(rapido){
   let tb=0;
   finCtas.forEach(c=>{const s=finSaldo(c,hoy);tb+=s;ctas.appendChild(fila(c.nombre+(c.def?' (ventas por transferencia)':''),c.banco+(c.num?' . '+c.num:''),m$(s)));});
   if(!finCtas.length) ctas.appendChild(h('div','','Agrega una cuenta bancaria para empezar','font-size:11px;color:var(--text-secondary);padding:6px'));
-  const nom=id=>{const c=finCtas.find(x=>x.id===id);return c?c.nombre:id;};
+  const nom=id=>{if(id==='EM') return 'Efectivo en mano';const c=finCtas.find(x=>x.id===id);return c?c.nombre:id;};
   finMov.filter(m=>m.f<=hoy).slice(-15).reverse().forEach(m=>mv.appendChild(fila(m.tipo+' . '+nom(m.cta),fFmt(m.f)+' . '+m.conc,m$(m.monto),'x',()=>finDel(m.ref,'Mov_Banco',m.ri))));
   if(!finMov.length) mv.appendChild(h('div','','Sin movimientos','font-size:11px;color:var(--text-secondary);padding:6px'));
   let cxc=0,cxp=0;
@@ -4302,25 +4305,29 @@ async function finRender(rapido){
   document.getElementById('f-tb').textContent=m$(tb);
   document.getElementById('f-cxc').textContent=m$(cxc);
   document.getElementById('f-cxp').textContent=m$(cxp);
-  document.getElementById('f-net').textContent=m$(tb+cxc-cxp);
+  const em=finSaldoEM(hoy);
+  ctas.appendChild(fila('Efectivo en mano','Retirado de caja, por depositar o usar',m$(em)));
+  document.getElementById('f-em').textContent=m$(em);
+  document.getElementById('f-net').textContent=m$(tb+em+cxc-cxp);
 }
 
 const FF={
+  emini:{t:'Saldo inicial de efectivo en mano',f:()=>'<div style="font-size:11px;color:var(--text-secondary)">Dinero que tienes en mano, fuera de la caja del local.</div><div class="fr"><div class="fg"><div class="fl">Monto $</div><input type="number" id="ff-monto" value="0"></div><div class="fg"><div class="fl">Vigente desde</div><input type="date" id="ff-fecha" value="'+fHoyIn()+'"></div></div>'},
   prov:{t:'Nuevo proveedor',f:()=>'<div class="fg"><div class="fl">Nombre</div><input id="ff-nombre"></div><div class="fg"><div class="fl">Telefono / contacto (opcional)</div><input id="ff-conc"></div>'},
   pagoprov:{t:'Pagar a proveedor',f:()=>'<div class="fg"><div class="fl">Proveedor</div><select id="ff-pid">'+finProvSaldos().map(x=>'<option value="'+esc(x.prov)+'">'+esc(x.prov+' (debes '+m$(x.saldo)+')')+'</option>').join('')+'</select></div><div class="fr"><div class="fg"><div class="fl">Monto $</div><input type="number" id="ff-monto"></div><div class="fg"><div class="fl">Fecha</div><input type="date" id="ff-fecha" value="'+fHoyIn()+'"></div></div><div class="fg"><div class="fl">Pago por</div><select id="ff-forma">'+formaOpts()+'</select></div>'},
   cuenta:{t:'Nueva cuenta bancaria',f:()=>'<div class="fr"><div class="fg"><div class="fl">Nombre</div><input id="ff-nombre" placeholder="Ej: Produbanco"></div><div class="fg"><div class="fl">Banco</div><input id="ff-banco"></div></div><div class="fr"><div class="fg"><div class="fl">Numero</div><input id="ff-num"></div><div class="fg"><div class="fl">Saldo inicial $</div><input type="number" id="ff-monto" value="0"></div></div><div class="fg"><div class="fl">Saldo vigente desde</div><input type="date" id="ff-fecha" value="'+fHoyIn()+'"></div><label style="font-size:11px;display:flex;gap:6px;align-items:center"><input type="checkbox" id="ff-def" style="width:auto"> Recibe las ventas por transferencia</label>'},
   mov:{t:'Movimiento bancario',f:()=>'<div class="fg"><div class="fl">Cuenta</div><select id="ff-cta">'+ctaOpts()+'</select></div><div class="fr"><div class="fg"><div class="fl">Tipo</div><select id="ff-tipo"><option>Ingreso</option><option>Pago a proveedor</option><option>Comision</option><option>Gasto</option><option>Otro egreso</option></select></div><div class="fg"><div class="fl">Monto $</div><input type="number" id="ff-monto"></div></div><div class="fg"><div class="fl">Concepto</div><input id="ff-conc"></div><div class="fg"><div class="fl">Fecha</div><input type="date" id="ff-fecha" value="'+fHoyIn()+'"></div>'},
   transf:{t:'Transferencia entre cuentas',f:()=>'<div class="fr"><div class="fg"><div class="fl">Desde</div><select id="ff-o">'+ctaOpts()+'</select></div><div class="fg"><div class="fl">Hacia</div><select id="ff-d">'+ctaOpts()+'</select></div></div><div class="fr"><div class="fg"><div class="fl">Monto $</div><input type="number" id="ff-monto"></div><div class="fg"><div class="fl">Fecha</div><input type="date" id="ff-fecha" value="'+fHoyIn()+'"></div></div><div class="fg"><div class="fl">Concepto</div><input id="ff-conc"></div>'},
-  dep:{t:'Deposito de caja al banco',f:()=>'<div class="fg"><div class="fl">Cuenta destino</div><select id="ff-cta">'+ctaOpts()+'</select></div><div class="fr"><div class="fg"><div class="fl">Monto $</div><input type="number" id="ff-monto"></div><div class="fg"><div class="fl">Fecha</div><input type="date" id="ff-fecha" value="'+fHoyIn()+'"></div></div><div class="fg"><div class="fl">Concepto</div><input id="ff-conc" placeholder="Ej: Deposito ventas del dia"></div>'},
+  dep:{t:'Deposito al banco',f:()=>'<div class="fg"><div class="fl">Sale de</div><select id="ff-origen"><option value="EM">Efectivo en mano</option><option value="CAJA">Caja del local</option></select></div><div class="fg"><div class="fl">Cuenta destino</div><select id="ff-cta">'+ctaOpts()+'</select></div><div class="fr"><div class="fg"><div class="fl">Monto $</div><input type="number" id="ff-monto"></div><div class="fg"><div class="fl">Fecha</div><input type="date" id="ff-fecha" value="'+fHoyIn()+'"></div></div><div class="fg"><div class="fl">Concepto</div><input id="ff-conc" placeholder="Ej: Deposito ventas del dia"></div>'},
   pres:{t:'Nuevo prestamo',f:()=>'<div class="fr"><div class="fg"><div class="fl">Tipo</div><select id="ff-dir"><option value="Otorgado">Yo presto (por cobrar)</option><option value="Recibido">Me prestan (por pagar)</option></select></div><div class="fg"><div class="fl">Persona / entidad</div><input id="ff-pers"></div></div><div class="fr"><div class="fg"><div class="fl">Monto $</div><input type="number" id="ff-monto"></div><div class="fg"><div class="fl">Cuotas</div><input type="number" id="ff-cuotas" value="1" min="1"></div></div><div class="fr"><div class="fg"><div class="fl">Entrega / recibe por</div><select id="ff-forma"><option value="NA">Saldo inicial (no mueve dinero)</option>'+formaOpts()+'</select></div><div class="fg"><div class="fl">Fecha</div><input type="date" id="ff-fecha" value="'+fHoyIn()+'"></div></div><div class="fg"><div class="fl">Notas</div><input id="ff-notas"></div>'},
   pago:{t:'Registrar pago de prestamo',f:()=>'<div class="fg"><div class="fl">Prestamo</div><select id="ff-pid">'+finPre.filter(p=>finSaldoPre(p,99999999)>0.009).map(p=>'<option value="'+esc(p.id)+'">'+esc(p.persona+' ('+p.dir+') saldo '+m$(finSaldoPre(p,99999999)))+'</option>').join('')+'</select></div><div class="fr"><div class="fg"><div class="fl">Monto $</div><input type="number" id="ff-monto"></div><div class="fg"><div class="fl">Fecha</div><input type="date" id="ff-fecha" value="'+fHoyIn()+'"></div></div><div class="fg"><div class="fl">Pago por</div><select id="ff-forma">'+formaOpts()+'</select></div>'}
 };
 function ctaOpts(){return finCtas.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.nombre)+'</option>').join('');}
-function formaOpts(){return '<option value="EF">Efectivo (caja)</option>'+finCtas.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.nombre)+'</option>').join('');}
+function formaOpts(){return '<option value="EM">Efectivo en mano</option><option value="EF">Efectivo (caja)</option>'+finCtas.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.nombre)+'</option>').join('');}
 async function finForm(k,pre){
   if(k!=='prov'&&!finListo) await (finProm||finLoad(0,true));
   if(k==='pagoprov'&&!finProvSaldos().length){alert('No hay deudas con proveedores');return;}
-  if(k!=='cuenta'&&!finCtas.length&&k!=='pres'&&k!=='pago'&&k!=='prov'&&k!=='pagoprov'){alert('Primero agrega una cuenta bancaria');return;}
+  if(k!=='cuenta'&&!finCtas.length&&k!=='pres'&&k!=='pago'&&k!=='prov'&&k!=='pagoprov'&&k!=='emini'){alert('Primero agrega una cuenta bancaria');return;}
   if(k==='pago'&&!finPre.some(p=>finSaldoPre(p,99999999)>0.009)){alert('No hay prestamos con saldo');return;}
   document.getElementById('mf-t').textContent=FF[k].t;
   const b=document.getElementById('mf-b'); b.innerHTML=FF[k].f();
@@ -4356,8 +4363,14 @@ async function finGuardar(k,btn){
       await escribeVarias({Mov_Banco:[[ref+'a',fecha,hora,o,'Transf salida',c,n2(-monto),ref],[ref+'b',fecha,hora,d,'Transf entrada',c,n2(monto),ref]]});
     }else if(k==='dep'){
       if(!(monto>0)||!fi) return bad();
-      const ref='D'+id,cta=gv('ff-cta'),c=gv('ff-conc')||'Deposito de caja';
-      await escribeVarias({Gastos:[[fecha,hora,'Retiro',c+' ['+ref+']',n2(monto)]],Mov_Banco:[[ref+'m',fecha,hora,cta,'Deposito caja',c,n2(monto),ref]]});
+      const ref='D'+id,cta=gv('ff-cta'),c=gv('ff-conc')||'Deposito al banco',org=gv('ff-origen');
+      if(org==='EM'){
+        const sm=finSaldoEM(99999999);
+        if(monto>sm+0.01&&!confirm('El efectivo en mano registrado es '+m$(sm)+', menor al deposito. Continuar?')) return bad();
+        await escribeVarias({Mov_Banco:[[ref+'a',fecha,hora,'EM','Deposito a banco',c,n2(-monto),ref],[ref+'b',fecha,hora,cta,'Deposito de mano',c,n2(monto),ref]]});
+      }else{
+        await escribeVarias({Gastos:[[fecha,hora,'Retiro',c+' ['+ref+']',n2(monto)]],Mov_Banco:[[ref+'m',fecha,hora,cta,'Deposito caja',c,n2(monto),ref]]});
+      }
     }else if(k==='pres'){
       const per=gv('ff-pers'),cu=parseInt(gv('ff-cuotas'))||0,dir=gv('ff-dir'); if(!per||!(monto>0)||cu<1||!fi) return bad();
       const pid='L'+id,mf=finMovFila(gv('ff-forma'),dir==='Otorgado'?-1:1,monto,'Prestamo '+dir+' '+per,pid,fecha);
@@ -4366,11 +4379,15 @@ async function finGuardar(k,btn){
       await escribeVarias(o);
     }else if(k==='pago'){
       const p=finPre.find(x=>x.id===gv('ff-pid')); if(!p||!(monto>0)||!fi||monto>finSaldoPre(p,99999999)+0.01) return bad();
-      const ref='P'+id,forma=gv('ff-forma'),fn=forma==='EF'?'Efectivo':(finCtas.find(c=>c.id===forma)||{nombre:forma}).nombre;
+      const ref='P'+id,forma=gv('ff-forma'),fn=forma==='EF'?'Efectivo':forma==='EM'?'Efectivo en mano':(finCtas.find(c=>c.id===forma)||{nombre:forma}).nombre;
       const mf=finMovFila(forma,p.dir==='Otorgado'?1:-1,monto,'Pago prestamo '+p.persona,ref,fecha);
       const o={Pagos_Prestamo:[[fecha,hora,p.id,finPag.filter(x=>x.pid===p.id).length+1,n2(monto),fn,ref]]};
       if(mf) o[mf[0]]=[mf[1]];
       await escribeVarias(o);
+    }else if(k==='emini'){
+      if(isNaN(monto)||!fi) return bad();
+      const ref='E'+id;
+      await escribeVarias({Mov_Banco:[[ref,fecha,hora,'EM','Saldo inicial','Saldo inicial de efectivo en mano',n2(monto),ref]]});
     }else if(k==='prov'){
       const nom=gv('ff-nombre'); if(!nom) return bad();
       if(provs.some(x=>x.toLowerCase()===nom.toLowerCase())){alert('Ese proveedor ya existe');return bad();}
@@ -4379,7 +4396,7 @@ async function finGuardar(k,btn){
       cerrarModal('m-fin'); return;
     }else if(k==='pagoprov'){
       const pv=gv('ff-pid'),s=finProvSaldos().find(x=>x.prov===pv); if(!s||!(monto>0)||!fi||monto>s.saldo+0.01) return bad();
-      const ref='Q'+id,forma=gv('ff-forma'),fn=forma==='EF'?'Efectivo':(finCtas.find(c=>c.id===forma)||{nombre:forma}).nombre;
+      const ref='Q'+id,forma=gv('ff-forma'),fn=forma==='EF'?'Efectivo':forma==='EM'?'Efectivo en mano':(finCtas.find(c=>c.id===forma)||{nombre:forma}).nombre;
       const mf=finMovFila(forma,-1,monto,'Pago proveedor '+pv,ref,fecha,'Pago a proveedor');
       const o={Pagos_Proveedor:[[fecha,hora,pv,n2(monto),fn,ref]]};
       if(mf) o[mf[0]]=[mf[1]];
@@ -4423,13 +4440,14 @@ async function expRango(){
   const ubruta=neto-costo,unet=ubruta-gasto-gBanco+ingx;
   const cierres=dt(caj).filter(r=>String(r[1]).toUpperCase().includes('CIERRE')&&fk(r[0])<=b).sort((x,y)=>fk(x[0])-fk(y[0]));
   const ult=cierres.length?cierres[cierres.length-1]:null;
-  const nom=id=>{const c=finCtas.find(x=>x.id===id);return c?c.nombre:id;};
+  const nom=id=>{if(id==='EM') return 'Efectivo en mano';const c=finCtas.find(x=>x.id===id);return c?c.nombre:id;};
   const bancos=finCtas.map(c=>{
     const ini=finSaldo(c,a-1),fin=finSaldo(c,b);
     const flujo=movR.filter(m=>m.cta===c.id).map(m=>m.monto).concat(vts.filter(v=>vtaEnCta(v,c)).map(v=>v.tr));
     return [c.nombre,ini,sum(flujo.filter(x=>x>0),x=>x),sum(flujo.filter(x=>x<0),x=>x),fin];
   });
   const totBancos=sum(bancos,x=>x[4]);
+  const em=finSaldoEM(b),emIni=finSaldoEM(a-1),emIn=sum(movR.filter(m=>m.cta==='EM'&&m.monto>0),m=>m.monto),emOut=sum(movR.filter(m=>m.cta==='EM'&&m.monto<0),m=>m.monto);
   const pres=dir=>finPre.filter(p=>p.dir===dir&&p.f<=b).map(p=>{const pag=sum(finPag.filter(x=>x.pid===p.id&&x.f<=b),x=>x.monto);return [p.id,fFmt(p.f),p.persona,p.monto,pag,p.monto-pag];}).filter(x=>x[5]>0.009);
   const cxc=pres('Otorgado'),cxp=pres('Recibido').concat(finProvSaldos(b).map(x=>['Compras','',x.prov,x.deb,x.pag,x.saldo])),tCxc=sum(cxc,x=>x[5]),tCxp=sum(cxp,x=>x[5]);
   const efCaja=ult?toNum(ult[4]):0;
@@ -4439,14 +4457,14 @@ async function expRango(){
     ['COMPRAS (informativo, no resta de la utilidad)',''],['Compras del periodo',totComp],['  de las cuales a credito',sum(cps.filter(r=>r[10]==='Credito'),r=>toNum(r[8]))],[],
     ['UTILIDAD',''],['Ventas netas',neto],['(-) Costo de ventas',-costo],['Utilidad bruta',ubruta],['(-) Gastos',-gasto],['(-) Gastos bancarios',-gBanco],['(+) Ingresos extra',ingx],['UTILIDAD NETA',unet],[],
     ['EFECTIVO',''],['Efectivo contado en el ultimo cierre'+(ult?' ('+fFmt(fk(ult[0]))+')':' (sin cierre registrado)'),efCaja],['Retiros de caja del periodo (depositos y prestamos en efectivo; negativo = entra)',ret],[],
-    ['BANCOS',''],...bancos.map(x=>[x[0],x[4]]),['Total bancos',totBancos],[],
+    ['BANCOS',''],...bancos.map(x=>[x[0],x[4]]),['Total bancos',totBancos],['Efectivo en mano',em],[],
     ['CUENTAS POR COBRAR (prestamos otorgados)',tCxc],['CUENTAS POR PAGAR (prestamos recibidos y compras a credito)',tCxp],[],
-    ['POSICION NETA (efectivo + bancos + CxC - CxP)',efCaja+totBancos+tCxc-tCxp]];
+    ['POSICION NETA (caja + mano + bancos + CxC - CxP)',efCaja+totBancos+em+tCxc-tCxp]];
   const wr=XLSX.utils.aoa_to_sheet(R);wr['!cols']=[{wch:62},{wch:16}];XLSX.utils.book_append_sheet(wb,wr,'Resumen');
   hoja(wb,'Ventas','Ventas '+per,['Fecha','ID Venta','Cliente','Bruto','Descuento','Neto','Efectivo','Transferencia','Costo'],vts.map(v=>[fFmt(v.f),v.id,v.cli,v.bruto,v.desc,v.neto,v.ef,v.tr,v.costo]),[3,4,5,6,7,8],[11,10,18,10,10,10,10,13,10]);
-  hoja(wb,'Compras','Compras '+per,['Fecha','Codigo','Producto','Proveedor','Cantidad','Total','Forma de pago'],cps.map(r=>[fFmt(fk(r[0])),r[2],r[3],r[5]||'',toNum(r[6]),toNum(r[8]),r[10]||'']),[4,5],[11,9,28,16,9,10,14]);
+  hoja(wb,'Compras','Compras '+per,['Fecha','Codigo','Producto','Proveedor','Cantidad','Total','Forma de pago'],cps.map(r=>[fFmt(fk(r[0])),r[2],r[3],r[5]||'',toNum(r[6]),toNum(r[8]),r[10]==='Mano'?'Efectivo en mano':(r[10]||'')]),[4,5],[11,9,28,16,9,10,14]);
   hoja(wb,'Efectivo','Movimientos de caja '+per,['Fecha','Tipo','Concepto','Monto'],gs.map(r=>[fFmt(fk(r[0])),r[2],r[3],toNum(r[4])]),[3],[11,10,40,10]);
-  hoja(wb,'Bancos','Bancos '+per,['Cuenta','Saldo inicial','Entradas','Salidas','Saldo final'],bancos,[1,2,3,4],[22,13,12,12,13]);
+  hoja(wb,'Bancos','Bancos y efectivo en mano '+per,['Cuenta','Saldo inicial','Entradas','Salidas','Saldo final'],bancos.concat([['Efectivo en mano',emIni,emIn,emOut,em]]),[1,2,3,4],[22,13,12,12,13]);
   hoja(wb,'Mov Bancos','Movimientos bancarios '+per,['Fecha','Cuenta','Tipo','Concepto','Monto'],movR.sort((x,y)=>x.f-y.f).map(m=>[fFmt(m.f),nom(m.cta),m.tipo,m.conc,m.monto]),[4],[11,18,16,34,10]);
   hoja(wb,'CxC','Por cobrar al '+fFmt(b),['ID','Fecha','Persona','Prestamo','Cobrado','Saldo'],cxc,[3,4,5],[8,11,24,11,11,11]);
   hoja(wb,'CxP','Por pagar al '+fFmt(b),['ID','Fecha','Persona','Prestamo','Pagado','Saldo'],cxp,[3,4,5],[8,11,24,11,11,11]);
@@ -4520,12 +4538,14 @@ async function escribeVarias(o){
 }
 function finMovFila(forma,signo,monto,conc,ref,fecha,tipo){
   if(forma==='NA') return null;
+  if(forma==='EM') return ['Mov_Banco',[ref+'m',fecha,fHora(),'EM',tipo||'Prestamo',conc,n2(signo*monto),ref]];
   if(forma==='EF') return ['Gastos',[fecha,fHora(),'Retiro',conc+' ['+ref+']',n2(-signo*monto)]];
   return ['Mov_Banco',[ref+'m',fecha,fHora(),forma,tipo||'Prestamo',conc,n2(signo*monto),ref]];
 }
 async function escribeCompra(row,cp,total,prov,idc,fecha,hora,desc){
   const c='Compra '+desc+(prov?' - '+prov:''),o={Compras:[row]};
   if(cp.forma==='Efectivo') o.Gastos=[[fecha,hora,'Retiro',c+' ['+idc+']',n2(total)]];
+  if(cp.forma==='Mano') o.Mov_Banco=[[idc+'m',fecha,hora,'EM','Pago a proveedor',c,n2(-total),idc]];
   if(cp.forma==='Banco') o.Mov_Banco=[[idc+'m',fecha,hora,cp.cta,'Pago a proveedor',c,n2(-total),idc]];
   return escribeVarias(o);
 }
