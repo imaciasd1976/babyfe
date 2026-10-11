@@ -988,22 +988,35 @@ function toNum(v){
 
 
 async function apiCall(params) {
-  try {
-    if(params.action==='appendBatch'||params.action==='appendMulti'){
-      // Use POST to avoid URL length limits with many products
-      const formData = new FormData();
-      Object.entries(params).forEach(([k,v])=>formData.append(k,v));
-      const res = await fetch(API, {method:'POST', body: formData});
-      return await res.json();
+  const esLectura=['read','readSince','readMulti','findRow'].indexOf(params.action)>=0;
+  const intentos=esLectura?4:1;
+  for(let n=1;n<=intentos;n++){
+    try{
+      let res;
+      if(params.action==='appendBatch'||params.action==='appendMulti'){
+        const formData = new FormData();
+        Object.entries(params).forEach(([k,v])=>formData.append(k,v));
+        res = await fetch(API, {method:'POST', body: formData});
+      } else {
+        const url = API + '?' + Object.entries(params).map(([k,v]) => k+'='+encodeURIComponent(v)).join('&');
+        res = await fetch(url);
+      }
+      const txt = await res.text();
+      try{ return JSON.parse(txt); }
+      catch(pe){
+        if(n<intentos){ await new Promise(r=>setTimeout(r,400*n*n)); continue; }
+        console.error('API: respuesta no valida', params.action, params.sheet||'');
+        return {error:'Respuesta no valida del servidor'};
+      }
+    }catch(e){
+      if(n<intentos){ await new Promise(r=>setTimeout(r,400*n*n)); continue; }
+      console.error('API error:', e);
+      return {error: e.toString()};
     }
-    const url = API + '?' + Object.entries(params).map(([k,v]) => `${k}=${encodeURIComponent(v)}`).join('&');
-    const res = await fetch(url);
-    return await res.json();
-  } catch(e) {
-    console.error('API error:', e);
-    return {error: e.toString()};
   }
 }
+function hoyKey(){const d=new Date();return d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate();}
+
 
 async function sheetRead(sheet) {
   return await apiCall({action:'read', sheet});
@@ -1073,7 +1086,7 @@ async function loadInventario() {
 }
 
 async function loadVentas() {
-  const data = await sheetRead('Ventas');
+  const data = await leeDesde('Ventas', hoyKey());
   console.log('[loadVentas] filas recibidas:', Array.isArray(data)?data.length:data);
   if (!Array.isArray(data) || data.length < 2) { ventas=[]; return; }
   const ahora = new Date();
@@ -1318,7 +1331,7 @@ function showScreen(id){
     if(repBtnInicio) repBtnInicio.style.display=rol==='admin'?'block':'none';
   }
   if(id==='venta'){
-    cargarCtasVenta();
+    setTimeout(cargarCtasVenta,1500);
     const fechaBlq=document.getElementById('blq-fecha-venta');
     if(fechaBlq) fechaBlq.style.display=rol==='admin'?'flex':'none';
   }
@@ -2363,7 +2376,7 @@ function exportarEDR(){
 
 
 async function cargarMovimientos(){
-  const data = await sheetRead('Gastos');
+  const data = await leeDesde('Gastos', hoyKey());
   movimientos = [];
   if(Array.isArray(data) && data.length>1){
     const hoy = ((d=new Date()),d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear());
