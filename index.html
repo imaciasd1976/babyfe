@@ -553,6 +553,7 @@ textarea{resize:none;font-family:inherit}
   </div>
 
   <div id="s-finanzas" class="screen">
+    <div style="font-size:9px;color:var(--text-secondary);text-align:right">Version v34</div>
     <div class="fr" style="align-items:flex-end">
       <div class="fg"><div class="fl">Saldos al</div><input type="date" id="f-corte"></div>
       <button class="add-btn" onclick="finRender()"><i class="ti ti-search"></i>Consultar</button>
@@ -561,8 +562,9 @@ textarea{resize:none;font-family:inherit}
       <div class="metric"><div class="ml">Total bancos</div><div class="mv green" id="f-tb">$0.00</div></div>
       <div class="metric"><div class="ml">Por cobrar</div><div class="mv" id="f-cxc">$0.00</div></div>
       <div class="metric"><div class="ml">Por pagar</div><div class="mv pink" id="f-cxp">$0.00</div></div>
+      <div class="metric"><div class="ml">Efectivo en caja</div><div class="mv" id="f-caja">$0.00</div><div id="f-caja-t" style="font-size:9px;color:var(--text-secondary);margin-top:2px"></div></div>
       <div class="metric"><div class="ml">Efectivo en mano</div><div class="mv" id="f-em">$0.00</div></div>
-      <div class="metric" style="grid-column:1/-1"><div class="ml">Bancos + mano + CxC - CxP</div><div class="mv" id="f-net">$0.00</div></div>
+      <div class="metric" style="grid-column:1/-1"><div class="ml">Caja + mano + bancos + CxC - CxP</div><div class="mv" id="f-net">$0.00</div></div>
     </div>
     <div class="slabel">Cuentas bancarias</div>
     <div class="card" id="f-ctas"></div>
@@ -1015,6 +1017,16 @@ async function apiCall(params) {
     }
   }
 }
+function diasAtras(k,n){const d=new Date(Date.UTC(Math.floor(k/10000),Math.floor(k/100)%100-1,k%100-n));return d.getUTCFullYear()*10000+(d.getUTCMonth()+1)*100+d.getUTCDate();}
+async function leeHoy(hoja){
+  const k=hoyKey();
+  let d=await leeDesde(hoja,k);
+  if(Array.isArray(d)&&d.length<2){
+    d=await leeDesde(hoja,diasAtras(k,7));
+    if(Array.isArray(d)&&d.length<2) d=await sheetRead(hoja);
+  }
+  return d;
+}
 function hoyKey(){const d=new Date();return d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate();}
 
 
@@ -1086,7 +1098,7 @@ async function loadInventario() {
 }
 
 async function loadVentas() {
-  const data = await leeDesde('Ventas', hoyKey());
+  const data = await leeHoy('Ventas');
   console.log('[loadVentas] filas recibidas:', Array.isArray(data)?data.length:data);
   if (!Array.isArray(data) || data.length < 2) { ventas=[]; return; }
   const ahora = new Date();
@@ -2376,13 +2388,13 @@ function exportarEDR(){
 
 
 async function cargarMovimientos(){
-  const data = await leeDesde('Gastos', hoyKey());
+  const data = await leeHoy('Gastos');
   movimientos = [];
   if(Array.isArray(data) && data.length>1){
-    const hoy = ((d=new Date()),d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear());
+    const hoy = hoyKey();
     data.slice(1).forEach(r=>{
-      if(r[0]===hoy){
-        movimientos.push({fecha:r[0],hora:r[1],tipo:r[2],concepto:r[3],monto:parseFloat(r[4])||0});
+      if(r[0]&&fk(r[0])===hoy){
+        movimientos.push({fecha:r[0],hora:r[1],tipo:r[2],concepto:r[3],monto:toNum(r[4])});
       }
     });
   }
@@ -4161,20 +4173,22 @@ function fHora(){const d=new Date();return d.getHours().toString().padStart(2,'0
 function esc(s){return String(s===undefined||s===null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function h(t,c,x,st){const e=document.createElement(t);if(c)e.className=c;if(x!==undefined)e.textContent=x;if(st)e.style.cssText=st;return e;}
 
+console.log('BabyFe v34');
 const FIN_DESDE=20261001;
 let finCtas=[],finMov=[],finPre=[],finPag=[],finVtas=[],finListo=false;
 function finLiberar(){try{finCtas=[];finMov=[];finPre=[];finPag=[];finVtas=[];finCred=[];finPagP=[];finListo=false;finTok++;finProm=null;finRaw={};}catch(e){}}
 function finVaciar(){
   finLiberar();
-  ['f-tb','f-cxc','f-cxp','f-em','f-net'].forEach(i=>{document.getElementById(i).textContent='--';});
+  ['f-tb','f-cxc','f-cxp','f-caja','f-em','f-net'].forEach(i=>{document.getElementById(i).textContent='--';});
+  document.getElementById('f-caja-t').textContent='';
   ['f-movs','f-pres','f-pags','f-prov','f-pagp'].forEach(i=>{document.getElementById(i).innerHTML='';});
   const c=document.getElementById('f-ctas'); c.innerHTML='';
   c.appendChild(h('div','','Elige la fecha y presiona Consultar para cargar los saldos','font-size:11px;color:var(--text-secondary);padding:6px'));
   document.getElementById('f-corte').value=fHoyIn();
-  finProm=finLoad(0,true).catch(function(){});
+  finProm=finLoad(0,true,true).catch(function(){});
 }
 async function leeDesde(hoja,desde){
-  const d=await apiCall({action:'readSince',sheet:hoja,col:1,since:desde});
+  const d=await apiCall({action:'readSince',sheet:hoja,col:1,since:diasAtras(desde,1)});
   return Array.isArray(d)?d:await sheetRead(hoja);
 }
 
@@ -4196,12 +4210,12 @@ function agVentas(data){
   return o;
 }
 
-async function finLoad(extra,liviano){
+async function finLoad(extra,liviano,basico){
   const tok=finTok;
   let desde=FIN_DESDE; if(extra&&extra<desde) desde=extra;
   const lista=[['Bancos'],['Mov_Banco'],['Prestamos'],['Pagos_Prestamo'],['Compras',desde],['Pagos_Proveedor']];
   if(!liviano) lista.push(['Ventas',desde]);
-  if(extra) lista.push(['Gastos',desde],['Caja']);
+  if(!basico) lista.push(['Gastos',desde],['Caja']);
   const o=await leeVarias(lista);
   if(tok!==finTok) return;
   const rows=d=>Array.isArray(d)?d.map((r,i)=>({r,ri:i+1})).slice(1).filter(x=>x.r[0]!==''&&x.r[0]!==undefined):[];
@@ -4216,7 +4230,7 @@ async function finLoad(extra,liviano){
     if(mn<desde) v=await leeDesde('Ventas',mn);
     finVtas=agVentas(v);
   }
-  if(extra) finRaw={comp:o.Compras,gas:o.Gastos,caj:o.Caja};
+  if(!basico) finRaw={comp:o.Compras,gas:o.Gastos,caj:o.Caja};
   finListo=true;
 }
 async function finDel(ref,hoja,ri){
@@ -4274,6 +4288,23 @@ function finSaldo(c,hasta){
   finVtas.forEach(v=>{if(vtaEnCta(v,c)&&v.f<=hasta)s+=v.tr;});
   return s;
 }
+function cajaEnFecha(key){
+  const caj=Array.isArray(finRaw.caj)?finRaw.caj.slice(1).filter(r=>r[0]):[];
+  const gas=Array.isArray(finRaw.gas)?finRaw.gas.slice(1).filter(r=>r[0]):[];
+  const tipo=t=>caj.filter(r=>String(r[1]||'').toUpperCase().includes(t));
+  const cierre=tipo('CIERRE').filter(r=>fk(r[0])===key).pop();
+  if(cierre) return {v:toNum(cierre[4]),t:'Cierre del '+fFmt(key)+' (contado)'};
+  const ini=tipo('INICIO').filter(r=>fk(r[0])===key).pop();
+  if(ini){
+    const ef=finVtas.filter(v=>v.f===key).reduce((s,v)=>s+v.ef,0);
+    let g=0,i=0,rt=0;
+    gas.forEach(r=>{if(fk(r[0])!==key) return;const m=toNum(r[4]);if(r[2]==='Gasto')g+=m;else if(r[2]==='Retiro')rt+=m;else if(r[2]==='Ingreso')i+=m;});
+    return {v:toNum(ini[4])+ef+i-g-rt,t:'Caja abierta el '+fFmt(key)+' (esperado)'};
+  }
+  const prev=tipo('CIERRE').filter(r=>fk(r[0])<key).sort((a,b)=>fk(a[0])-fk(b[0])).pop();
+  if(prev) return {v:toNum(prev[4]),t:'Ultimo cierre: '+fFmt(fk(prev[0]))+' (contado)'};
+  return {v:0,t:'Sin caja registrada'};
+}
 function finSaldoEM(hasta){let s=0;finMov.forEach(m=>{if(m.cta==='EM'&&m.f<=hasta)s+=m.monto;});return s;}
 function finSaldoPre(p,hasta){return p.monto-finPag.filter(x=>x.pid===p.id&&x.f<=hasta).reduce((s,x)=>s+x.monto,0);}
 
@@ -4319,9 +4350,12 @@ async function finRender(rapido){
   document.getElementById('f-cxc').textContent=m$(cxc);
   document.getElementById('f-cxp').textContent=m$(cxp);
   const em=finSaldoEM(hoy);
+  const cj=cajaEnFecha(hoy===99999999?hoyKey():hoy);
+  document.getElementById('f-caja').textContent=m$(cj.v);
+  document.getElementById('f-caja-t').textContent=cj.t;
   ctas.appendChild(fila('Efectivo en mano','Retirado de caja, por depositar o usar',m$(em)));
   document.getElementById('f-em').textContent=m$(em);
-  document.getElementById('f-net').textContent=m$(tb+em+cxc-cxp);
+  document.getElementById('f-net').textContent=m$(tb+em+cj.v+cxc-cxp);
 }
 
 const FF={
@@ -4338,7 +4372,7 @@ const FF={
 function ctaOpts(){return finCtas.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.nombre)+'</option>').join('');}
 function formaOpts(){return '<option value="EM">Efectivo en mano</option><option value="EF">Efectivo (caja)</option>'+finCtas.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.nombre)+'</option>').join('');}
 async function finForm(k,pre){
-  if(k!=='prov'&&!finListo) await (finProm||finLoad(0,true));
+  if(k!=='prov'&&!finListo) await (finProm||finLoad(0,true,true));
   if(k==='pagoprov'&&!finProvSaldos().length){alert('No hay deudas con proveedores');return;}
   if(k!=='cuenta'&&!finCtas.length&&k!=='pres'&&k!=='pago'&&k!=='prov'&&k!=='pagoprov'&&k!=='emini'){alert('Primero agrega una cuenta bancaria');return;}
   if(k==='pago'&&!finPre.some(p=>finSaldoPre(p,99999999)>0.009)){alert('No hay prestamos con saldo');return;}
@@ -4536,7 +4570,7 @@ function finProvSaldos(hasta){
 // ===================================================
 let provT=0,ctasT=0,finTok=0,finProm=null,finRaw={};
 async function leeVarias(list){
-  const d=await apiCall({action:'readMulti',list:JSON.stringify(list.map(x=>({n:x[0],since:x[1]||0})))});
+  const d=await apiCall({action:'readMulti',list:JSON.stringify(list.map(x=>({n:x[0],since:x[1]?diasAtras(x[1],1):0})))});
   if(d&&!d.error&&!Array.isArray(d)) return d;
   const o={};
   await Promise.all(list.map(async x=>{o[x[0]]=x[1]?await leeDesde(x[0],x[1]):await sheetRead(x[0]);}));
