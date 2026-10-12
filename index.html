@@ -553,7 +553,7 @@ textarea{resize:none;font-family:inherit}
   </div>
 
   <div id="s-finanzas" class="screen">
-    <div style="font-size:9px;color:var(--text-secondary);text-align:right">Version v34</div>
+    <div style="font-size:9px;color:var(--text-secondary);text-align:right">Version v35</div>
     <div class="fr" style="align-items:flex-end">
       <div class="fg"><div class="fl">Saldos al</div><input type="date" id="f-corte"></div>
       <button class="add-btn" onclick="finRender()"><i class="ti ti-search"></i>Consultar</button>
@@ -1098,7 +1098,7 @@ async function loadInventario() {
 }
 
 async function loadVentas() {
-  const data = await leeHoy('Ventas');
+  const data = await sheetRead('Ventas');
   console.log('[loadVentas] filas recibidas:', Array.isArray(data)?data.length:data);
   if (!Array.isArray(data) || data.length < 2) { ventas=[]; return; }
   const ahora = new Date();
@@ -2099,7 +2099,7 @@ function nuevaCaja(){cajaInicio=null;cajaFin=null;renderCaja();}
 
 async function cierreCalc(fechaVal){
   const key=fkIn(fechaVal);
-  const [vd,gd,cd]=await Promise.all([leeDesde('Ventas',key),leeDesde('Gastos',key),leeDesde('Caja',key)]);
+  const [vd,gd,cd]=await Promise.all([sheetRead('Ventas'),sheetRead('Gastos'),sheetRead('Caja')]);
   const vts=agVentas(vd).filter(v=>v.f===key);
   let gastos=0,ing=0,ret=0,fondo=0;
   if(Array.isArray(gd)) gd.slice(1).forEach(r=>{
@@ -2388,7 +2388,7 @@ function exportarEDR(){
 
 
 async function cargarMovimientos(){
-  const data = await leeHoy('Gastos');
+  const data = await sheetRead('Gastos');
   movimientos = [];
   if(Array.isArray(data) && data.length>1){
     const hoy = hoyKey();
@@ -4173,7 +4173,7 @@ function fHora(){const d=new Date();return d.getHours().toString().padStart(2,'0
 function esc(s){return String(s===undefined||s===null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function h(t,c,x,st){const e=document.createElement(t);if(c)e.className=c;if(x!==undefined)e.textContent=x;if(st)e.style.cssText=st;return e;}
 
-console.log('BabyFe v34');
+console.log('BabyFe v35');
 const FIN_DESDE=20261001;
 let finCtas=[],finMov=[],finPre=[],finPag=[],finVtas=[],finListo=false;
 function finLiberar(){try{finCtas=[];finMov=[];finPre=[];finPag=[];finVtas=[];finCred=[];finPagP=[];finListo=false;finTok++;finProm=null;finRaw={};}catch(e){}}
