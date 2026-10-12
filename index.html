@@ -553,11 +553,12 @@ textarea{resize:none;font-family:inherit}
   </div>
 
   <div id="s-finanzas" class="screen">
-    <div style="font-size:9px;color:var(--text-secondary);text-align:right">Version v36</div>
+    <div style="font-size:9px;color:var(--text-secondary);text-align:right">Version v37</div>
     <div class="fr" style="align-items:flex-end">
       <div class="fg"><div class="fl">Saldos al</div><input type="date" id="f-corte"></div>
       <button class="add-btn" onclick="finRender()"><i class="ti ti-search"></i>Consultar</button>
     </div>
+    <div id="f-diag" style="font-size:10px;color:var(--text-secondary);margin:-4px 0 8px"></div>
     <div class="m2">
       <div class="metric"><div class="ml">Total bancos</div><div class="mv green" id="f-tb">$0.00</div></div>
       <div class="metric"><div class="ml">Por cobrar</div><div class="mv" id="f-cxc">$0.00</div></div>
@@ -4173,14 +4174,16 @@ function fHora(){const d=new Date();return d.getHours().toString().padStart(2,'0
 function esc(s){return String(s===undefined||s===null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function h(t,c,x,st){const e=document.createElement(t);if(c)e.className=c;if(x!==undefined)e.textContent=x;if(st)e.style.cssText=st;return e;}
 
-console.log('BabyFe v36');
+console.log('BabyFe v37');
 const FIN_DESDE=20261001;
+let finErr=[];
 let finCtas=[],finMov=[],finPre=[],finPag=[],finVtas=[],finListo=false;
 function finLiberar(){try{finCtas=[];finMov=[];finPre=[];finPag=[];finVtas=[];finCred=[];finPagP=[];finListo=false;finTok++;finProm=null;finRaw={};}catch(e){}}
 function finVaciar(){
   finLiberar();
   ['f-tb','f-cxc','f-cxp','f-caja','f-em','f-net'].forEach(i=>{document.getElementById(i).textContent='--';});
   document.getElementById('f-caja-t').textContent='';
+  document.getElementById('f-diag').textContent='';
   ['f-movs','f-pres','f-pags','f-prov','f-pagp'].forEach(i=>{document.getElementById(i).innerHTML='';});
   const c=document.getElementById('f-ctas'); c.innerHTML='';
   c.appendChild(h('div','','Elige la fecha y presiona Consultar para cargar los saldos','font-size:11px;color:var(--text-secondary);padding:6px'));
@@ -4217,7 +4220,16 @@ async function finLoad(extra,liviano,basico){
   if(!liviano) lista.push(['Ventas',desde]);
   if(!basico) lista.push(['Gastos',desde],['Caja']);
   const o=await leeVarias(lista);
+  const fallas=[];
+  for(const x of lista){
+    if(!Array.isArray(o[x[0]])){
+      let r=null;
+      for(let i=0;i<2&&!Array.isArray(r);i++) r=x[1]?await leeDesde(x[0],x[1]):await sheetRead(x[0]);
+      if(Array.isArray(r)) o[x[0]]=r; else fallas.push(x[0]);
+    }
+  }
   if(tok!==finTok) return;
+  finErr=fallas;
   const rows=d=>Array.isArray(d)?d.map((r,i)=>({r,ri:i+1})).slice(1).filter(x=>x.r[0]!==''&&x.r[0]!==undefined):[];
   finCtas=rows(o.Bancos).map(x=>({id:String(x.r[0]),nombre:String(x.r[1]),banco:String(x.r[2]||''),num:String(x.r[3]||''),ini:toNum(x.r[4]),fk:fk(x.r[5]),def:String(x.r[6]).toUpperCase()==='SI',ri:x.ri}));
   finMov=rows(o.Mov_Banco).map(x=>({id:String(x.r[0]),f:fk(x.r[1]),cta:String(x.r[3]),tipo:String(x.r[4]),conc:String(x.r[5]||''),monto:toNum(x.r[6]),ref:String(x.r[7]||''),ri:x.ri}));
@@ -4353,6 +4365,9 @@ async function finRender(rapido){
   const ps=finProvSaldos(hoy); ps.forEach(x=>{cxp+=x.saldo;fp.appendChild(fila(x.prov,'Compras a credito pendientes',m$(x.saldo),'Pagar',()=>finForm('pagoprov',x.prov)));});
   if(!ps.length) fp.appendChild(h('div','','Sin deudas con proveedores','font-size:11px;color:var(--text-secondary);padding:6px'));
   finPagP.filter(x=>x.f<=hoy).slice(-10).reverse().forEach(x=>fq.appendChild(fila(x.prov,fFmt(x.f)+' . '+x.forma,m$(x.monto),'x',()=>finDel(x.ref,'Pagos_Proveedor',x.ri))));
+  const dg=document.getElementById('f-diag'),vtt=finVtas.filter(v=>v.tr>0.009);
+  if(finErr.length){dg.style.color='#b91c1c';dg.textContent='NO SE PUDO LEER: '+finErr.join(', ')+'. Los saldos pueden estar incompletos. Presiona Consultar otra vez.';}
+  else{dg.style.color='';dg.textContent='Leido: '+finVtas.length+' ventas ('+vtt.length+' con transferencia: '+m$(vtt.reduce((a,v)=>a+v.tr,0))+') . '+finMov.length+' movimientos . '+finPre.length+' prestamos';}
   document.getElementById('f-tb').textContent=m$(tb);
   document.getElementById('f-cxc').textContent=m$(cxc);
   document.getElementById('f-cxp').textContent=m$(cxp);
@@ -4580,7 +4595,7 @@ async function leeVarias(list){
   const d=await apiCall({action:'readMulti',list:JSON.stringify(list.map(x=>({n:x[0],since:x[1]?diasAtras(x[1],1):0})))});
   if(d&&!d.error&&!Array.isArray(d)) return d;
   const o={};
-  await Promise.all(list.map(async x=>{o[x[0]]=x[1]?await leeDesde(x[0],x[1]):await sheetRead(x[0]);}));
+  for(const x of list){o[x[0]]=x[1]?await leeDesde(x[0],x[1]):await sheetRead(x[0]);}
   return o;
 }
 async function escribeVarias(o){
