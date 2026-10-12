@@ -553,7 +553,7 @@ textarea{resize:none;font-family:inherit}
   </div>
 
   <div id="s-finanzas" class="screen">
-    <div style="font-size:9px;color:var(--text-secondary);text-align:right">Version v37</div>
+    <div style="font-size:9px;color:var(--text-secondary);text-align:right">Version v38</div>
     <div class="fr" style="align-items:flex-end">
       <div class="fg"><div class="fl">Saldos al</div><input type="date" id="f-corte"></div>
       <button class="add-btn" onclick="finRender()"><i class="ti ti-search"></i>Consultar</button>
@@ -4174,7 +4174,7 @@ function fHora(){const d=new Date();return d.getHours().toString().padStart(2,'0
 function esc(s){return String(s===undefined||s===null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function h(t,c,x,st){const e=document.createElement(t);if(c)e.className=c;if(x!==undefined)e.textContent=x;if(st)e.style.cssText=st;return e;}
 
-console.log('BabyFe v37');
+console.log('BabyFe v38');
 const FIN_DESDE=20261001;
 let finErr=[];
 let finCtas=[],finMov=[],finPre=[],finPag=[],finVtas=[],finListo=false;
@@ -4216,9 +4216,9 @@ function agVentas(data){
 async function finLoad(extra,liviano,basico){
   const tok=finTok;
   let desde=FIN_DESDE; if(extra&&extra<desde) desde=extra;
-  const lista=[['Bancos'],['Mov_Banco'],['Prestamos'],['Pagos_Prestamo'],['Compras',desde],['Pagos_Proveedor']];
-  if(!liviano) lista.push(['Ventas',desde]);
-  if(!basico) lista.push(['Gastos',desde],['Caja']);
+  const lista=[['Bancos'],['Mov_Banco'],['Prestamos'],['Pagos_Prestamo'],['Compras'],['Pagos_Proveedor']];
+  if(!liviano) lista.push(['Ventas']);
+  if(!basico) lista.push(['Gastos'],['Caja']);
   const o=await leeVarias(lista);
   const fallas=[];
   for(const x of lista){
@@ -4238,9 +4238,7 @@ async function finLoad(extra,liviano,basico){
   finCred=Array.isArray(o.Compras)?o.Compras.slice(1).filter(r=>r[0]&&String(r[10])==='Credito').map(r=>({prov:String(r[5]||'Sin proveedor').trim(),f:fk(r[0]),total:toNum(r[8])})):[];
   finPagP=rows(o.Pagos_Proveedor).map(x=>({f:fk(x.r[0]),prov:String(x.r[2]).trim(),monto:toNum(x.r[3]),forma:String(x.r[4]||''),ref:String(x.r[5]||''),ri:x.ri}));
   if(!liviano){
-    let v=o.Ventas; const mn=finCtas.reduce((m,c)=>c.fk&&c.fk<m?c.fk:m,99999999);
-    if(mn<desde) v=await leeDesde('Ventas',mn);
-    finVtas=agVentas(v);
+    finVtas=agVentas(o.Ventas);
   }
   if(!basico) finRaw={comp:o.Compras,gas:o.Gastos,caj:o.Caja};
   finListo=true;
@@ -4365,9 +4363,9 @@ async function finRender(rapido){
   const ps=finProvSaldos(hoy); ps.forEach(x=>{cxp+=x.saldo;fp.appendChild(fila(x.prov,'Compras a credito pendientes',m$(x.saldo),'Pagar',()=>finForm('pagoprov',x.prov)));});
   if(!ps.length) fp.appendChild(h('div','','Sin deudas con proveedores','font-size:11px;color:var(--text-secondary);padding:6px'));
   finPagP.filter(x=>x.f<=hoy).slice(-10).reverse().forEach(x=>fq.appendChild(fila(x.prov,fFmt(x.f)+' . '+x.forma,m$(x.monto),'x',()=>finDel(x.ref,'Pagos_Proveedor',x.ri))));
-  const dg=document.getElementById('f-diag'),vtt=finVtas.filter(v=>v.tr>0.009);
+  const dg=document.getElementById('f-diag'),mnf=finCtas.reduce((m,c)=>c.fk&&c.fk<m?c.fk:m,99999999),vd=finVtas.filter(v=>v.f>=mnf),vtt=vd.filter(v=>v.tr>0.009);
   if(finErr.length){dg.style.color='#b91c1c';dg.textContent='NO SE PUDO LEER: '+finErr.join(', ')+'. Los saldos pueden estar incompletos. Presiona Consultar otra vez.';}
-  else{dg.style.color='';dg.textContent='Leido: '+finVtas.length+' ventas ('+vtt.length+' con transferencia: '+m$(vtt.reduce((a,v)=>a+v.tr,0))+') . '+finMov.length+' movimientos . '+finPre.length+' prestamos';}
+  else{dg.style.color='';dg.textContent='Leido: '+vd.length+' ventas desde el saldo inicial ('+vtt.length+' con transferencia: '+m$(vtt.reduce((a,v)=>a+v.tr,0))+') . '+finMov.length+' movimientos . '+finPre.length+' prestamos';}
   document.getElementById('f-tb').textContent=m$(tb);
   document.getElementById('f-cxc').textContent=m$(cxc);
   document.getElementById('f-cxp').textContent=m$(cxp);
