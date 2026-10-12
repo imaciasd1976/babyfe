@@ -553,7 +553,7 @@ textarea{resize:none;font-family:inherit}
   </div>
 
   <div id="s-finanzas" class="screen">
-    <div style="font-size:9px;color:var(--text-secondary);text-align:right">Version v35</div>
+    <div style="font-size:9px;color:var(--text-secondary);text-align:right">Version v36</div>
     <div class="fr" style="align-items:flex-end">
       <div class="fg"><div class="fl">Saldos al</div><input type="date" id="f-corte"></div>
       <button class="add-btn" onclick="finRender()"><i class="ti ti-search"></i>Consultar</button>
@@ -4173,7 +4173,7 @@ function fHora(){const d=new Date();return d.getHours().toString().padStart(2,'0
 function esc(s){return String(s===undefined||s===null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function h(t,c,x,st){const e=document.createElement(t);if(c)e.className=c;if(x!==undefined)e.textContent=x;if(st)e.style.cssText=st;return e;}
 
-console.log('BabyFe v35');
+console.log('BabyFe v36');
 const FIN_DESDE=20261001;
 let finCtas=[],finMov=[],finPre=[],finPag=[],finVtas=[],finListo=false;
 function finLiberar(){try{finCtas=[];finMov=[];finPre=[];finPag=[];finVtas=[];finCred=[];finPagP=[];finListo=false;finTok++;finProm=null;finRaw={};}catch(e){}}
@@ -4328,11 +4328,18 @@ async function finRender(rapido){
   const ctas=document.getElementById('f-ctas'),mv=document.getElementById('f-movs'),pr=document.getElementById('f-pres'),pg=document.getElementById('f-pags');
   [ctas,mv,pr,pg].forEach(x=>x.innerHTML='');
   let tb=0;
-  finCtas.forEach(c=>{const s=finSaldo(c,hoy);tb+=s;ctas.appendChild(fila(c.nombre+(c.def?' (ventas por transferencia)':''),c.banco+(c.num?' . '+c.num:''),m$(s)));});
+  finCtas.forEach(c=>{const s=finSaldo(c,hoy);tb+=s;const vt=finVtas.filter(v=>vtaEnCta(v,c)&&v.f<=hoy).reduce((a,v)=>a+v.tr,0);ctas.appendChild(fila(c.nombre+(c.def?' (ventas por transferencia)':''),c.banco+(c.num?' . '+c.num:'')+(vt>0.009?' . incluye '+m$(vt)+' de ventas por transferencia':''),m$(s)));});
   if(!finCtas.length) ctas.appendChild(h('div','','Agrega una cuenta bancaria para empezar','font-size:11px;color:var(--text-secondary);padding:6px'));
   const nom=id=>{if(id==='EM') return 'Efectivo en mano';const c=finCtas.find(x=>x.id===id);return c?c.nombre:id;};
-  finMov.filter(m=>m.f<=hoy).slice(-15).reverse().forEach(m=>mv.appendChild(fila(m.tipo+' . '+nom(m.cta),fFmt(m.f)+' . '+m.conc,m$(m.monto),'x',()=>finDel(m.ref,'Mov_Banco',m.ri))));
-  if(!finMov.length) mv.appendChild(h('div','','Sin movimientos','font-size:11px;color:var(--text-secondary);padding:6px'));
+  const items=finMov.filter(m=>m.f<=hoy).map(m=>({f:m.f,o:1,m:m}));
+  finVtas.filter(v=>v.tr>0.009&&v.f<=hoy).forEach(v=>items.push({f:v.f,o:0,v:v}));
+  items.sort((a,b)=>a.f-b.f||a.o-b.o);
+  items.slice(-15).reverse().forEach(it=>{
+    if(it.m){const m=it.m;mv.appendChild(fila(m.tipo+' . '+nom(m.cta),fFmt(m.f)+' . '+m.conc,m$(m.monto),'x',()=>finDel(m.ref,'Mov_Banco',m.ri)));}
+    else{const v=it.v,c=finCtas.find(x=>vtaEnCta(v,x)),cd=v.banco?finCtas.find(x=>x.id===v.banco):finCtas.find(x=>x.def);
+      mv.appendChild(fila(c?'Transferencia de venta . '+c.nombre:'Venta por transferencia . '+(cd?cd.nombre:'sin cuenta'),fFmt(v.f)+' . Venta '+v.id+(v.cli?' . '+v.cli:'')+(c?'':' . NO SUMA: es anterior a la fecha del saldo inicial'),m$(v.tr)));}
+  });
+  if(!items.length) mv.appendChild(h('div','','Sin movimientos','font-size:11px;color:var(--text-secondary);padding:6px'));
   let cxc=0,cxp=0;
   finPre.filter(p=>p.f<=hoy).forEach(p=>{
     const s=finSaldoPre(p,hoy); if(s>0.009){if(p.dir==='Otorgado')cxc+=s;else cxp+=s;}
@@ -4512,7 +4519,7 @@ async function expRango(){
   hoja(wb,'Compras','Compras '+per,['Fecha','Codigo','Producto','Proveedor','Cantidad','Total','Forma de pago'],cps.map(r=>[fFmt(fk(r[0])),r[2],r[3],r[5]||'',toNum(r[6]),toNum(r[8]),r[10]==='Mano'?'Efectivo en mano':(r[10]||'')]),[4,5],[11,9,28,16,9,10,14]);
   hoja(wb,'Efectivo','Movimientos de caja '+per,['Fecha','Tipo','Concepto','Monto'],gs.map(r=>[fFmt(fk(r[0])),r[2],r[3],toNum(r[4])]),[3],[11,10,40,10]);
   hoja(wb,'Bancos','Bancos y efectivo en mano '+per,['Cuenta','Saldo inicial','Entradas','Salidas','Saldo final'],bancos.concat([['Efectivo en mano',emIni,emIn,emOut,em]]),[1,2,3,4],[22,13,12,12,13]);
-  hoja(wb,'Mov Bancos','Movimientos bancarios '+per,['Fecha','Cuenta','Tipo','Concepto','Monto'],movR.sort((x,y)=>x.f-y.f).map(m=>[fFmt(m.f),nom(m.cta),m.tipo,m.conc,m.monto]),[4],[11,18,16,34,10]);
+  hoja(wb,'Mov Bancos','Movimientos bancarios '+per,['Fecha','Cuenta','Tipo','Concepto','Monto'],movR.map(m=>({f:m.f,r:[fFmt(m.f),nom(m.cta),m.tipo,m.conc,m.monto]})).concat(vts.filter(v=>v.tr>0.009).map(v=>{const c=finCtas.find(x=>vtaEnCta(v,x));return c?{f:v.f,r:[fFmt(v.f),c.nombre,'Transferencia venta','Venta '+v.id+(v.cli?' - '+v.cli:''),v.tr]}:null;}).filter(Boolean)).sort((x,y)=>x.f-y.f).map(o=>o.r),[4],[11,18,16,34,10]);
   hoja(wb,'CxC','Por cobrar al '+fFmt(b),['ID','Fecha','Persona','Prestamo','Cobrado','Saldo'],cxc,[3,4,5],[8,11,24,11,11,11]);
   hoja(wb,'CxP','Por pagar al '+fFmt(b),['ID','Fecha','Persona','Prestamo','Pagado','Saldo'],cxp,[3,4,5],[8,11,24,11,11,11]);
   XLSX.writeFile(wb,'BabyFe_Reporte_'+fi+'_al_'+ff+'.xlsx');
