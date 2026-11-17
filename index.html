@@ -276,6 +276,7 @@ textarea{resize:none;font-family:inherit}
       <div style="font-size:11px;font-weight:700;color:var(--orange);display:flex;align-items:center;gap:6px">
         <i class="ti ti-package-import" style="font-size:15px"></i>Reposición / Compra de stock
       </div>
+      <button class="add-btn" style="background:#C2410C" onclick="facAbrir()"><i class="ti ti-receipt"></i>Registrar factura con varios productos</button>
       <div class="fg">
         <div class="fl">Buscar producto</div>
         <div style="display:flex;gap:6px;align-items:center"><div class="sw" style="flex:1"><i class="ti ti-search"></i><input type="text" id="rep-busq" placeholder="Buscar por nombre, código o marca..." oninput="buscarRepos()"></div><button onclick="iniciarScannerGenerico('rep-busq','buscarRepos')" style="flex-shrink:0;padding:7px 10px;border-radius:var(--radius-sm);border:1.5px solid #C7D2FE;background:#EEF2FF;color:#3730A3;cursor:pointer;font-size:12px"><i class="ti ti-barcode"></i></button></div>
@@ -292,7 +293,8 @@ textarea{resize:none;font-family:inherit}
       <div class="fr">
         <div class="fg"><div class="fl">Ref. compra (proveedor)</div><input type="text" id="rep-ref" placeholder="Ej: REF-450, código proveedor..."></div>
         <div class="fg"><div class="fl">Proveedor</div><div style="display:flex;gap:6px"><select id="rep-prov" style="flex:1"></select><button type="button" class="sec-btn" style="width:auto;padding:0 14px" onclick="finForm('prov')">+</button></div></div>
-        <div class="fr"><div class="fg"><div class="fl">Forma de pago</div><select id="rep-forma" onchange="compraForma('rep')"><option value="">Selecciona...</option><option value="Mano">Efectivo en mano</option><option value="Efectivo">Efectivo (caja)</option><option value="Banco">Banco</option><option value="Credito">A credito (por pagar)</option></select></div><div class="fg" id="rep-ctaw" style="display:none"><div class="fl">Cuenta</div><select id="rep-cta"></select></div></div>
+        <div class="fr"><div class="fg"><div class="fl">Forma de pago</div><select id="rep-forma" onchange="compraForma('rep')"><option value="">Selecciona...</option><option value="Mano">Efectivo en mano</option><option value="Efectivo">Efectivo (caja)</option><option value="Banco">Banco</option><option value="Credito">A credito (por pagar)</option><option value="Mixto">Pago mixto (mano, caja, banco, credito)</option></select></div><div class="fg" id="rep-ctaw" style="display:none"><div class="fl">Cuenta</div><select id="rep-cta"></select></div></div>
+        <div id="rep-mixto" style="display:none;flex-direction:column;gap:6px;background:var(--bg-secondary);border-radius:8px;padding:8px"><div style="font-size:10px;color:var(--text-secondary)">Reparte el total entre las formas de pago. El banco se completa solo con lo que falte; la cuenta se elige arriba.</div><div class="fr"><div class="fg"><div class="fl">Efectivo en mano $</div><input type="number" id="rep-m-em" min="0" oninput="compraMixtoCalc('rep',this)"></div><div class="fg"><div class="fl">Efectivo de caja $</div><input type="number" id="rep-m-ef" min="0" oninput="compraMixtoCalc('rep',this)"></div></div><div class="fr"><div class="fg"><div class="fl">Banco $</div><input type="number" id="rep-m-b" min="0" oninput="compraMixtoCalc('rep',this)"></div><div class="fg"><div class="fl">A credito $</div><input type="number" id="rep-m-cr" min="0" oninput="compraMixtoCalc('rep',this)"></div></div><div id="rep-m-info" style="font-size:11px;font-weight:600"></div></div>
       </div>
       <div id="rep-total-blq" style="display:none;background:var(--bg-primary);border-radius:var(--radius-sm);padding:7px 10px;font-size:11px">
         Total compra: <strong style="color:var(--orange)" id="rep-total">$0.00</strong>
@@ -553,7 +555,7 @@ textarea{resize:none;font-family:inherit}
   </div>
 
   <div id="s-finanzas" class="screen">
-    <div style="font-size:9px;color:var(--text-secondary);text-align:right">Version v42</div>
+    <div style="font-size:9px;color:var(--text-secondary);text-align:right">Version v44</div>
     <div class="fr" style="align-items:flex-end">
       <div class="fg"><div class="fl">Saldos al</div><input type="date" id="f-corte"></div>
       <button class="add-btn" onclick="finRender()"><i class="ti ti-search"></i>Consultar</button>
@@ -688,7 +690,8 @@ textarea{resize:none;font-family:inherit}
       <div class="fr">
         <div class="fg"><div class="fl">Ref. compra (proveedor)</div><input type="text" id="np-ref" placeholder="Ej: REF-450, código proveedor..."></div>
         <div class="fg"><div class="fl">Proveedor</div><div style="display:flex;gap:6px"><select id="np-prov" style="flex:1"></select><button type="button" class="sec-btn" style="width:auto;padding:0 14px" onclick="finForm('prov')">+</button></div></div>
-        <div class="fr"><div class="fg"><div class="fl">Forma de pago</div><select id="np-forma" onchange="compraForma('np')"><option value="">Selecciona...</option><option value="Mano">Efectivo en mano</option><option value="Efectivo">Efectivo (caja)</option><option value="Banco">Banco</option><option value="Credito">A credito (por pagar)</option></select></div><div class="fg" id="np-ctaw" style="display:none"><div class="fl">Cuenta</div><select id="np-cta"></select></div></div>
+        <div class="fr"><div class="fg"><div class="fl">Forma de pago</div><select id="np-forma" onchange="compraForma('np')"><option value="">Selecciona...</option><option value="Mano">Efectivo en mano</option><option value="Efectivo">Efectivo (caja)</option><option value="Banco">Banco</option><option value="Credito">A credito (por pagar)</option><option value="Mixto">Pago mixto (mano, caja, banco, credito)</option></select></div><div class="fg" id="np-ctaw" style="display:none"><div class="fl">Cuenta</div><select id="np-cta"></select></div></div>
+        <div id="np-mixto" style="display:none;flex-direction:column;gap:6px;background:var(--bg-secondary);border-radius:8px;padding:8px"><div style="font-size:10px;color:var(--text-secondary)">Reparte el total entre las formas de pago. El banco se completa solo con lo que falte; la cuenta se elige arriba.</div><div class="fr"><div class="fg"><div class="fl">Efectivo en mano $</div><input type="number" id="np-m-em" min="0" oninput="compraMixtoCalc('np',this)"></div><div class="fg"><div class="fl">Efectivo de caja $</div><input type="number" id="np-m-ef" min="0" oninput="compraMixtoCalc('np',this)"></div></div><div class="fr"><div class="fg"><div class="fl">Banco $</div><input type="number" id="np-m-b" min="0" oninput="compraMixtoCalc('np',this)"></div><div class="fg"><div class="fl">A credito $</div><input type="number" id="np-m-cr" min="0" oninput="compraMixtoCalc('np',this)"></div></div><div id="np-m-info" style="font-size:11px;font-weight:600"></div></div>
       </div>
       <button class="add-btn" onclick="agregarProd()"><i class="ti ti-plus"></i>Agregar producto</button>
       <div class="toast tok" id="t-prod">OK Producto guardado correctamente en la nube</div>
@@ -929,6 +932,29 @@ textarea{resize:none;font-family:inherit}
   </div>
 </div>
 
+<!-- MODAL FACTURA DE COMPRA -->
+<div class="modal-bg" id="m-factura" style="z-index:998">
+  <div class="modal" style="max-height:94vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div class="mt">Compra por factura</div>
+      <button onclick="cerrarModal('m-factura')" style="background:none;border:none;cursor:pointer;color:var(--text-secondary);font-size:18px"><i class="ti ti-x"></i></button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div class="fg"><div class="fl">N° de factura o referencia (opcional)</div><input type="text" id="fac-ref"></div>
+      <div class="fg"><div class="fl">Proveedor</div><div style="display:flex;gap:6px"><select id="fac-prov" style="flex:1"></select><button type="button" class="sec-btn" style="width:auto;padding:0 14px" onclick="finForm('prov')">+</button></div></div>
+      <div class="fg"><div class="fl">Agregar producto</div>
+        <div style="display:flex;gap:6px;align-items:center"><div class="sw" style="flex:1"><i class="ti ti-search"></i><input type="text" id="fac-busq" placeholder="Nombre, codigo o marca..." oninput="facBuscar()"></div><button onclick="iniciarScannerGenerico('fac-busq','facBuscar')" style="flex-shrink:0;padding:7px 10px;border-radius:var(--radius-sm);border:1.5px solid #C7D2FE;background:#EEF2FF;color:#3730A3;cursor:pointer;font-size:12px;font-weight:600"><i class="ti ti-qrcode"></i></button></div>
+        <div id="fac-res" style="display:none;background:var(--bg-primary);border:1px solid var(--border-light);border-radius:8px;max-height:220px;overflow-y:auto"></div>
+      </div>
+      <div id="fac-items" style="display:flex;flex-direction:column;gap:6px"></div>
+      <div id="fac-total" style="font-size:14px;font-weight:700;text-align:right">Total factura $0.00</div>
+      <div class="fr"><div class="fg"><div class="fl">Forma de pago</div><select id="fac-forma" onchange="compraForma('fac')"><option value="">Selecciona...</option><option value="Mano">Efectivo en mano</option><option value="Efectivo">Efectivo (caja)</option><option value="Banco">Banco</option><option value="Credito">A credito (por pagar)</option><option value="Mixto">Pago mixto (mano, caja, banco, credito)</option></select></div><div class="fg" id="fac-ctaw" style="display:none"><div class="fl">Cuenta</div><select id="fac-cta"></select></div></div>
+      <div id="fac-mixto" style="display:none;flex-direction:column;gap:6px;background:var(--bg-secondary);border-radius:8px;padding:8px"><div style="font-size:10px;color:var(--text-secondary)">Reparte el total de la factura entre las formas de pago. El banco se completa solo con lo que falte; la cuenta se elige arriba.</div><div class="fr"><div class="fg"><div class="fl">Efectivo en mano $</div><input type="number" id="fac-m-em" min="0" oninput="compraMixtoCalc('fac',this)"></div><div class="fg"><div class="fl">Efectivo de caja $</div><input type="number" id="fac-m-ef" min="0" oninput="compraMixtoCalc('fac',this)"></div></div><div class="fr"><div class="fg"><div class="fl">Banco $</div><input type="number" id="fac-m-b" min="0" oninput="compraMixtoCalc('fac',this)"></div><div class="fg"><div class="fl">A credito $</div><input type="number" id="fac-m-cr" min="0" oninput="compraMixtoCalc('fac',this)"></div></div><div id="fac-m-info" style="font-size:11px;font-weight:600"></div></div>
+      <button class="add-btn" onclick="registrarFactura()"><i class="ti ti-check"></i>Registrar factura</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL CAJA -->
 <div class="modal-bg" id="m-caja">
   <div class="modal">
@@ -1023,7 +1049,7 @@ async function apiCall(params) {
   for(let n=1;n<=intentos;n++){
     try{
       let res;
-      if(params.action==='appendBatch'||params.action==='appendMulti'){
+      if(params.action==='appendBatch'||params.action==='appendMulti'||params.action==='updateMulti'){
         const formData = new FormData();
         Object.entries(params).forEach(([k,v])=>formData.append(k,v));
         res = await fetch(API, {method:'POST', body: formData});
@@ -2578,7 +2604,8 @@ async function agregarProd(){
   const pv=parseFloat(document.getElementById('np-pv').value)||0;
   const ref=document.getElementById('np-ref').value.trim();
   const prov=document.getElementById('np-prov').value.trim();
-  const cp=compraLeer('np'); if(!cp.ok) return;
+  const cp=compraTotal('np')>0?compraLeer('np'):{ok:true,forma:'',cta:''};
+  if(!cp.ok) return;
   if(!n||!pv){alert('Nombre y precio de venta son obligatorios');return;}
   // -- Validación duplicado: Nombre + Marca + Talla + Género --
   const duplicado=inventario.find(p=>
@@ -2613,7 +2640,7 @@ async function agregarProd(){
       const hora=ahora.getHours().toString().padStart(2,'0')+':'+ahora.getMinutes().toString().padStart(2,'0');
       const totComp=s*pc;
       const idc='K'+Date.now().toString().slice(-7);
-      try{await escribeCompra([fecha,hora,id,n,ref||'',prov||'',s,pc.toFixed(2).replace('.',','),totComp.toFixed(2).replace('.',','),_est,cp.forma,cp.cta,idc],cp,totComp,prov,idc,fecha,hora,n);}catch(e){if(_w){try{_w.close();}catch(x){}}throw e;}
+      try{await escribeCompra([fecha,hora,id,n,ref||'',prov||'',s,pc.toFixed(2).replace('.',','),totComp.toFixed(2).replace('.',','),_est,cp.forma,cp.cta,idc,cp.detalle||''],cp,totComp,prov,idc,fecha,hora,n);}catch(e){if(_w){try{_w.close();}catch(x){}}throw e;}
     }
     etqAutoImprimir(_w,[{p:np,qty:s}]);
     ['np-n','np-m','np-tc','np-c','np-s','np-pc','np-pv','np-ref','np-prov','np-forma','np-cta'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
@@ -2725,7 +2752,7 @@ async function registrarRepos(){
   const hora=ahora.getHours().toString().padStart(2,'0')+':'+ahora.getMinutes().toString().padStart(2,'0');
   const totComp=qty*costoFinal;
   const idc='K'+Date.now().toString().slice(-7);
-  try{await escribeCompra([fecha,hora,p.id,p.nombre,refFinal,prov,qty,costoFinal.toFixed(2).replace('.',','),totComp.toFixed(2).replace('.',','),_est,cp.forma,cp.cta,idc],cp,totComp,prov,idc,fecha,hora,p.nombre);}catch(e){if(_w){try{_w.close();}catch(x){}}throw e;}
+  try{await escribeCompra([fecha,hora,p.id,p.nombre,refFinal,prov,qty,costoFinal.toFixed(2).replace('.',','),totComp.toFixed(2).replace('.',','),_est,cp.forma,cp.cta,idc,cp.detalle||''],cp,totComp,prov,idc,fecha,hora,p.nombre);}catch(e){if(_w){try{_w.close();}catch(x){}}throw e;}
   etqAutoImprimir(_w,[{p:p,qty:qty}]);
   // Update local state
   p.stock=nuevoStock;
@@ -4232,7 +4259,7 @@ function fHora(){const d=new Date();return d.getHours().toString().padStart(2,'0
 function esc(s){return String(s===undefined||s===null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function h(t,c,x,st){const e=document.createElement(t);if(c)e.className=c;if(x!==undefined)e.textContent=x;if(st)e.style.cssText=st;return e;}
 
-console.log('BabyFe v42');
+console.log('BabyFe v44');
 const FIN_DESDE=20261001;
 let finErr=[];
 let finCtas=[],finMov=[],finPre=[],finPag=[],finVtas=[],finListo=false;
@@ -4295,7 +4322,7 @@ async function finLoad(extra,liviano,basico){
   finMov=rows(o.Mov_Banco).map(x=>({id:String(x.r[0]),h:x.r[2],f:fk(x.r[1]),cta:String(x.r[3]),tipo:String(x.r[4]),conc:String(x.r[5]||''),monto:toNum(x.r[6]),ref:String(x.r[7]||''),ri:x.ri}));
   finPre=rows(o.Prestamos).map(x=>({id:String(x.r[0]),f:fk(x.r[1]),dir:String(x.r[2]),persona:String(x.r[3]),monto:toNum(x.r[4]),cuotas:parseInt(x.r[5])||1,notas:String(x.r[7]||''),ri:x.ri}));
   finPag=rows(o.Pagos_Prestamo).map(x=>({f:fk(x.r[0]),pid:String(x.r[2]),cuota:x.r[3],monto:toNum(x.r[4]),forma:String(x.r[5]||''),ref:String(x.r[6]||''),ri:x.ri}));
-  finCred=Array.isArray(o.Compras)?o.Compras.slice(1).filter(r=>r[0]&&String(r[10])==='Credito').map(r=>({prov:String(r[5]||'Sin proveedor').trim(),f:fk(r[0]),total:toNum(r[8])})):[];
+  finCred=Array.isArray(o.Compras)?o.Compras.slice(1).filter(r=>r[0]&&credDe(r)>0.009).map(r=>({prov:String(r[5]||'Sin proveedor').trim(),f:fk(r[0]),total:credDe(r)})):[];
   finPagP=rows(o.Pagos_Proveedor).map(x=>({f:fk(x.r[0]),prov:String(x.r[2]).trim(),monto:toNum(x.r[3]),forma:String(x.r[4]||''),ref:String(x.r[5]||''),ri:x.ri}));
   if(!liviano){
     finVtas=agVentas(o.Ventas);
@@ -4329,7 +4356,7 @@ async function finCtasCaja(){
   sel.value=v;
 }
 function pintaProvs(sel){
-  ['rep-prov','np-prov'].forEach(id=>{
+  ['rep-prov','np-prov','fac-prov'].forEach(id=>{
     const s=document.getElementById(id); if(!s) return;
     const v=sel||s.value; s.innerHTML='';
     const o0=document.createElement('option');o0.value='';o0.textContent='Selecciona proveedor';s.appendChild(o0);
@@ -4596,7 +4623,7 @@ async function expRango(){
   const wb=XLSX.utils.book_new(),per=fFmt(a)+' al '+fFmt(b);
   const R=[['BabyFe - Reporte administrativo'],['Periodo: '+per],[],
     ['VENTAS',''],['Ventas brutas',bruto],['(-) Descuentos',-desc],['Ventas netas',neto],['Cobrado en efectivo',ef],['Cobrado por transferencia',tr],['Ajuste (debe ser 0)',neto-(bruto-desc)],['Transacciones',vts.length],[],
-    ['COMPRAS (informativo, no resta de la utilidad)',''],['Compras del periodo',totComp],['  de las cuales a credito',sum(cps.filter(r=>r[10]==='Credito'),r=>toNum(r[8]))],[],
+    ['COMPRAS (informativo, no resta de la utilidad)',''],['Compras del periodo',totComp],['  de las cuales a credito',sum(cps,r=>credDe(r))],[],
     ['UTILIDAD',''],['Ventas netas',neto],['(-) Costo de ventas',-costo],['Utilidad bruta',ubruta],['(-) Gastos',-gasto],['(-) Gastos bancarios',-gBanco],['(+) Ingresos extra',ingx],['UTILIDAD NETA',unet],[],
     ['EFECTIVO',''],['Efectivo contado en el ultimo cierre'+(ult?' ('+fFmt(fk(ult[0]))+')':' (sin cierre registrado)'),efCaja],['Retiros de caja del periodo (depositos y prestamos en efectivo; negativo = entra)',ret],[],
     ['BANCOS',''],...bancos.map(x=>[x[0],x[4]]),['Total bancos',totBancos],['Efectivo en mano',em],[],
@@ -4604,7 +4631,7 @@ async function expRango(){
     ['POSICION NETA (caja + mano + bancos + CxC - CxP)',efCaja+totBancos+em+tCxc-tCxp]];
   const wr=XLSX.utils.aoa_to_sheet(R);wr['!cols']=[{wch:62},{wch:16}];XLSX.utils.book_append_sheet(wb,wr,'Resumen');
   hoja(wb,'Ventas','Ventas '+per,['Fecha','ID Venta','Cliente','Bruto','Descuento','Neto','Efectivo','Transferencia','Costo'],vts.map(v=>[fFmt(v.f),v.id,v.cli,v.bruto,v.desc,v.neto,v.ef,v.tr,v.costo]),[3,4,5,6,7,8],[11,10,18,10,10,10,10,13,10]);
-  hoja(wb,'Compras','Compras '+per,['Fecha','Codigo','Producto','Proveedor','Cantidad','Total','Forma de pago'],cps.map(r=>[fFmt(fk(r[0])),r[2],r[3],r[5]||'',toNum(r[6]),toNum(r[8]),r[10]==='Mano'?'Efectivo en mano':(r[10]||'')]),[4,5],[11,9,28,16,9,10,14]);
+  hoja(wb,'Compras','Compras '+per,['Fecha','Codigo','Producto','Proveedor','Cantidad','Total','Forma de pago'],cps.map(r=>[fFmt(fk(r[0])),r[2],r[3],r[5]||'',toNum(r[6]),toNum(r[8]),formaTxtCompra(r)]),[4,5],[11,9,28,16,9,10,14]);
   hoja(wb,'Efectivo','Movimientos de caja '+per,['Fecha','Tipo','Concepto','Monto'],gs.map(r=>[fFmt(fk(r[0])),r[2],r[3],toNum(r[4])]),[3],[11,10,40,10]);
   hoja(wb,'Bancos','Bancos y efectivo en mano '+per,['Cuenta','Saldo inicial','Entradas','Salidas','Saldo final'],bancos.concat([['Efectivo en mano',emIni,emIn,emOut,em]]),[1,2,3,4],[22,13,12,12,13]);
   hoja(wb,'Mov Bancos','Movimientos bancarios '+per,['Fecha','Cuenta','Tipo','Concepto','Monto'],movR.map(m=>({f:m.f,r:[fFmt(m.f),nom(m.cta),m.tipo,m.conc,m.monto]})).concat(vts.filter(v=>v.tr>0.009).map(v=>{const c=finCtas.find(x=>vtaEnCta(v,x));return c?{f:v.f,r:[fFmt(v.f),c.nombre,'Transferencia venta','Venta '+v.id+(v.cli?' - '+v.cli:''),v.tr]}:null;}).filter(Boolean)).sort((x,y)=>x.f-y.f).map(o=>o.r),[4],[11,18,16,34,10]);
@@ -4632,22 +4659,14 @@ let provs=[],finCred=[],finPagP=[];
 
 async function cargarMaestros(){
   await Promise.all([cargarProveedores(),cargarCtasVenta()]);
-  ['rep','np'].forEach(p=>{
+  ['rep','np','fac'].forEach(p=>{
     const s=document.getElementById(p+'-cta'); if(!s) return; const v=s.value; s.innerHTML='';
     ctasVenta.forEach(c=>{const o=document.createElement('option');o.value=c.id;o.textContent=c.nombre;s.appendChild(o);});
     s.value=v;
   });
 }
-function compraForma(p){
-  const w=document.getElementById(p+'-ctaw'); if(w) w.style.display=document.getElementById(p+'-forma').value==='Banco'?'flex':'none';
-}
-function compraLeer(p){
-  const forma=document.getElementById(p+'-forma').value,cta=document.getElementById(p+'-cta').value,prov=document.getElementById(p+'-prov').value.trim();
-  if(!forma){alert('Selecciona la forma de pago');return {ok:false};}
-  if(forma==='Banco'&&!cta){alert('Selecciona la cuenta bancaria');return {ok:false};}
-  if(forma==='Credito'&&!prov){alert('Selecciona el proveedor para una compra a credito');return {ok:false};}
-  return {ok:true,forma:forma,cta:forma==='Banco'?cta:''};
-}
+
+
 async function compraPago(cp,total,prov,idc,fecha,hora,desc){
   const c='Compra '+desc+(prov?' - '+prov:'');
   if(cp.forma==='Efectivo') return sheetAppend('Gastos',[fecha,hora,'Retiro',c+' ['+idc+']',n2(total)]);
@@ -4684,13 +4703,7 @@ function finMovFila(forma,signo,monto,conc,ref,fecha,tipo){
   if(forma==='EF') return ['Gastos',[fecha,fHora(),'Retiro',conc+' ['+ref+']',n2(-signo*monto)]];
   return ['Mov_Banco',[ref+'m',fecha,fHora(),forma,tipo||'Prestamo',conc,n2(signo*monto),ref]];
 }
-async function escribeCompra(row,cp,total,prov,idc,fecha,hora,desc){
-  const c='Compra '+desc+(prov?' - '+prov:''),o={Compras:[row]};
-  if(cp.forma==='Efectivo') o.Gastos=[[fecha,hora,'Retiro',c+' ['+idc+']',n2(total)]];
-  if(cp.forma==='Mano') o.Mov_Banco=[[idc+'m',fecha,hora,'EM','Pago a proveedor',c,n2(-total),idc]];
-  if(cp.forma==='Banco') o.Mov_Banco=[[idc+'m',fecha,hora,cp.cta,'Pago a proveedor',c,n2(-total),idc]];
-  return escribeVarias(o);
-}
+
 
 function hh(x){const s=String(x===undefined||x===null?'':x).trim();return /^\d{1,2}:\d{2}/.test(s)?s.padStart(5,'0').slice(0,5):'';}
 function finOpcionesExtracto(){
@@ -4839,11 +4852,213 @@ function etqPrueba(){
 etqCargarUI();
 
 // ===================================================
+// COMPRAS CON PAGO MIXTO (mano, caja, banco, credito)
+// ===================================================
+function compraTotal(p){
+  if(p==='fac') return facTotal();
+  if(p==='rep'){
+    const q=parseInt(document.getElementById('rep-qty').value)||0,c=parseFloat(document.getElementById('rep-costo').value)||0;
+    const pr=(reposProdIdx!==null&&inventario[reposProdIdx])?inventario[reposProdIdx]:null;
+    return q*(c||(pr?pr.costo:0));
+  }
+  return (parseInt(document.getElementById('np-s').value)||0)*(parseFloat(document.getElementById('np-pc').value)||0);
+}
+function compraMixtoCalc(p,el){
+  const g=k=>document.getElementById(p+'-m-'+k),info=document.getElementById(p+'-m-info');
+  if(!g('b')||!info||document.getElementById(p+'-forma').value!=='Mixto') return;
+  const t=compraTotal(p),v=k=>Math.max(0,parseFloat(g(k).value)||0);
+  if(el&&el.id===p+'-m-b') g('b').dataset.manual='1';
+  else if(g('b').dataset.manual!=='1'){const resto=t-v('em')-v('ef')-v('cr');g('b').value=resto>0.004?(Math.round(resto*100)/100):'';}
+  const suma=v('em')+v('ef')+v('b')+v('cr'),falta=t-suma;
+  info.style.color=Math.abs(falta)<=0.01?'#166534':'#b91c1c';
+  info.textContent='Total $'+t.toFixed(2)+' . Asignado $'+suma.toFixed(2)+(Math.abs(falta)<=0.01?' . Listo':' . Falta $'+falta.toFixed(2));
+}
+function compraForma(p){
+  const f=document.getElementById(p+'-forma').value,w=document.getElementById(p+'-ctaw'),m=document.getElementById(p+'-mixto');
+  if(w) w.style.display=(f==='Banco'||f==='Mixto')?'flex':'none';
+  if(m) m.style.display=f==='Mixto'?'flex':'none';
+  if(f!=='Mixto'){
+    ['em','ef','b','cr'].forEach(k=>{const e=document.getElementById(p+'-m-'+k);if(e){e.value='';delete e.dataset.manual;}});
+    const i=document.getElementById(p+'-m-info'); if(i) i.textContent='';
+  } else compraMixtoCalc(p,null);
+}
+function compraLeer(p){
+  const forma=document.getElementById(p+'-forma').value,cta=document.getElementById(p+'-cta').value,prov=document.getElementById(p+'-prov').value.trim();
+  if(!forma){alert('Selecciona la forma de pago');return {ok:false};}
+  if(forma==='Mixto'){
+    const t=compraTotal(p),v=k=>Math.max(0,parseFloat(document.getElementById(p+'-m-'+k).value)||0);
+    const q={em:v('em'),ef:v('ef'),b:v('b'),cr:v('cr')},suma=q.em+q.ef+q.b+q.cr;
+    if(!(t>0)){alert('Primero ingresa la cantidad y el costo de la compra');return {ok:false};}
+    if(Math.abs(suma-t)>0.01){alert('El pago mixto suma $'+suma.toFixed(2)+' y la compra es $'+t.toFixed(2)+'. Debe coincidir.');return {ok:false};}
+    if(q.b>0&&!cta){alert('Selecciona la cuenta bancaria');return {ok:false};}
+    if(q.cr>0&&!prov){alert('Selecciona el proveedor para la parte a credito');return {ok:false};}
+    return {ok:true,forma:'Mixto',cta:q.b>0?cta:'',partes:q,detalle:'EM:'+n2(q.em)+'|EF:'+n2(q.ef)+'|B:'+n2(q.b)+'|CR:'+n2(q.cr)};
+  }
+  if(forma==='Banco'&&!cta){alert('Selecciona la cuenta bancaria');return {ok:false};}
+  if(forma==='Credito'&&!prov){alert('Selecciona el proveedor para una compra a credito');return {ok:false};}
+  return {ok:true,forma:forma,cta:forma==='Banco'?cta:''};
+}
+
+// parte a credito de una compra (formas Credito o Mixto) y texto de la forma de pago para el reporte
+function credDe(r){
+  const f=String(r[10]||'');
+  if(f==='Credito') return toNum(r[8]);
+  if(f!=='Mixto') return 0;
+  const m=String(r[13]||'').match(/CR:([0-9.,-]+)/);
+  return m?toNum(m[1]):0;
+}
+function formaTxtCompra(r){
+  const f=String(r[10]||'');
+  if(f==='Mano') return 'Efectivo en mano';
+  if(f!=='Mixto') return f;
+  if(!String(r[13]||'').trim()) return 'Mixto';
+  const et={EM:'mano',EF:'caja',B:'banco',CR:'credito'},partes=[];
+  String(r[13]||'').split('|').forEach(x=>{const a=x.split(':');if(a.length===2&&toNum(a[1])>0.009) partes.push((et[a[0]]||a[0])+' '+toNum(a[1]).toFixed(2));});
+  return 'Mixto ('+partes.join(', ')+')';
+}
+document.addEventListener('input',function(e){
+  const id=e.target&&e.target.id;
+  if(id&&/^(rep-(qty|costo)|np-(s|pc))$/.test(id)) compraMixtoCalc(id.split('-')[0],null);
+});
+
+// ===================================================
+// COMPRA POR FACTURA: varios productos y un solo pago (puede ser mixto)
+// ===================================================
+let facItems=[];
+async function actualizarProductos(lista){
+  const r=await apiCall({action:'updateMulti',sheet:'Productos',items:JSON.stringify(lista)});
+  if(r&&r.status==='ok') return true;
+  // respaldo si el script aun no tiene updateMulti: de 3 en 3
+  for(let i=0;i<lista.length;i+=3){
+    const res=await Promise.all(lista.slice(i,i+3).map(x=>apiCall({action:'update',sheet:'Productos',rowIndex:x.rowIndex,row:JSON.stringify(x.row)})));
+    if(res.some(x=>!x||x.error)) return false;
+  }
+  return true;
+}
+function pagosCompra(cp,total,prov,idc,fecha,hora,desc){
+  const c='Compra '+desc+(prov?' - '+prov:''),o={};
+  if(cp.forma==='Efectivo') o.Gastos=[[fecha,hora,'Retiro',c+' ['+idc+']',n2(total)]];
+  if(cp.forma==='Mano') o.Mov_Banco=[[idc+'m',fecha,hora,'EM','Pago a proveedor',c,n2(-total),idc]];
+  if(cp.forma==='Banco') o.Mov_Banco=[[idc+'m',fecha,hora,cp.cta,'Pago a proveedor',c,n2(-total),idc]];
+  if(cp.forma==='Mixto'){
+    const q=cp.partes,mv=[];
+    if(q.ef>0) o.Gastos=[[fecha,hora,'Retiro',c+' (caja) ['+idc+']',n2(q.ef)]];
+    if(q.em>0) mv.push([idc+'e',fecha,hora,'EM','Pago a proveedor',c+' (mano)',n2(-q.em),idc]);
+    if(q.b>0) mv.push([idc+'b',fecha,hora,cp.cta,'Pago a proveedor',c+' (banco)',n2(-q.b),idc]);
+    if(mv.length) o.Mov_Banco=mv;
+  }
+  return o;
+}
+async function escribeCompra(row,cp,total,prov,idc,fecha,hora,desc){
+  return escribeVarias(Object.assign({Compras:[row]},pagosCompra(cp,total,prov,idc,fecha,hora,desc)));
+}
+function facTotal(){return facItems.reduce((s,it)=>s+(it.qty||0)*(it.costo||0),0);}
+function facTotales(){
+  const n=facItems.reduce((s,it)=>s+(it.qty||0),0);
+  document.getElementById('fac-total').textContent='Total factura $'+facTotal().toFixed(2)+' ('+facItems.length+' productos, '+n+' unidades)';
+  compraMixtoCalc('fac',null);
+}
+function facRender(){
+  const c=document.getElementById('fac-items'); c.innerHTML='';
+  facItems.forEach((it,i)=>{
+    const p=inventario.find(x=>x.id===it.id); if(!p) return;
+    const card=h('div','',undefined,'background:var(--bg-secondary);border-radius:8px;padding:8px;display:flex;flex-direction:column;gap:6px');
+    const top=h('div','',undefined,'display:flex;justify-content:space-between;gap:6px;align-items:flex-start');
+    const t=h('div','',undefined,'flex:1;min-width:0');
+    t.appendChild(h('div','',p.nombre+(p.talla?' . '+p.talla:''),'font-size:11px;font-weight:700'));
+    t.appendChild(h('div','',p.id+' . stock actual '+p.stock,'font-size:9px;color:var(--text-secondary)'));
+    const x=h('button','del-btn','x'); x.addEventListener('click',()=>{facItems.splice(i,1);facRender();});
+    top.appendChild(t); top.appendChild(x);
+    const row=h('div','',undefined,'display:flex;gap:8px;align-items:flex-end');
+    const tot=h('div','',undefined,'min-width:70px;text-align:right;font-size:12px;font-weight:700');
+    const upd=()=>{tot.textContent='$'+((it.qty||0)*(it.costo||0)).toFixed(2);facTotales();};
+    const mk=(lbl,val,step,fn)=>{
+      const w=h('div','',undefined,'flex:1'); w.appendChild(h('div','fl',lbl));
+      const inp=document.createElement('input'); inp.type='number'; inp.min='0'; inp.step=step; inp.value=val;
+      inp.addEventListener('input',()=>fn(inp)); w.appendChild(inp); return w;
+    };
+    row.appendChild(mk('Cantidad',it.qty,'1',inp=>{it.qty=parseInt(inp.value)||0;upd();}));
+    row.appendChild(mk('Costo unit. $',it.costo,'0.01',inp=>{it.costo=parseFloat(inp.value)||0;upd();}));
+    tot.textContent='$'+((it.qty||0)*(it.costo||0)).toFixed(2); row.appendChild(tot);
+    card.appendChild(top); card.appendChild(row); c.appendChild(card);
+  });
+  if(!facItems.length) c.appendChild(h('div','','Agrega los productos de la factura con la busqueda o el escaner','font-size:11px;color:var(--text-secondary);text-align:center;padding:8px'));
+  facTotales();
+}
+function facAgregar(p){
+  const e=facItems.find(x=>x.id===p.id);
+  if(e) e.qty+=1; else facItems.push({id:p.id,qty:1,costo:p.costo||0});
+  facRender();
+}
+function facBuscar(){
+  const inp=document.getElementById('fac-busq'),raw=inp.value,q=norm(raw),res=document.getElementById('fac-res');
+  if(!q){res.style.display='none';return;}
+  const exacto=inventario.find(p=>String(p.id).toLowerCase()===raw.trim().toLowerCase());
+  if(exacto){facAgregar(exacto);inp.value='';res.style.display='none';return;}
+  const ws=q.split(' ').filter(w=>w.length>0),f=inventario.filter(p=>ws.every(w=>(p._search||'').includes(w))).slice(0,8);
+  res.innerHTML=''; res.style.display='block';
+  if(!f.length){res.appendChild(h('div','','No se encontraron productos. Si es nuevo, crealo primero en Producto nuevo.','padding:8px;font-size:11px;color:var(--text-secondary)'));return;}
+  f.forEach(p=>{
+    const d=h('div','',undefined,'padding:8px 4px;cursor:pointer;border-bottom:1px solid var(--border-light)');
+    d.appendChild(h('div','',p.nombre+(p.talla?' . '+p.talla:''),'font-size:11px;font-weight:700'));
+    d.appendChild(h('div','',p.id+' . '+(p.marca||'')+' . stock '+p.stock+' . costo $'+Number(p.costo).toFixed(2),'font-size:10px;color:var(--text-secondary)'));
+    d.addEventListener('click',()=>{facAgregar(p);inp.value='';res.style.display='none';});
+    res.appendChild(d);
+  });
+}
+function facAbrir(){
+  facItems=[];
+  ['fac-ref','fac-busq'].forEach(id=>{document.getElementById(id).value='';});
+  document.getElementById('fac-res').style.display='none';
+  document.getElementById('fac-forma').value=''; compraForma('fac');
+  facRender(); abrirModal('m-factura'); cargarMaestros();
+}
+async function registrarFactura(){
+  if(rol!=='admin') return;
+  const items=facItems.filter(it=>it.qty>0);
+  if(!items.length){alert('Agrega al menos un producto con cantidad');return;}
+  const lista=[];
+  for(const it of items){
+    const p=inventario.find(x=>x.id===it.id),costo=it.costo||(p?p.costo:0);
+    if(!p||!(costo>0)||!prodRowMap[p.id]){alert('Revisa el producto '+(p?p.nombre:it.id)+': falta el costo o no se encontro en la hoja');return;}
+    lista.push({p:p,qty:it.qty,costo:costo});
+  }
+  const cp=compraLeer('fac'); if(!cp.ok) return;
+  const prov=document.getElementById('fac-prov').value.trim(),ref=document.getElementById('fac-ref').value.trim();
+  const total=lista.reduce((s,x)=>s+x.qty*x.costo,0),unidades=lista.reduce((s,x)=>s+x.qty,0);
+  const _w=etqAutoVentana(unidades),_est=_w?'Impreso':'Pendiente';
+  showSync('Registrando factura...');
+  const ahora=new Date(),fecha=ahora.getDate()+'/'+(ahora.getMonth()+1)+'/'+ahora.getFullYear();
+  const hora=ahora.getHours().toString().padStart(2,'0')+':'+ahora.getMinutes().toString().padStart(2,'0');
+  const idc='K'+Date.now().toString().slice(-7);
+  const cambios=lista.map(x=>({rowIndex:prodRowMap[x.p.id],row:[x.p.id,x.p.nombre,x.p.marca,x.p.genero||'Unisex',x.p.talla||'',x.p.caract,x.p.stock+x.qty,x.costo,x.p.precio,x.p.icon,ref||x.p.refCompra||'']}));
+  if(!(await actualizarProductos(cambios))){
+    if(_w){try{_w.close();}catch(e){}}
+    alert('No se pudo actualizar el stock en la hoja. No se registro la factura; revisa la conexion e intenta de nuevo.');
+    return;
+  }
+  const filas=lista.map((x,i)=>[fecha,hora,x.p.id,x.p.nombre,ref||x.p.refCompra||'',prov,x.qty,x.costo.toFixed(2).replace('.',','),(x.qty*x.costo).toFixed(2).replace('.',','),_est,cp.forma,cp.cta,idc,i===0?(cp.detalle||''):'']);
+  try{
+    await escribeVarias(Object.assign({Compras:filas},pagosCompra(cp,total,prov,idc,fecha,hora,'factura '+(ref||idc))));
+  }catch(e){
+    if(_w){try{_w.close();}catch(x){}}
+    lista.forEach(x=>{x.p.stock+=x.qty;x.p.costo=x.costo;});
+    updMetrics();renderInv();
+    alert('El stock SI se actualizo, pero no se pudo guardar la compra y su pago. Revisa la hoja Compras antes de repetir: '+(ref||idc)+' por $'+total.toFixed(2));
+    return;
+  }
+  lista.forEach(x=>{x.p.stock+=x.qty;x.p.costo=x.costo;if(ref) x.p.refCompra=ref;});
+  etqAutoImprimir(_w,lista.map(x=>({p:x.p,qty:x.qty})));
+  facItems=[]; cerrarModal('m-factura'); updMetrics(); renderInv();
+  showSync('OK Factura registrada: '+lista.length+' productos, '+unidades+' unidades, $'+total.toFixed(2));
+}
+
+// ===================================================
 // PROTECCION CONTRA DOBLE CLIC: bloquea el boton y muestra "Procesando..."
 // ===================================================
 (function(){
-  const nombres=['finRender','finExtracto','finExtractoExcel','registrarVenta','guardarEditVenta','anularVenta','guardarCli','confirmarInicio','confirmarFin','cerrarCajaFecha','registrarRetiro','registrarMovimiento','agregarProd','registrarRepos','cambiarPin','guardarEditProd','registrarConteoItem','aplicarAjustes','ajustarConteo','ejecutarReset','importarInventario','marcarComoImpreso','limpiarConteoSheet','finDel','expRango'];
-  const soloAdmin=['finExtracto','finExtractoExcel','finForm','finGuardar','finDel','finRender','expRango','registrarRetiro','registrarRepos','cerrarCajaFecha','agregarProd','guardarEditProd','ejecutarReset','cambiarPin','importarInventario','aplicarAjustes','limpiarConteoSheet','ajustarConteo'];
+  const nombres=['registrarFactura','finRender','finExtracto','finExtractoExcel','registrarVenta','guardarEditVenta','anularVenta','guardarCli','confirmarInicio','confirmarFin','cerrarCajaFecha','registrarRetiro','registrarMovimiento','agregarProd','registrarRepos','cambiarPin','guardarEditProd','registrarConteoItem','aplicarAjustes','ajustarConteo','ejecutarReset','importarInventario','marcarComoImpreso','limpiarConteoSheet','finDel','expRango'];
+  const soloAdmin=['registrarFactura','facAbrir','finExtracto','finExtractoExcel','finForm','finGuardar','finDel','finRender','expRango','registrarRetiro','registrarRepos','cerrarCajaFecha','agregarProd','guardarEditProd','ejecutarReset','cambiarPin','importarInventario','aplicarAjustes','limpiarConteoSheet','ajustarConteo'];
   soloAdmin.forEach(function(n){
     const f=window[n]; if(typeof f!=='function') return;
     window[n]=function(){ if(rol!=='admin') return; return f.apply(this,arguments); };
