@@ -397,6 +397,11 @@ textarea{resize:none;font-family:inherit}
           <div class="fg"><div class="fl">Concepto</div><input type="text" id="mov-concepto" placeholder="Ej: Pago de luz, Transporte..."></div>
           <div class="fg"><div class="fl">Monto $</div><input type="number" id="mov-monto" placeholder="0.00" min="0"></div>
         </div>
+        <div class="fr">
+          <div class="fg"><div class="fl" id="mov-origen-l">&iquest;De d&oacute;nde sale el dinero?</div>
+            <select id="mov-origen" onchange="movOrigen()"><option value="">Selecciona...</option><option value="CAJA">Efectivo de caja</option><option value="EM">Efectivo en mano</option><option value="BANCO">Banco / transferencia</option></select></div>
+          <div class="fg" id="mov-ctaw" style="display:none"><div class="fl">Cuenta</div><select id="mov-cta"></select></div>
+        </div>
         <button class="add-btn" style="background:var(--red)" id="mov-btn" onclick="registrarMovimiento()"><i class="ti ti-plus"></i>Registrar gasto</button>
         <div class="toast tok" id="t-mov">OK Movimiento registrado correctamente</div>
         <div class="toast terr" id="t-mov-err">Ingresa concepto y monto válido</div>
@@ -555,7 +560,7 @@ textarea{resize:none;font-family:inherit}
   </div>
 
   <div id="s-finanzas" class="screen">
-    <div style="font-size:9px;color:var(--text-secondary);text-align:right">Version v44</div>
+    <div style="font-size:9px;color:var(--text-secondary);text-align:right">Version v46</div>
     <div class="fr" style="align-items:flex-end">
       <div class="fg"><div class="fl">Saldos al</div><input type="date" id="f-corte"></div>
       <button class="add-btn" onclick="finRender()"><i class="ti ti-search"></i>Consultar</button>
@@ -586,6 +591,13 @@ textarea{resize:none;font-family:inherit}
       <div class="fr"><div class="fg"><div class="fl">Desde</div><input type="date" id="x-desde"></div><div class="fg"><div class="fl">Hasta</div><input type="date" id="x-hasta"></div></div>
       <div class="fr"><button class="sec-btn" onclick="finExtracto()"><i class="ti ti-list-details"></i>Ver extracto</button><button class="sec-btn" onclick="finExtractoExcel()"><i class="ti ti-file-spreadsheet"></i>Descargar Excel</button></div>
       <div id="x-res"></div>
+    </div>
+    <div class="slabel">Utilidad real por mes (lo vendido)</div>
+    <div class="card" style="padding:10px;display:flex;flex-direction:column;gap:8px">
+      <div style="font-size:10px;color:var(--text-secondary);line-height:1.4">Ventas menos el costo de lo que se vendio, menos los gastos. Las compras de mercaderia, los retiros, depositos, prestamos y pagos a proveedores no se restan.</div>
+      <div class="fr"><div class="fg"><div class="fl">Desde (mes)</div><input type="month" id="um-desde"></div><div class="fg"><div class="fl">Hasta (mes)</div><input type="month" id="um-hasta"></div></div>
+      <div class="fr"><button class="sec-btn" onclick="finUtilMensual()"><i class="ti ti-chart-bar"></i>Ver utilidad</button><button class="sec-btn" onclick="finUtilMensualExcel()"><i class="ti ti-file-spreadsheet"></i>Descargar Excel</button></div>
+      <div id="um-res"></div>
     </div>
     <div class="slabel">Prestamos</div>
     <div class="card" id="f-pres"></div>
@@ -2290,6 +2302,20 @@ async function generarEDR(){
     });
   }
 
+  // -- Gastos e ingresos extra pagados o cobrados por banco o en mano --
+  const movBanco = await sheetRead('Mov_Banco');
+  if(Array.isArray(movBanco)&&movBanco.length>1){
+    const k1=fkIn(fi),k2=fkIn(ff);
+    movBanco.slice(1).forEach(r=>{
+      if(!r[1]) return;
+      const k=fk(r[1]),t=String(r[4]),m=toNum(r[6]);
+      if(k>=k1&&k<=k2){
+        if(t==='Gasto'||t==='Comision') totGastos+=Math.abs(m);
+        else if(t==='Ingreso extra') totIngExtra+=m;
+      }
+    });
+  }
+
   // -- Leer Compras --
   const comprasData = await sheetRead('Compras');
   let totCompras=0;
@@ -2529,29 +2555,11 @@ function selTipoMov(tipo){
     btnG.classList.remove('pay-active');btnG.style.background='';btnG.style.color='';btnG.style.borderColor='';
     btn.style.background='var(--green)';btn.innerHTML='<i class="ti ti-plus"></i>Registrar ingreso';
   }
+  const l=document.getElementById('mov-origen-l');
+  if(l) l.innerHTML=tipo==='Gasto'?'&iquest;De d&oacute;nde sale el dinero?':'&iquest;C&oacute;mo entra el dinero?';
 }
 
-async function registrarMovimiento(){
-  const tipo=document.getElementById('mov-tipo').value;
-  const concepto=document.getElementById('mov-concepto').value.trim();
-  const monto=parseFloat(document.getElementById('mov-monto').value);
-  if(!concepto||isNaN(monto)||monto<=0){showT('t-mov-err');return;}
-  const ahora=new Date();
-  const fecha=ahora.getDate()+'/'+(ahora.getMonth()+1)+'/'+ahora.getFullYear();
-  const hora=ahora.getHours().toString().padStart(2,'0')+':'+ahora.getMinutes().toString().padStart(2,'0');
-  showSync('Guardando movimiento...');
-  const res=await sheetAppend('Gastos',[fecha,hora,tipo,concepto,monto.toFixed(2).replace('.',',')]);
-  if(res&&res.status==='ok'){
-    movimientos.push({fecha,hora,tipo,concepto,monto});
-    document.getElementById('mov-concepto').value='';
-    document.getElementById('mov-monto').value='';
-    showT('t-mov');
-    renderMovimientos();
-    calcCaja();
-  } else {
-    showT('t-mov-err');
-  }
-}
+
 
 function renderMovimientos(){
   const lista=document.getElementById('mov-lista');
@@ -4259,7 +4267,7 @@ function fHora(){const d=new Date();return d.getHours().toString().padStart(2,'0
 function esc(s){return String(s===undefined||s===null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function h(t,c,x,st){const e=document.createElement(t);if(c)e.className=c;if(x!==undefined)e.textContent=x;if(st)e.style.cssText=st;return e;}
 
-console.log('BabyFe v44');
+console.log('BabyFe v46');
 const FIN_DESDE=20261001;
 let finErr=[];
 let finCtas=[],finMov=[],finPre=[],finPag=[],finVtas=[],finListo=false;
@@ -4271,6 +4279,8 @@ function finVaciar(){
   document.getElementById('f-diag').textContent='';
   document.getElementById('x-res').innerHTML='';
   document.getElementById('x-desde').value=fHoyIn();document.getElementById('x-hasta').value=fHoyIn();
+  (function(){const t=new Date(),ym=(y,m)=>y+'-'+String(m).padStart(2,'0');let dy=t.getFullYear(),dm=t.getMonth()+1-5;while(dm<1){dm+=12;dy--;}
+    const d=ym(dy,dm);document.getElementById('um-hasta').value=ym(t.getFullYear(),t.getMonth()+1);document.getElementById('um-desde').value=d<'2026-10'?'2026-10':d;document.getElementById('um-res').innerHTML='';})();
   ['f-movs','f-pres','f-pags','f-prov','f-pagp'].forEach(i=>{document.getElementById(i).innerHTML='';});
   const c=document.getElementById('f-ctas'); c.innerHTML='';
   c.appendChild(h('div','','Elige la fecha y presiona Consultar para cargar los saldos','font-size:11px;color:var(--text-secondary);padding:6px'));
@@ -4290,11 +4300,11 @@ function agVentas(data){
     if(!r[0]||!r[2]) return;
     const k=String(r[2]).trim();
     let v=m[k];
-    if(!v){v=m[k]={id:k,f:fk(r[0]),h:r[1],cli:r[13]||'',bruto:0,desc:0,neto:0,sef:0,str:0,costo:0};o.push(v);}
+    if(!v){v=m[k]={id:k,f:fk(r[0]),h:r[1],cli:r[13]||'',bruto:0,desc:0,neto:0,sef:0,str:0,costo:0,uds:0};o.push(v);}
     if(!v.banco&&r[14]) v.banco=String(r[14]).trim();
     v.bruto+=toNum(r[7]);v.desc+=toNum(r[9]);v.neto+=toNum(r[10]);v.sef+=toNum(r[11]);v.str+=toNum(r[12]);
-    const p=inventario.find(x=>x.id===r[3]);
-    v.costo+=(p?p.costo:0)*(parseInt(r[5])||1);
+    const q=parseInt(r[5])||1;
+    v.costo+=costoAl(String(r[3]).trim(),v.f)*q; v.uds+=q;
   });
   o.forEach(v=>{const s=v.sef+v.str;v.ef=s>0?v.neto*v.sef/s:v.neto;v.tr=s>0?v.neto*v.str/s:0;});
   return o;
@@ -4324,6 +4334,7 @@ async function finLoad(extra,liviano,basico){
   finPag=rows(o.Pagos_Prestamo).map(x=>({f:fk(x.r[0]),pid:String(x.r[2]),cuota:x.r[3],monto:toNum(x.r[4]),forma:String(x.r[5]||''),ref:String(x.r[6]||''),ri:x.ri}));
   finCred=Array.isArray(o.Compras)?o.Compras.slice(1).filter(r=>r[0]&&credDe(r)>0.009).map(r=>({prov:String(r[5]||'Sin proveedor').trim(),f:fk(r[0]),total:credDe(r)})):[];
   finPagP=rows(o.Pagos_Proveedor).map(x=>({f:fk(x.r[0]),prov:String(x.r[2]).trim(),monto:toNum(x.r[3]),forma:String(x.r[4]||''),ref:String(x.r[5]||''),ri:x.ri}));
+  finIndexarCostos(o.Compras);
   if(!liviano){
     finVtas=agVentas(o.Ventas);
   }
@@ -4354,6 +4365,7 @@ async function finCtasCaja(){
   const v=sel.value; sel.innerHTML='<option value="">Ninguna (otro destino)</option><option value="EM">Efectivo en mano (queda en mi poder)</option>';
   ctasVenta.forEach(c=>{const o=document.createElement('option');o.value=c.id;o.textContent=c.nombre;sel.appendChild(o);});
   sel.value=v;
+  llenaMovCta();
 }
 function pintaProvs(sel){
   ['rep-prov','np-prov','fac-prov'].forEach(id=>{
@@ -4603,7 +4615,7 @@ async function expRango(){
   const cps=dt(comp).filter(r=>en(fk(r[0]))),gs=dt(gas).filter(r=>en(fk(r[0])));
   const bruto=sum(vts,v=>v.bruto),desc=sum(vts,v=>v.desc),neto=sum(vts,v=>v.neto),ef=sum(vts,v=>v.ef),tr=sum(vts,v=>v.tr),costo=sum(vts,v=>v.costo);
   const totComp=sum(cps,r=>toNum(r[8]));
-  const gasto=sum(gs.filter(r=>r[2]==='Gasto'),r=>toNum(r[4])),ingx=sum(gs.filter(r=>r[2]==='Ingreso'),r=>toNum(r[4])),ret=sum(gs.filter(r=>r[2]==='Retiro'),r=>toNum(r[4]));
+  const gasto=sum(gs.filter(r=>r[2]==='Gasto'),r=>toNum(r[4])),ingx=sum(gs.filter(r=>r[2]==='Ingreso'),r=>toNum(r[4]))+sum(finMov.filter(m=>en(m.f)&&m.tipo==='Ingreso extra'),m=>m.monto),ret=sum(gs.filter(r=>r[2]==='Retiro'),r=>toNum(r[4]));
   const movR=finMov.filter(m=>en(m.f));
   const gBanco=-sum(movR.filter(m=>m.tipo==='Comision'||m.tipo==='Gasto'),m=>m.monto);
   const ubruta=neto-costo,unet=ubruta-gasto-gBanco+ingx;
@@ -4624,12 +4636,13 @@ async function expRango(){
   const R=[['BabyFe - Reporte administrativo'],['Periodo: '+per],[],
     ['VENTAS',''],['Ventas brutas',bruto],['(-) Descuentos',-desc],['Ventas netas',neto],['Cobrado en efectivo',ef],['Cobrado por transferencia',tr],['Ajuste (debe ser 0)',neto-(bruto-desc)],['Transacciones',vts.length],[],
     ['COMPRAS (informativo, no resta de la utilidad)',''],['Compras del periodo',totComp],['  de las cuales a credito',sum(cps,r=>credDe(r))],[],
-    ['UTILIDAD',''],['Ventas netas',neto],['(-) Costo de ventas',-costo],['Utilidad bruta',ubruta],['(-) Gastos',-gasto],['(-) Gastos bancarios',-gBanco],['(+) Ingresos extra',ingx],['UTILIDAD NETA',unet],[],
+    ['UTILIDAD',''],['Ventas netas',neto],['(-) Costo de ventas',-costo],['Utilidad bruta',ubruta],['(-) Gastos',-gasto],['(-) Gastos pagados por banco o en mano (incluye comisiones)',-gBanco],['(+) Ingresos extra',ingx],['UTILIDAD NETA (incluye ingresos extra)',unet],['UTILIDAD DE LO VENDIDO (ventas - costo vendido - gastos)',unet-ingx],[],
     ['EFECTIVO',''],['Efectivo contado en el ultimo cierre'+(ult?' ('+fFmt(fk(ult[0]))+')':' (sin cierre registrado)'),efCaja],['Retiros de caja del periodo (depositos y prestamos en efectivo; negativo = entra)',ret],[],
     ['BANCOS',''],...bancos.map(x=>[x[0],x[4]]),['Total bancos',totBancos],['Efectivo en mano',em],[],
     ['CUENTAS POR COBRAR (prestamos otorgados)',tCxc],['CUENTAS POR PAGAR (prestamos recibidos y compras a credito)',tCxp],[],
     ['POSICION NETA (caja + mano + bancos + CxC - CxP)',efCaja+totBancos+em+tCxc-tCxp]];
   const wr=XLSX.utils.aoa_to_sheet(R);wr['!cols']=[{wch:62},{wch:16}];XLSX.utils.book_append_sheet(wb,wr,'Resumen');
+  hojaUtilMensual(wb,utilMensual(Math.floor(a/100),Math.floor(b/100)));
   hoja(wb,'Ventas','Ventas '+per,['Fecha','ID Venta','Cliente','Bruto','Descuento','Neto','Efectivo','Transferencia','Costo'],vts.map(v=>[fFmt(v.f),v.id,v.cli,v.bruto,v.desc,v.neto,v.ef,v.tr,v.costo]),[3,4,5,6,7,8],[11,10,18,10,10,10,10,13,10]);
   hoja(wb,'Compras','Compras '+per,['Fecha','Codigo','Producto','Proveedor','Cantidad','Total','Forma de pago'],cps.map(r=>[fFmt(fk(r[0])),r[2],r[3],r[5]||'',toNum(r[6]),toNum(r[8]),formaTxtCompra(r)]),[4,5],[11,9,28,16,9,10,14]);
   hoja(wb,'Efectivo','Movimientos de caja '+per,['Fecha','Tipo','Concepto','Monto'],gs.map(r=>[fFmt(fk(r[0])),r[2],r[3],toNum(r[4])]),[3],[11,10,40,10]);
@@ -5054,11 +5067,160 @@ async function registrarFactura(){
 }
 
 // ===================================================
+// GASTOS E INGRESOS EXTRA: de donde sale o como entra el dinero
+// ===================================================
+function movOrigen(){
+  const v=document.getElementById('mov-origen').value;
+  document.getElementById('mov-ctaw').style.display=v==='BANCO'?'flex':'none';
+}
+function llenaMovCta(){
+  const s=document.getElementById('mov-cta'); if(!s) return;
+  const v=s.value; s.innerHTML='';
+  ctasVenta.forEach(c=>{const o=document.createElement('option');o.value=c.id;o.textContent=c.nombre;s.appendChild(o);});
+  if(v) s.value=v;
+}
+async function registrarMovimiento(){
+  const tipo=document.getElementById('mov-tipo').value;
+  const concepto=document.getElementById('mov-concepto').value.trim();
+  const monto=parseFloat(document.getElementById('mov-monto').value);
+  if(!concepto||isNaN(monto)||monto<=0){showT('t-mov-err');return;}
+  const origen=document.getElementById('mov-origen').value,cta=document.getElementById('mov-cta').value;
+  if(!origen){alert(tipo==='Gasto'?'Selecciona de donde sale el dinero':'Selecciona como entra el dinero');return;}
+  if(origen==='BANCO'&&!cta){alert('Selecciona la cuenta bancaria');return;}
+  const ahora=new Date();
+  const fecha=ahora.getDate()+'/'+(ahora.getMonth()+1)+'/'+ahora.getFullYear();
+  const hora=ahora.getHours().toString().padStart(2,'0')+':'+ahora.getMinutes().toString().padStart(2,'0');
+  showSync('Guardando movimiento...');
+  if(origen==='CAJA'){
+    const res=await sheetAppend('Gastos',[fecha,hora,tipo,concepto,monto.toFixed(2).replace('.',',')]);
+    if(!(res&&res.status==='ok')){showT('t-mov-err');return;}
+    movimientos.push({fecha,hora,tipo,concepto,monto});
+    renderMovimientos();
+    calcCaja();
+  } else {
+    const id='G'+Date.now().toString().slice(-7)+Math.floor(Math.random()*100),signo=tipo==='Gasto'?-1:1;
+    try{
+      await escribeVarias({Mov_Banco:[[id,fecha,hora,origen==='EM'?'EM':cta,tipo==='Gasto'?'Gasto':'Ingreso extra',concepto,n2(signo*monto),id]]});
+    }catch(e){showT('t-mov-err');return;}
+    const c=ctasVenta.find(x=>x.id===cta);
+    showSync('OK '+(tipo==='Gasto'?'Gasto':'Ingreso extra')+' registrado en '+(origen==='EM'?'Efectivo en mano':(c?c.nombre:'banco')));
+  }
+  document.getElementById('mov-concepto').value='';
+  document.getElementById('mov-monto').value='';
+  document.getElementById('mov-origen').value=''; movOrigen();
+  showT('t-mov');
+}
+
+// ===================================================
+// UTILIDAD REAL POR MES (lo vendido): ventas - costo de lo vendido - gastos
+// El costo de cada venta es el ultimo costo de compra registrado hasta la fecha de esa venta.
+// ===================================================
+let finCostoIdx={};
+function finIndexarCostos(comp){
+  finCostoIdx={};
+  if(!Array.isArray(comp)) return;
+  comp.slice(1).forEach(r=>{
+    if(!r[0]||!r[2]) return;
+    const c=toNum(r[7]); if(!(c>0)) return;
+    const id=String(r[2]).trim();
+    (finCostoIdx[id]=finCostoIdx[id]||[]).push({f:fk(r[0]),c:c});
+  });
+  Object.keys(finCostoIdx).forEach(id=>finCostoIdx[id].sort((a,b)=>a.f-b.f));
+}
+function costoAl(id,f){
+  const l=finCostoIdx[id];
+  if(l&&l.length){
+    let c=l[0].c;                                  // si la venta es anterior a toda compra registrada, el costo mas antiguo
+    for(let i=0;i<l.length;i++){ if(l[i].f<=f) c=l[i].c; else break; }
+    return c;
+  }
+  const p=inventario.find(x=>x.id===id); return p?p.costo:0;   // sin compras registradas: costo actual del producto
+}
+const MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+function mesTxt(m){return MESES[(m%100)-1]+' '+Math.floor(m/100);}
+function mesIn(s){const p=s.split('-');return (+p[0])*100+(+p[1]);}
+function utilMensual(m1,m2){
+  const M={},get=m=>M[m]||(M[m]={m:m,uds:0,neto:0,costo:0,gCaja:0,gBanco:0,ingx:0,compras:0}),mes=k=>Math.floor(k/100);
+  for(let m=m1;m<=m2;m=(m%100===12)?m+89:m+1) get(m);
+  finVtas.forEach(v=>{const m=mes(v.f);if(M[m]){M[m].uds+=v.uds;M[m].neto+=v.neto;M[m].costo+=v.costo;}});
+  (Array.isArray(finRaw.gas)?finRaw.gas.slice(1):[]).forEach(r=>{
+    if(!r[0]) return; const m=mes(fk(r[0])); if(!M[m]) return;
+    const t=String(r[2]),x=toNum(r[4]);
+    if(t==='Gasto') M[m].gCaja+=x; else if(t==='Ingreso') M[m].ingx+=x;    // los retiros no son gastos
+  });
+  finMov.forEach(mv=>{
+    const m=mes(mv.f); if(!M[m]) return;
+    if(mv.tipo==='Gasto'||mv.tipo==='Comision') M[m].gBanco+=Math.abs(mv.monto);
+    else if(mv.tipo==='Ingreso extra') M[m].ingx+=mv.monto;
+  });
+  (Array.isArray(finRaw.comp)?finRaw.comp.slice(1):[]).forEach(r=>{
+    if(!r[0]) return; const m=mes(fk(r[0])); if(M[m]) M[m].compras+=toNum(r[8]);
+  });
+  return Object.keys(M).map(Number).sort((a,b)=>a-b).map(k=>M[k]);
+}
+async function utilPreparar(){
+  if(rol!=='admin') return null;
+  const d=document.getElementById('um-desde').value,h2=document.getElementById('um-hasta').value;
+  if(!d||!h2||d>h2){alert('Elige el rango de meses');return null;}
+  if(!finListo||!Array.isArray(finRaw.gas)||!Array.isArray(finRaw.comp)) await finLoad(0,false);
+  return utilMensual(mesIn(d),mesIn(h2));
+}
+function lineaUM(a,b,neg,color){
+  const r=h('div','cj'); r.appendChild(h('span','',a,'font-size:11px;'+(neg?'font-weight:700':'color:var(--text-secondary)')));
+  r.appendChild(h('span','',b,'font-size:11px;'+(neg?'font-weight:700;':'')+(color?'color:'+color:''))); return r;
+}
+async function finUtilMensual(){
+  const res=document.getElementById('um-res'); res.innerHTML='';
+  const filas=await utilPreparar(); if(!filas) return;
+  const T={uds:0,neto:0,costo:0,gCaja:0,gBanco:0,ingx:0,compras:0};
+  const tarjeta=(titulo,f)=>{
+    const ub=f.neto-f.costo,gs=f.gCaja+f.gBanco,ut=ub-gs,mg=f.neto>0?ub/f.neto*100:0,col=ut>=0?'#166534':'#b91c1c';
+    const c=h('div','',undefined,'background:var(--bg-secondary);border-radius:8px;padding:8px;display:flex;flex-direction:column;gap:3px;margin-top:6px');
+    c.appendChild(lineaUM(titulo,m$(ut),true,col));
+    c.appendChild(lineaUM('Ventas netas',m$(f.neto)));
+    c.appendChild(lineaUM('(-) Costo de lo vendido',m$(-f.costo)));
+    c.appendChild(lineaUM('Utilidad bruta ('+mg.toFixed(1)+'%)',m$(ub)));
+    c.appendChild(lineaUM('(-) Gastos (caja '+m$(f.gCaja)+' . banco/mano '+m$(f.gBanco)+')',m$(-gs)));
+    c.appendChild(h('div','','Unidades vendidas '+f.uds+' . Compras del mes '+m$(f.compras)+' . Inventario nuevo '+m$(f.compras-f.costo)+' . Ingresos extra '+m$(f.ingx),'font-size:9px;color:var(--text-secondary);margin-top:2px'));
+    return c;
+  };
+  filas.forEach(f=>{res.appendChild(tarjeta(mesTxt(f.m),f));Object.keys(T).forEach(k=>{T[k]+=f[k];});});
+  if(filas.length>1) res.appendChild(tarjeta('TOTAL DEL PERIODO',T));
+}
+function hojaUtilMensual(wb,filas){
+  const enc=['Mes','Unidades vendidas','Ventas netas','Costo de lo vendido','Utilidad bruta','Margen bruto','Gastos (caja)','Gastos (banco o mano)','Total gastos','UTILIDAD DE LO VENDIDO','Ingresos extra','Utilidad con ingresos extra','Compras del mes (informativo)','Inventario nuevo (compras - costo vendido)'];
+  const aoa=[['Utilidad real por mes: ventas - costo de lo vendido - gastos'],['Costo de lo vendido = ultimo costo de compra registrado a la fecha de cada venta. Retiros, depositos, prestamos y pagos a proveedores no son gastos.'],[],enc];
+  const n=filas.length,r0=5,r1=4+n,rt=r1+1;
+  filas.forEach(f=>aoa.push([mesTxt(f.m),f.uds,f.neto,f.costo,null,null,f.gCaja,f.gBanco,null,null,f.ingx,null,f.compras,null]));
+  aoa.push(['TOTAL']);
+  const ws=XLSX.utils.aoa_to_sheet(aoa);
+  const cell=(L,r,fo,v,z)=>{const o={t:'n',f:fo,v:v};if(z)o.z=z;ws[L+r]=o;};
+  const tot={uds:0,neto:0,costo:0,gCaja:0,gBanco:0,ingx:0,compras:0};
+  filas.forEach(f=>Object.keys(tot).forEach(k=>{tot[k]+=f[k];}));
+  const deriv=(r,f)=>{
+    const ub=f.neto-f.costo,gs=f.gCaja+f.gBanco,ut=ub-gs;
+    cell('E',r,'C'+r+'-D'+r,ub); cell('F',r,'IF(C'+r+'=0,0,E'+r+'/C'+r+')',f.neto>0?ub/f.neto:0,'0.0%');
+    cell('I',r,'G'+r+'+H'+r,gs); cell('J',r,'E'+r+'-I'+r,ut); cell('L',r,'J'+r+'+K'+r,ut+f.ingx); cell('N',r,'M'+r+'-D'+r,f.compras-f.costo);
+  };
+  filas.forEach((f,i)=>deriv(r0+i,f));
+  [['B','uds'],['C','neto'],['D','costo'],['G','gCaja'],['H','gBanco'],['K','ingx'],['M','compras']].forEach(x=>cell(x[0],rt,'SUM('+x[0]+r0+':'+x[0]+r1+')',tot[x[1]]));
+  deriv(rt,tot);
+  ws['!ref']='A1:N'+rt;
+  ws['!cols']=[{wch:18},{wch:10},{wch:12},{wch:14},{wch:12},{wch:9},{wch:12},{wch:14},{wch:12},{wch:16},{wch:12},{wch:16},{wch:16},{wch:20}];
+  XLSX.utils.book_append_sheet(wb,ws,'Utilidad mensual');
+}
+async function finUtilMensualExcel(){
+  const filas=await utilPreparar(); if(!filas) return;
+  const wb=XLSX.utils.book_new(); hojaUtilMensual(wb,filas);
+  XLSX.writeFile(wb,'Utilidad_mensual_'+document.getElementById('um-desde').value+'_a_'+document.getElementById('um-hasta').value+'.xlsx');
+}
+
+// ===================================================
 // PROTECCION CONTRA DOBLE CLIC: bloquea el boton y muestra "Procesando..."
 // ===================================================
 (function(){
-  const nombres=['registrarFactura','finRender','finExtracto','finExtractoExcel','registrarVenta','guardarEditVenta','anularVenta','guardarCli','confirmarInicio','confirmarFin','cerrarCajaFecha','registrarRetiro','registrarMovimiento','agregarProd','registrarRepos','cambiarPin','guardarEditProd','registrarConteoItem','aplicarAjustes','ajustarConteo','ejecutarReset','importarInventario','marcarComoImpreso','limpiarConteoSheet','finDel','expRango'];
-  const soloAdmin=['registrarFactura','facAbrir','finExtracto','finExtractoExcel','finForm','finGuardar','finDel','finRender','expRango','registrarRetiro','registrarRepos','cerrarCajaFecha','agregarProd','guardarEditProd','ejecutarReset','cambiarPin','importarInventario','aplicarAjustes','limpiarConteoSheet','ajustarConteo'];
+  const nombres=['finUtilMensual','finUtilMensualExcel','registrarFactura','finRender','finExtracto','finExtractoExcel','registrarVenta','guardarEditVenta','anularVenta','guardarCli','confirmarInicio','confirmarFin','cerrarCajaFecha','registrarRetiro','registrarMovimiento','agregarProd','registrarRepos','cambiarPin','guardarEditProd','registrarConteoItem','aplicarAjustes','ajustarConteo','ejecutarReset','importarInventario','marcarComoImpreso','limpiarConteoSheet','finDel','expRango'];
+  const soloAdmin=['finUtilMensual','finUtilMensualExcel','registrarFactura','facAbrir','finExtracto','finExtractoExcel','finForm','finGuardar','finDel','finRender','expRango','registrarRetiro','registrarRepos','cerrarCajaFecha','agregarProd','guardarEditProd','ejecutarReset','cambiarPin','importarInventario','aplicarAjustes','limpiarConteoSheet','ajustarConteo'];
   soloAdmin.forEach(function(n){
     const f=window[n]; if(typeof f!=='function') return;
     window[n]=function(){ if(rol!=='admin') return; return f.apply(this,arguments); };
