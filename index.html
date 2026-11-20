@@ -560,7 +560,7 @@ textarea{resize:none;font-family:inherit}
   </div>
 
   <div id="s-finanzas" class="screen">
-    <div style="font-size:9px;color:var(--text-secondary);text-align:right">Version v46</div>
+    <div style="font-size:9px;color:var(--text-secondary);text-align:right">Version v47</div>
     <div class="fr" style="align-items:flex-end">
       <div class="fg"><div class="fl">Saldos al</div><input type="date" id="f-corte"></div>
       <button class="add-btn" onclick="finRender()"><i class="ti ti-search"></i>Consultar</button>
@@ -623,7 +623,7 @@ textarea{resize:none;font-family:inherit}
       <div class="slabel" style="margin:0">Impresion de etiquetas (este dispositivo)</div>
       <div class="fg"><div class="fl">Modo</div><select id="etq-modo"><option value="A4">Hoja A4 (4 x 10 etiquetas)</option><option value="ROLLO">Rollo termico (una etiqueta por pagina)</option></select></div>
       <div class="fr"><div class="fg"><div class="fl">Ancho de etiqueta (mm)</div><input type="number" id="etq-w" value="50"></div><div class="fg"><div class="fl">Alto de etiqueta (mm)</div><input type="number" id="etq-h" value="30"></div></div>
-      <label style="font-size:11px;display:flex;gap:6px;align-items:center"><input type="checkbox" id="etq-auto" style="width:auto"> Imprimir automaticamente al ingresar productos o reposiciones (solo rollo)</label>
+      <label style="font-size:11px;display:flex;gap:6px;align-items:center"><input type="checkbox" id="etq-auto" style="width:auto"> No preguntar: imprimir siempre en rollo al ingresar productos (solo rollo)</label>
       <div class="fr"><button class="sec-btn" onclick="etqGuardarUI()">Guardar</button><button class="sec-btn" onclick="etqPrueba()">Etiqueta de prueba</button></div>
     </div>
     <div class="slabel">Gestión de PINs</div>
@@ -896,7 +896,8 @@ textarea{resize:none;font-family:inherit}
     </div>
 
     <!-- Acciones -->
-    <button class="add-btn" style="background:#3730A3" onclick="imprimirCola()"><i class="ti ti-printer"></i> Imprimir cola</button>
+    <div class="fg"><div class="fl">Imprimir en</div><select id="cola-modo"><option value="A4">Hoja A4 (40 etiquetas por hoja)</option><option value="ROLLO">Rollo de etiquetas (una por etiqueta)</option></select></div>
+ <button class="add-btn" style="background:#3730A3" onclick="imprimirCola()"><i class="ti ti-printer"></i> Imprimir cola</button>
   </div>
 </div>
 
@@ -963,6 +964,20 @@ textarea{resize:none;font-family:inherit}
       <div class="fr"><div class="fg"><div class="fl">Forma de pago</div><select id="fac-forma" onchange="compraForma('fac')"><option value="">Selecciona...</option><option value="Mano">Efectivo en mano</option><option value="Efectivo">Efectivo (caja)</option><option value="Banco">Banco</option><option value="Credito">A credito (por pagar)</option><option value="Mixto">Pago mixto (mano, caja, banco, credito)</option></select></div><div class="fg" id="fac-ctaw" style="display:none"><div class="fl">Cuenta</div><select id="fac-cta"></select></div></div>
       <div id="fac-mixto" style="display:none;flex-direction:column;gap:6px;background:var(--bg-secondary);border-radius:8px;padding:8px"><div style="font-size:10px;color:var(--text-secondary)">Reparte el total de la factura entre las formas de pago. El banco se completa solo con lo que falte; la cuenta se elige arriba.</div><div class="fr"><div class="fg"><div class="fl">Efectivo en mano $</div><input type="number" id="fac-m-em" min="0" oninput="compraMixtoCalc('fac',this)"></div><div class="fg"><div class="fl">Efectivo de caja $</div><input type="number" id="fac-m-ef" min="0" oninput="compraMixtoCalc('fac',this)"></div></div><div class="fr"><div class="fg"><div class="fl">Banco $</div><input type="number" id="fac-m-b" min="0" oninput="compraMixtoCalc('fac',this)"></div><div class="fg"><div class="fl">A credito $</div><input type="number" id="fac-m-cr" min="0" oninput="compraMixtoCalc('fac',this)"></div></div><div id="fac-m-info" style="font-size:11px;font-weight:600"></div></div>
       <button class="add-btn" onclick="registrarFactura()"><i class="ti ti-check"></i>Registrar factura</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PREGUNTA DE ETIQUETAS -->
+<div class="modal-bg" id="m-etq-pregunta" style="z-index:1000">
+  <div class="modal">
+    <div class="mt"><i class="ti ti-tag"></i> Etiquetas de precio</div>
+    <div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px">Se van a registrar <b id="etq-preg-n">0</b> etiquetas. &iquest;Qu&eacute; deseas hacer?</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button class="add-btn" style="background:#166534" onclick="etqElegir('ROLLO')"><i class="ti ti-printer"></i>Imprimir ahora en rollo de etiquetas</button>
+      <button class="add-btn" style="background:#3730A3" onclick="etqElegir('A4')"><i class="ti ti-file"></i>Imprimir ahora en hoja A4 (40 por hoja)</button>
+      <button class="sec-btn" onclick="etqElegir('COLA')"><i class="ti ti-inbox"></i>Enviar a la cola de impresi&oacute;n</button>
+      <button class="sec-btn" onclick="etqElegir('CANCELAR')">Cancelar y no registrar</button>
     </div>
   </div>
 </div>
@@ -2632,7 +2647,8 @@ async function agregarProd(){
     });
     return;
   }
-  const _w=etqAutoVentana(s),_est=_w?'Impreso':'Pendiente';
+  const _e=await etqPreguntar(s); if(!_e) return;
+  const _w=_e.win,_est=_e.estado;
   showSync('Guardando producto en la nube...');
   const id='BF'+String(++prodId).padStart(3,'0');
   const row=[id,n,m,g,talla,c,s,pc,pv,'ti-tag',ref];
@@ -2650,7 +2666,7 @@ async function agregarProd(){
       const idc='K'+Date.now().toString().slice(-7);
       try{await escribeCompra([fecha,hora,id,n,ref||'',prov||'',s,pc.toFixed(2).replace('.',','),totComp.toFixed(2).replace('.',','),_est,cp.forma,cp.cta,idc,cp.detalle||''],cp,totComp,prov,idc,fecha,hora,n);}catch(e){if(_w){try{_w.close();}catch(x){}}throw e;}
     }
-    etqAutoImprimir(_w,[{p:np,qty:s}]);
+    etqImprimirAhora(_e,[{p:np,qty:s}]);
     ['np-n','np-m','np-tc','np-c','np-s','np-pc','np-pv','np-ref','np-prov','np-forma','np-cta'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
     compraForma('np');
     document.getElementById('np-t').value='';
@@ -2747,7 +2763,8 @@ async function registrarRepos(){
   const nuevoStock=p.stock+qty;
   const rowIdx=prodRowMap[p.id];
   if(!rowIdx){showT('t-repos-err');return;}
-  const _w=etqAutoVentana(qty),_est=_w?'Impreso':'Pendiente';
+  const _e=await etqPreguntar(qty); if(!_e) return;
+  const _w=_e.win,_est=_e.estado;
   showSync('Actualizando stock en la nube...');
   const costoFinal=costo||p.costo;
   const refFinal=ref||p.refCompra||'';
@@ -2761,7 +2778,7 @@ async function registrarRepos(){
   const totComp=qty*costoFinal;
   const idc='K'+Date.now().toString().slice(-7);
   try{await escribeCompra([fecha,hora,p.id,p.nombre,refFinal,prov,qty,costoFinal.toFixed(2).replace('.',','),totComp.toFixed(2).replace('.',','),_est,cp.forma,cp.cta,idc,cp.detalle||''],cp,totComp,prov,idc,fecha,hora,p.nombre);}catch(e){if(_w){try{_w.close();}catch(x){}}throw e;}
-  etqAutoImprimir(_w,[{p:p,qty:qty}]);
+  etqImprimirAhora(_e,[{p:p,qty:qty}]);
   // Update local state
   p.stock=nuevoStock;
   if(costo>0) p.costo=costoFinal;
@@ -3523,6 +3540,7 @@ function actualizarBadgeCola(){
 }
 
 function abrirColaEtiquetas(){
+  document.getElementById('cola-modo').value=etqCfg().modo;
   document.getElementById('cola-busq').value = '';
   document.getElementById('cola-busq-res').style.display = 'none';
   renderColaEtiquetas();
@@ -3635,7 +3653,7 @@ function imprimirCola(){
   // Mark pendientes as printed
   const ids = items.map(x=>x.id).filter(id=>comprasRowMap[id]&&comprasRowMap[id].length);
   if(ids.length) marcarComoImpreso(ids);
-  imprimirEtiquetasRapido(items);
+  imprimirEtiquetasRapido(items,null,document.getElementById('cola-modo').value);
 }
 
 // Legacy functions kept for compatibility
@@ -3645,11 +3663,11 @@ function abrirSeleccionEtiquetas(){ abrirColaEtiquetas(); }
 function abrirReimpresion(){ abrirColaEtiquetas(); }
 
 
-function imprimirEtiquetasRapido(items){
-  if(etqCfg().modo==='ROLLO'){
+function imprimirEtiquetasRapido(items,ventana,modo){
+  if((modo||etqCfg().modo)==='ROLLO'){
     const lst=items.map(it=>({p:inventario.find(x=>x.id===it.id),qty:it.qty})).filter(x=>x.p&&x.qty>0);
     if(!lst.length) return;
-    const w=window.open('','_blank');
+    const w=ventana||window.open('','_blank');
     if(!w){alert('Permite las ventanas emergentes en tu navegador para imprimir.');return;}
     etqRolloEscribir(w,lst);
     return;
@@ -3730,7 +3748,7 @@ function imprimirEtiquetasRapido(items){
     };
   <\/script></body></html>`;
   
-  const win=window.open('','_blank');
+  const win=ventana||window.open('','_blank');
   if(win){win.document.write(html);win.document.close();}
   else alert('Permite las ventanas emergentes en tu navegador para imprimir.');
 }
@@ -4267,7 +4285,7 @@ function fHora(){const d=new Date();return d.getHours().toString().padStart(2,'0
 function esc(s){return String(s===undefined||s===null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function h(t,c,x,st){const e=document.createElement(t);if(c)e.className=c;if(x!==undefined)e.textContent=x;if(st)e.style.cssText=st;return e;}
 
-console.log('BabyFe v46');
+console.log('BabyFe v47');
 const FIN_DESDE=20261001;
 let finErr=[];
 let finCtas=[],finMov=[],finPre=[],finPag=[],finVtas=[],finListo=false;
@@ -5039,7 +5057,8 @@ async function registrarFactura(){
   const cp=compraLeer('fac'); if(!cp.ok) return;
   const prov=document.getElementById('fac-prov').value.trim(),ref=document.getElementById('fac-ref').value.trim();
   const total=lista.reduce((s,x)=>s+x.qty*x.costo,0),unidades=lista.reduce((s,x)=>s+x.qty,0);
-  const _w=etqAutoVentana(unidades),_est=_w?'Impreso':'Pendiente';
+  const _e=await etqPreguntar(unidades); if(!_e) return;
+  const _w=_e.win,_est=_e.estado;
   showSync('Registrando factura...');
   const ahora=new Date(),fecha=ahora.getDate()+'/'+(ahora.getMonth()+1)+'/'+ahora.getFullYear();
   const hora=ahora.getHours().toString().padStart(2,'0')+':'+ahora.getMinutes().toString().padStart(2,'0');
@@ -5061,7 +5080,7 @@ async function registrarFactura(){
     return;
   }
   lista.forEach(x=>{x.p.stock+=x.qty;x.p.costo=x.costo;if(ref) x.p.refCompra=ref;});
-  etqAutoImprimir(_w,lista.map(x=>({p:x.p,qty:x.qty})));
+  etqImprimirAhora(_e,lista.map(x=>({p:x.p,qty:x.qty})));
   facItems=[]; cerrarModal('m-factura'); updMetrics(); renderInv();
   showSync('OK Factura registrada: '+lista.length+' productos, '+unidades+' unidades, $'+total.toFixed(2));
 }
@@ -5213,6 +5232,37 @@ async function finUtilMensualExcel(){
   const filas=await utilPreparar(); if(!filas) return;
   const wb=XLSX.utils.book_new(); hojaUtilMensual(wb,filas);
   XLSX.writeFile(wb,'Utilidad_mensual_'+document.getElementById('um-desde').value+'_a_'+document.getElementById('um-hasta').value+'.xlsx');
+}
+
+// ===================================================
+// PREGUNTA AL REGISTRAR: imprimir etiquetas ahora (rollo o A4) o enviarlas a la cola
+// ===================================================
+let _etqPregRes=null;
+function etqPreguntar(cant){
+  const c=etqCfg();
+  if(!(cant>0)) return Promise.resolve({win:null,modo:'',estado:'Impreso'});
+  if(c.modo==='ROLLO'&&c.auto){const w=etqAutoVentana(cant);return Promise.resolve({win:w,modo:'ROLLO',estado:w?'Impreso':'Pendiente'});}
+  document.getElementById('etq-preg-n').textContent=cant;
+  abrirModal('m-etq-pregunta');
+  return new Promise(res=>{_etqPregRes=res;});
+}
+function etqElegir(opcion){
+  const res=_etqPregRes; _etqPregRes=null;
+  cerrarModal('m-etq-pregunta');
+  if(!res) return;
+  if(opcion==='CANCELAR') return res(null);
+  if(opcion==='COLA') return res({win:null,modo:'',estado:'Pendiente'});
+  const w=window.open('','_blank');   // se abre dentro del clic del usuario, asi el navegador no la bloquea
+  if(!w){alert('Permite las ventanas emergentes para imprimir ahora. Las etiquetas quedaran en la cola.');return res({win:null,modo:'',estado:'Pendiente'});}
+  try{w.document.write('<html><body style="font-family:Arial;padding:12px;color:#555">Preparando etiquetas...</body></html>');}catch(e){}
+  res({win:w,modo:opcion,estado:'Impreso'});
+}
+function etqImprimirAhora(e,items){
+  if(!e||!e.win) return;
+  try{
+    if(e.modo==='A4') imprimirEtiquetasRapido(items.map(x=>({id:x.p.id,qty:x.qty})),e.win,'A4');
+    else etqRolloEscribir(e.win,items);
+  }catch(err){try{e.win.close();}catch(x){}}
 }
 
 // ===================================================
